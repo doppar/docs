@@ -71,6 +71,40 @@ Keep in mind that any HTML forms targeting routes using the `POST`, `PUT`, `PATC
 </form>
 ```
 
+### Working with PUT, PATCH, DELETE Route
+In Doppar, when you need to handle `PUT`, `PATCH`, or `DELETE` requests (typically for updating or deleting data), you must follow a few conventions to make it work properly with HTML forms.
+
+### Using HTTP Verb Spoofing in Forms
+Since HTML forms only support GET and POST methods directly, Doppar provides Blade directives to spoof other HTTP methods like PUT, PATCH, and DELETE.
+
+Here’s how you do it in your form:
+```html
+<form method="POST" action="/update-profile">
+    @csrf
+    @method('PUT')    {{-- For PUT Request --}}
+    {{-- @method('PATCH')  For PATCH Request --}}
+    {{-- @method('DELETE') For DELETE Request --}}
+    <button type="submit">Submit</button>
+</form>
+```
+> Note: You must include @csrf for CSRF protection, and `@method('PUT')`, `@method('PATCH')`, or `@method('DELETE')` to spoof the request type.
+
+### Defining Routes in web.php
+Once your form is set up, define the corresponding route in your routes file `(routes/web.php)` like this:
+```php
+use App\Http\Controllers\ProfileController;
+
+// PUT Route
+Route::put('/update-profile', [ProfileController::class, 'updateProfile']);
+
+// PATCH Route
+Route::patch('/update-profile', [ProfileController::class, 'updateProfile']);
+
+// DELETE Route
+Route::delete('/user/{id}', [ProfileController::class, 'delete']);
+```
+
+- - -
 ### Route Parameters
 Sometimes you will need to capture segments of the URI within your route. For example, you may need to capture a user's ID from the URL. You may do so by defining route parameters:
 ```php
