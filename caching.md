@@ -21,6 +21,11 @@ Each driver can be configured in the `config/caching.php` file. You can switch d
 
 > 🛠️ You can define custom adapters and drivers to suit your infrastructure needs.
 
+Doppar provides a pool command to completely delete system cache like
+```bash
+php pool cache:clear
+```
+
 ### Basic Usage
 ####  Using the Cache Facade
 Doppar provides a convenient caching facade to make working with the cache system simple and expressive within your controllers, services, or any part of your application.
