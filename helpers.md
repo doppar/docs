@@ -402,10 +402,8 @@ debug('This is a debug message.'); // Logs a debug-level message
 ### collect()
 The `collect()` function is a helper designed to create a new instance of a Doppar Collection. It simplifies the process of creating and working with collections in your application. Collections allow you to work with arrays in a more expressive and fluent way, providing additional methods for filtering, transforming, and manipulating data.
 ```php
-// Create a new collection with an array of items
 $collection = collect([1, 2, 3, 4]); // Returns a Collection instance containing [1, 2, 3, 4]
 
-// Create an empty collection
 $emptyCollection = collect(); // Returns an empty []
 ```
 #### Example Usage
@@ -461,4 +459,213 @@ The `uuid()` function is a helper designed to generate a UUID v4 (Universally Un
 $uuid = str()->uuid();
 // or
 $uuid = uuid(); // Returns something like "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+```
+
+
+## String Helper function
+Doppar provides a collection of global string helper functions in PHP. While many of these functions are integral to the framework’s internal operations, they are also available for use in your own projects whenever they prove usefull. All the string function, you can access it via global `str()` function or you can use `Phaseolies\Support\Facades\Str` facades
+
+### mask()
+The `mask()` function is a helper designed to mask parts of a given string while keeping a specified number of characters visible at the start and the end. This can be useful for hiding sensitive information (like credit card numbers, emails, or phone numbers) while displaying a portion of it for the user to verify.
+```php
+use Phaseolies\Support\Facades\Str;
+
+// Mask a credit card number except for the last four digits
+$maskedCard = str()->mask('1234 5678 9876 5432', 4, 4, '*');
+$maskedCard = Str::mask('1234 5678 9876 5432', 4, 4, '*');
+
+// Mask a phone number except for the first three and last four digits
+$maskedPhone = str()->mask('123-456-7890', 3, 4, '#');
+$maskedPhone = Str::mask('123-456-7890', 3, 4, '#');
+```
+### Example
+Masking Credit Card Numbers: To display only the last 4 digits of a credit card number for security reasons, you can use the mask() function:
+```php
+$maskedCard = str()->mask('1234 5678 9876 5432', 4, 4); // Output: 1234 ******** 5432
+```
+Masking Phone Numbers: For masking a phone number except for the first 3 and last 4 digits:
+```php
+$maskedPhone = str()->mask('123-456-7890', 3, 4, '#'); // Output: 123-###-7890
+```
+Masking Email Addresses: To hide part of an email address except for the first and last characters:
+```php
+$maskedEmail = str()->mask('john.doe@example.com', 1, 1); // Output: j********e.com
+```
+
+### truncate()
+The `truncate()` function is a helper designed to truncate a string to a specified maximum length. If the string exceeds this length, it appends a suffix (such as ellipsis ...) to indicate that the string has been shortened.
+```php
+$shortDescription = str()->truncate('This is a long description that should be shortened for previews.', 30, '... Read More');
+$shortDescription = Str::truncate('This is a long description that should be shortened for previews.', 30, '... Read More');
+// Output: "This is a long description... Read More"
+```
+### snake()
+The `snake()` function is a helper designed to convert a camelCase string into a snake_case string. This is useful when you need to transform variable names, keys, or identifiers from camelCase (often used in programming) into snake_case (commonly used in database column names or URL routing).
+```php
+// Convert a camelCase string to snake_case
+$snakeString = str()->snake('camelCaseString'); // Output: 'camel_case_string'
+```
+### camel()
+The `camel()` function is a helper designed to convert a snake_case string into a camelCase string. This is useful when you need to transform variable names, keys, or identifiers from snake_case (commonly used in databases or file names) into camelCase (often used in programming languages like JavaScript and PHP for variable names).
+```php
+// Convert a snake_case string to camelCase
+$camelString = str()->camel('snake_case_string'); // Output: 'snakeCaseString'
+```
+
+### random()
+The `random()` function is a helper designed to generate a random alphanumeric string of a specified length. This is useful when you need to generate secure random tokens, passwords, or unique identifiers.
+```php
+// Generate a random alphanumeric string of default length 16
+$randomString = str()->random(); // Output: 'a1B2c3D4e5F6g7H8'
+
+// Generate a random alphanumeric string of a custom length (e.g., 8)
+$randomString = str()->random(8); // Output: 'Xy7GzH8Q'
+```
+### isPalindrome()
+The `isPalindrome()` function is a helper designed to check whether a given string is a palindrome. A palindrome is a word, phrase, or sequence that reads the same backward as forward (ignoring spaces, punctuation, and capitalization).
+```php
+// Check if a string is a palindrome
+$isPalindrome = str()->isPalindrome('racecar'); // Output: true
+
+// Check if a string is not a palindrome
+$isPalindrome = str()->isPalindrome('hello'); // Output: false
+```
+### countWord()
+The `countWord()` function is a helper designed to count the number of words in a given string. This is useful when you need to determine the word count of a sentence, paragraph, or any text input.
+```php
+// Count the number of words in a string
+$wordCount = str()->countWord('This is a test sentence.'); // Output: 5
+
+// Count the number of words in a string with punctuation
+$wordCount = str()->countWord('Hello, world!'); // Output: 2
+```
+
+### title()
+The `title()` function is a helper designed to convert a given string into title case, where the first letter of each word is capitalized, and the rest of the letters are in lowercase. This is commonly used for formatting titles or headings.
+```php
+// Convert a string to title case
+$title = str()->title("hello world"); // Returns "Hello World"
+```
+
+### slug()
+The `slug()` function is a helper designed to generate a URL-friendly slug from a given string. A slug is typically used in URLs, where spaces and special characters are replaced with hyphens (or another separator), and all letters are converted to lowercase.
+```php
+// Generate a URL-friendly slug
+$slug = str()->slug("Hello World!"); // Returns "hello-world"
+```
+
+The word separator used in the slug. By default, this is a hyphen (-), but you can specify another separator if needed.
+```php
+// Generate a URL-friendly slug with the default separator (hyphen)
+$slug = str()->slug("Hello World!"); // Returns "hello-world"
+
+// Generate a URL-friendly slug with a custom separator (underscore)
+$slug = str()->slug("Hello World!", '_'); // Returns "hello_world"
+```
+
+### contains()
+The `contains()` function is a helper designed to check if a given string (the haystack) contains another string (the needle), performing a case-insensitive search.
+```php
+// Check if a string contains another string (case-insensitive)
+$contains = str()->contains("Hello World", "world"); // Returns true
+```
+### limitWords()
+The `limitWords()` function is a helper designed to limit the number of words in a string. If the string contains more words than the specified limit, the function truncates the string and appends an optional ending suffix (such as ...).
+```php
+// Limit the number of words in a string
+$truncatedString = str()->limitWords("This is a test string", 3); // Returns "This is a..."
+```
+
+The function returns the truncated string with a specified number of words and the optional suffix. If the string has fewer words than the specified limit, it remains unchanged.
+```php
+$truncatedString = str()->limitWords("This is a test string", 3); // Returns "This is a..."
+
+$truncatedString = str()->limitWords("Hello there, how are you?", 2, '...more'); // Returns "Hello there...more"
+```
+
+### removeWhiteSpace()
+The `removeWhiteSpace()` function is a helper designed to remove all whitespace characters (spaces, tabs, newlines, etc.) from a given string. This is useful when you need to clean up strings for processing or formatting purposes
+```php
+$cleanedString = str()->removeWhiteSpace("Hello   World"); // Returns "HelloWorld"
+
+$cleanedString = str()->removeWhiteSpace("Hello \tWorld\n"); // Returns "HelloWorld"
+```
+
+## startsWith()
+The `startsWith()` function is a helper designed to check if a given string (the haystack) starts with another string (the needle). This check is case-sensitive.
+```php
+$startsWith = str()->startsWith("Hello World", "Hello"); // Returns true
+$startsWith = str()->startsWith("Hello World", "world"); // Returns false (case-sensitive)
+```
+
+### endsWith()
+The `endsWith()` function is a helper designed to check if a given string (the haystack) ends with another string (the needle). This check is case-sensitive.
+```php
+$endsWith = str()->endsWith("Hello World", "World"); // Returns true
+$endsWith = str()->endsWith("Hello World", "world"); // Returns false (case-sensitive)
+```
+
+### studly()
+The `studly()` function is a helper designed to convert a given string into StudlyCase (also known as PascalCase), where the first letter of each word is capitalized, and there are no spaces or underscores between words.
+```php
+$studlyString = str()->studly("hello_world"); // Returns "HelloWorld"
+
+$studlyString = str()->studly("convert_this_string_to_studly_case"); // Returns "ConvertThisStringToStudlyCase"
+```
+
+### reverse()
+The reverse() function is a helper designed to reverse the characters in a given string while correctly handling multi-byte characters (such as characters in non-Latin alphabets or special symbols). This ensures that characters are reversed properly, without corrupting multi-byte sequences.
+```php
+$reversedString = str()->reverse("Hello World"); // Returns "dlroW olleH"
+```
+
+### extractNumbers()
+The `extractNumbers()` function is a helper designed to extract all numeric digits from a given string. It removes any non-numeric characters, leaving only the digits.
+```php
+$numbers = str()->extractNumbers("Hello 123, World 456!"); // Returns "123456"
+
+$numbers = str()->extractNumbers("Price: $123.45, Discount: 10%"); // Returns "1234510"
+```
+
+### longestCommonSubstring()
+The `longestCommonSubstring()` function is a helper designed to find the longest common substring shared between two given strings. A common substring is a contiguous sequence of characters that appears in both strings.
+```php
+$commonSubstring = str()->longestCommonSubstring("hello world", "yellow world"); // Returns "llo world"
+
+$commonSubstring = str()->longestCommonSubstring("abcdef", "xyz"); // Returns ""
+
+$commonSubstring = str()->longestCommonSubstring("banana", "bandana"); // Returns "bana"
+```
+
+### leetSpeak()
+The `leetSpeak()` function is a helper designed to convert a given string into leetspeak (1337), a playful encoding style where certain letters are replaced with similar-looking numbers or symbols.
+```php
+$leetString = str()->leetSpeak("leet speak"); // Possible output: "l33t sp34k"
+
+$leetString = str()->leetSpeak("programming is fun"); // Possible output: "pr0gr4mm1ng 15 fun"
+```
+
+Common Leetspeak Replacements:
+```
+A -> 4   B -> 8   C -> (   E -> 3   G -> 6   H -> #
+I -> 1   L -> 1   O -> 0   S -> 5   T -> 7   Z -> 2
+```
+This function is great for fun text transformations, gaming usernames, or encoding messages in a way that is still somewhat readable.
+
+### extractEmails()
+The `extractEmails()` function is a helper designed to extract all email addresses from a given string. It scans the string for valid email formats and returns them as an array.
+```php
+$emails = str()->extractEmails("Contact us at support@example.com or sales@example.org");
+// Returns: ["support@example.com", "sales@example.org"]
+```
+
+### highlightKeyword()
+The `highlightKeyword()` function is a helper designed to highlight all occurrences of a specified keyword in a given string using HTML tags. This is useful for emphasizing search results, user input matches, or key terms in displayed content.
+```php
+$text = "Doppar is awesome. Learn Doppar now!";
+$highlighted = str()->highlightKeyword($text, "Doppar"); 
+// Returns: "<strong>Doppar</strong> is awesome. Learn <strong>Doppar</strong> now!"
+
+$highlighted = str()->highlightKeyword($text, "Doppar", "span class='highlight'"); 
+// Returns: "<span class='highlight'>Doppar</span> is awesome. Learn <span class='highlight'>Doppar</span> now!"
 ```
