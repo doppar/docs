@@ -113,3 +113,45 @@ Under the hood, Doppar uses the `\Phaseolies\Cache\CacheStore` class which imple
 $store = new \Phaseolies\Cache\CacheStore($adapter, 'my_prefix_');
 $store->set('custom_key', 'value', 300);
 ```
+
+### Fetch and Store With TTL
+To simplify caching logic and improve code readability, we've introduced expressive helpers: `stash`, `stashForever`, and `stashWhen`. These methods provide a clean, fluent way to cache data with fallbacks, time-to-live (TTL), and conditional storage.
+
+Each method wraps common cache usage patterns in a more descriptive and intuitive form—making your codebase easier to maintain and understand.
+
+Use stash() to retrieve a cached item by key. If it doesn’t exist, the given callback is executed, its result is cached for the specified TTL, and returned. Ideal for data that changes periodically but doesn't need to be fetched on every request.
+```php
+$users = Cache::stash('users_collection', 60, function () {
+    return User::all()->toArray();
+});
+```
+Parameters:
+- key (string): The cache key used to store the data.
+- ttl (int|DateInterval): Duration in seconds or interval the cache should be kept.
+- callback (Closure): A function that returns the value to cache if not already stored.
+
+Returns: The cached value
+
+### ### Fetch and Store Forever
+Use stashForever() when you want to cache a value indefinitely, until it is manually cleared. This is perfect for rarely changing or configuration-style data where expiration is unnecessary.
+```php
+$users = Cache::stashForever('users_collection', function () {
+    return User::all()->toArray();
+});
+```
+No expiration is set; data remains in the cache until cleared.
+
+### Conditional Caching
+The stashWhen() method is a powerful helper for caching data only when certain conditions are met. It gives you control over when caching should occur, rather than always caching by default.
+
+This is especially useful when caching should depend on runtime flags, environment settings, or request context.
+```php
+$result = Cache::stashWhen(
+    'user_'.$userId,
+    fn() => User::query()->newest()->get()->toArray(),
+    $shouldCache,  // boolean condition
+    3600          // optional TTL
+);
+```
+Perfect for situations where caching should only happen under specific conditions.
+
