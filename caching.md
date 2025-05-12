@@ -132,6 +132,8 @@ Parameters:
 
 Returns: The cached value
 
+> Remember: Cache will not work with Eloquent collection, you need to convert the collection to array, otherwise you will face unexpected response.
+
 ### ### Fetch and Store Forever
 Use stashForever() when you want to cache a value indefinitely, until it is manually cleared. This is perfect for rarely changing or configuration-style data where expiration is unnecessary.
 ```php
