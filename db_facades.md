@@ -151,4 +151,4 @@ $recentOrders = DB::executeView(
 | Views             | `executeView()`                | Query DB views with filters and bindings     |
 | Utilities         | `getTables()`, `tableExists()` | Explore schema                               |
 
-Doppar's DB Facade provides all the raw SQL power you need while preserving the developer-friendly syntax you love. Would you like code examples with error handling or debugging tips next?
+Doppar's DB Facade provides all the raw SQL power you need while preserving the developer-friendly syntax you love.
