@@ -1,0 +1,235 @@
+---
+title: Service Container
+description: Doppar Service Container page
+meta:
+  - name: keywords
+    content: Service Container
+---
+
+## Service Container
+### Introduction
+The Doppar Service Container is a robust and versatile tool designed to streamline dependency management and facilitate dependency injection within application. At its core, dependency injection is a sophisticated concept that simplifies how class dependencies are handled: instead of a class creating or managing its own dependencies, they are "injected" into the class—typically through the constructor or, in certain scenarios, via setter methods. This approach promotes cleaner, more modular, and testable code, making the Doppar framework an ideal choice for modern, scalable web development.
+
+The Doppar Service Container simplifies dependency management by providing a clean and intuitive API for binding and resolving services. Whether you're working with regular bindings, singletons, or conditional logic, the container ensures your application remains modular, testable, and scalable.
+
+To register bindings into the container, simply use the `bind()` method provided through the `$this->app` object in a service provider.
+
+Here’s a basic example:
+```php
+<?php
+
+namespace App\Providers;
+
+use Phaseolies\Providers\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot(): void
+    {
+        $this->app->bind('abc', fn() => 'xyz');
+    }
+}
+```
+
+Once bound, you can retrieve the value anywhere in your application using the `app()` helper:
+```php
+$value = app('abc'); // Returns 'xyz'
+```
+
+This is the power of the Doppar container—elegant, minimal, and expressive service registration and resolution. This demonstrates how Doppar allows you to register lightweight bindings using closures, making your application modular and testable by default.
+
+## When to Utilize the Container in Doppar
+You can often type-hint dependencies in your routes, controllers, services, and elsewhere without ever manually interacting with Doppar's container.
+
+For example, you might type-hint the `Phaseolies\Http\Request` object directly in your route handler to access the incoming HTTP request. Even though you never explicitly call the container, Doppar handles the injection of these dependencies behind the scenes:
+
+```php
+use Phaseolies\Http\Request;
+
+Route::get('/', function (Request $request) {
+    // Use the request object...
+});
+```
+
+## Attribute-Based Binding
+Starting with Doppar’s modern service container implementation, you can bind interfaces to their concrete implementations using attributes directly on controllers or methods. This attribute-based approach offers a clean, declarative way to configure your dependencies without manually binding them in a service provider.
+
+### #[Resolver] Attribute
+The `#[Resolver]` attribute allows you to bind an interface to its concrete implementation (optionally as a singleton) directly where it’s needed. Doppar will automatically resolve and inject the dependency into the constructor or method during the request lifecycle.
+
+#### Basic Usage (Class-Level Binding)
+```php
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Repository\UserRepositoryInterface;
+use App\Repository\UserRepository;
+use Phaseolies\Utilities\Attributes\Resolver;
+use App\Http\Controllers\Controller;
+use Phaseolies\Http\Response;
+
+#[Resolver(UserRepositoryInterface::class, UserRepository::class)]
+class UserController extends Controller
+{
+    public function index(UserRepositoryInterface $user): Response 
+    {
+        return $user->getUsers();
+    }
+}
+```
+
+In this example, Doppar binds `UserRepositoryInterface` to `UserRepository` at the class level. This means all methods within `UserController` that require `UserRepositoryInterface` will automatically receive an instance of `UserRepository`.
+
+#### Method-Level Binding
+```php
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use Phaseolies\Utilities\Attributes\Resolver;
+use App\Http\Controllers\Controller;
+use Phaseolies\Http\Response;
+use App\Repository\UserRepositoryInterface as IUser;
+use App\Repository\UserRepository;
+
+class UserController extends Controller
+{
+    #[Resolver(abstract: IUser::class, concrete: UserRepository::class)]
+    public function index(IUser $userRepository): Response
+    {
+        return $userRepository->getUsers();
+    }
+}
+```
+This binds the dependency only for the specific method.
+
+> You can pass `true` as the third argument to make it a singleton binding, ensuring it is resolved as a singleton instance
+
+This attribute-driven design offers a modern, lightweight alternative to traditional container configuration and is particularly useful for modular, package-oriented, and clean architecture designs.
+
+## Binding
+In Doppar, most of your service container bindings will be registered within service providers. These providers are the central location for binding services and classes into the container.
+
+Within a service provider, you have access to the container through the `$this->app` property. This gives you the flexibility to bind interfaces or classes to their implementations easily. To register a binding, you can use the bind method. You pass the interface or class name that you want to bind, along with a closure that returns an instance of the concrete implementation.
+
+You can simply bind your abstraction to its concrete implementation like this:
+```php
+<?php
+
+namespace App\Providers;
+
+use Phaseolies\Providers\ServiceProvider;
+use App\Repository\UserRepositoryInterface;
+use App\Repository\UserRepository;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot(): void
+    {
+        $this->app->bind(
+            abstract: UserRepositoryInterface::class,
+            concrete: fn() => new UserRepository()
+        );
+
+        // Or
+        $this->app->bind(
+            abstract: UserRepositoryInterface::class,
+            concrete: UserRepository::class
+        );
+    }
+}
+```
+
+
+Take a look some others example, if you want to bind a `NotificationService` to a specific payment provider implementation, you would write something like:
+
+```php
+use Phaseolies\Application;
+use App\Services\NotificationService;
+use App\Services\MailerService;
+
+$this->app->bind(NotificationService::class, function (Application $app) {
+    return new NotificationService($app->make(MailerService::class));
+});
+```
+However, if you need to access the container outside of a service provider, you can easily do so using the App facade.
+```php
+use Phaseolies\Support\Facades\App;
+use App\Services\NotificationService;
+
+App::bind(NotificationService::class, function (Application $app) {
+    // ...
+});
+```
+
+Even you can use the app() helper like
+```php
+use Phaseolies\Application;
+use App\Services\NotificationService;
+
+app()->bind(NotificationService::class, function (Application $app) {
+    // ...
+});
+```
+
+## Binding A Singleton
+The singleton method registers a class or interface with the container, ensuring it is instantiated only once. After the initial resolution, the same instance of the object is returned each time it is requested from the container.
+```php
+use Phaseolies\Application;
+use App\Services\NotificationService;
+use App\Services\MailerService;
+
+$this->app->singleton(NotificationService::class, function (Application $app) {
+    return new NotificationService($app->make(MailerService::class));
+});
+```
+
+You can conditionally register a service within the container, applying the binding only if a specific condition is met. For example, you might choose to bind a singleton only under certain runtime circumstances:
+```php
+$this->app->when(fn() => config('cache.enabled'))
+    ?->bind(UserRepositoryInterface::class, function ($app) {
+        $eloquentRepo = $app->make(EloquentUserRepository::class);
+        return new CachedUserRepository(
+            $eloquentRepo,
+            $app->make('cache')
+        );
+    });
+```
+
+In this example, the NotificationService will be registered as a singleton only if the random condition returns `true`. This provides dynamic control over how and when services are introduced into the container.
+
+## Create Instance Using Container
+Doppar provides a powerful global `app()` helper function that gives you access to the Dependency Injection Container. You can use it to create and resolve class instances with zero boilerplate.
+
+Doppar supports automatic resolution of class dependencies. Just pass the class name to `app()`:
+```php
+// Creates an instance of SMSService
+$object = app(SMSService::class);
+$object->sendSms();
+```
+This will resolve and instantiate the class.
+
+## Binding and Resolving Custom Keys
+You can bind any service or class instance to a custom key using the bind() method, then resolve it via app():
+```php
+// Bind 'sms' to an instance of SMSService
+$this->app->bind('sms', fn() => new SMSService());
+
+// Retrieve and use the service
+app('sms')->sendSms();
+```
+
+> If you call `app()` without any arguments, it returns the Application container instance itself. This allows for advanced usage like container inspection, rebinding, and more.
+
+This is the power of Doppar's container: clean, expressive, and ready for modern PHP applications.
