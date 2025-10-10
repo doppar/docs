@@ -106,6 +106,12 @@ Or shorthand:
 php pool server:start 9000 --bg
 ```
 
+### Stop the server running in the background
+Stops all servers that were started with `--background` or `--bg`.
+```bash
+php pool server:stop
+```
+
 ## Initial Configuration
 
 All configuration settings for the Doppar framework are located in the **config** directory at the root of your application. Each file in this directory is neatly organized by responsibility and fully commented, making it easy to understand and customize the behavior of your application.
