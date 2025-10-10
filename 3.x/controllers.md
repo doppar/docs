@@ -24,12 +24,14 @@ Let's take a look at an example of a basic controller. A controller may have any
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Phaseolies\Utilities\Attributes\Route;
 
 class UserController extends Controller
 {
     /**
      * Show the profile for a given user.
      */
+    #[Route(uri: 'user/{id}')]
     public function show(string $id)
     {
         return view('user.profile', [
@@ -37,14 +39,6 @@ class UserController extends Controller
         ]);
     }
 }
-```
-
-Once you have written a controller class and method, you may define a route to the controller method like so:
-```php
-use Phaseolies\Support\Facades\Route;
-use App\Http\Controllers\UserController;
-
-Route::get('/user/{id}', [UserController::class, 'show']);
 ```
 
 ## Single Action Controller
@@ -74,12 +68,10 @@ class ProductController extends Controller
 }
 ```
 
-When using an invokable controller, the route definition looks like this:
+When using an invokable controller, the route definition looks like this if you use `Facades` based routing system:
 ```php
 Route::get('products', ProductController::class);
 ```
-
-> Invokable Controllers are also resolved via the service container, so you may type-hint any dependencies you need within a Invokable Controllers's constructor or directly in `__invoke` method.
 
 ## Bundle Controller
 Doppar also supports bundle controllers. These are controllers that contain all the standard CRUD (Create, Read, Update, Delete) methods in a single class.
@@ -188,3 +180,37 @@ To create a api bundle controller, use the `--api` option when generating the co
 php pool make:controller ProductController --api
 ```
 This command will generate a controller in the `app/Http/Controllers/API` directory with all the typical bundle methods pre-defined except `create` and `edit` method.
+
+## Complete Controller
+Doppar also allows you to generate a complete controller using the `--complete` or shorthand `-c` option with your `make:controller` command.
+
+This option creates a controller preconfigured with:
+- A default route (including URI and name)
+- Default Blade views for the controller
+
+Example:
+```bash
+php pool make:controller ProductController --c
+```
+Generated Controller
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use Phaseolies\Utilities\Attributes\Route;
+
+class ProductController extends Controller
+{
+    #[Route(uri: 'product', name: 'product.default')]
+    public function index()
+    {
+        return view(
+            'product.default', 
+            ['className' => 'ProductController']
+        );
+    }
+}
+```
+This automatically sets up a ready-to-use controller with route attributes and a linked view, allowing you to start building your feature right away — without additional boilerplate.

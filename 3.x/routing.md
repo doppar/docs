@@ -70,17 +70,17 @@ use Phaseolies\Utilities\Attributes\Route;
 
 class UserController extends Controller
 {
-    #[Route('user')]
-    public function index(): Response
+    #[Route(uri: 'user')]
+    public function index()
     {
         // Handles GET /user
     }
 }
 ```
 
-In this example, only the route path `('user')` is provided. Doppar will automatically assume default values for other parameters — such as using the `GET` method and no assigned name or middleware.
+In this example, only the route uri `('user')` is provided. Doppar will automatically assume default values for other parameters — such as using the `GET` method and no assigned name or middleware.
 
-See the below example with `name` and `methods`
+See the below example with handling incoming HTTP `methods`
 ```php
 <?php
 
@@ -90,22 +90,42 @@ use Phaseolies\Utilities\Attributes\Route;
 
 class PostController extends Controller
 {
-    #[Route('posts', name: 'post.list', methods: ['GET'])]
-    public function index(Request $request): Response
+    #[Route(uri: 'posts', methods: ['GET'])]
+    public function index()
     {
         //
     }
 }
 ```
 
-In this example, the index method is mapped to the `/posts` endpoint, responding to `GET` requests pointing to route name 'post.list'.
+In this example, the index method is mapped to the `/posts` endpoint, responding to `GET` requests.
 
-In addition to `GET` requests, attribute-based routing in Doppar supports all common HTTP methods such as `POST`, `PUT`, `PATCH`, and `DELETE`. This allows developers to define full RESTful endpoints directly within controllers, without relying solely on external route files.
+In addition to `GET` requests, attribute-based routing in Doppar supports all common HTTP methods such as `POST`, `PUT`, `PATCH`, `DELETE` etc. This allows developers to define full RESTful endpoints directly within controllers, without relying solely on external route files.
+
+See the below example with `methods` and `name`
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Phaseolies\Utilities\Attributes\Route;
+
+class PostController extends Controller
+{
+    #[Route(uri: 'posts', methods: ['GET'], name: 'post.index')]
+    public function index()
+    {
+        //
+    }
+}
+```
+
+In this example, the index method is mapped to the `/posts` endpoint, responding to `GET` requests pointing to route name `post.list`.
 
 Each route can declare one or multiple HTTP methods using the methods parameter, giving fine-grained control over how requests are handled.
 ```php
-#[Route('post/store', name: 'post.store', methods: ['POST', 'PATCH'])]
-public function store(Request $request): Response
+#[Route(uri: 'post/store', methods: ['POST', 'PATCH'])]
+public function store(Request $request)
 {
     // Handle creating or updating a post
 }
@@ -113,13 +133,13 @@ public function store(Request $request): Response
 
 In this example, the store method will respond to both `POST` and `PATCH` requests sent to the `/post/store` endpoint. This flexibility makes it easy to manage different request types for the same route, supporting both resource creation and partial updates within a single controller action.
 
-## Route with Middleware
+## Attribute Routing with Middleware
 Doppar’s attribute-based routing also supports middleware assignment directly within the route definition. This allows you to apply one or more middleware layers to a specific controller method without configuring them separately in a route file.
 
 By specifying the middleware parameter inside the Route attribute, you can easily protect routes, apply request filters, or run any preprocessing logic before the controller action executes. Middleware are executed in the order they are listed, ensuring full control over the request lifecycle.
 ```php
 #[Route(
-    path: '/post/store',
+    uri: '/post/store',
     methods: ['POST', 'PATCH'],
     name: 'post.store',
     middleware: ['auth', 'admin']
@@ -140,26 +160,27 @@ However, passing `middleware: [Authenticate::class]` will not work, as attribute
 
 If you need to use class-based middleware, apply them through the dedicated `#[Middleware(...)]` attribute instead.
 
-## Route, Middleware, and Resolver Attributes
-When using attribute-based routing in Doppar, you can still leverage other powerful attributes such as `Middleware`, `Resolver`, and `RateLimit` to enhance controller behavior and request handling. These attributes work seamlessly together, allowing you to configure middleware, dependency resolution, and request throttling directly at the method level.
+## Passing Parameters to Middleware in Attribute Routing
+When using attribute-based routing in Doppar, you can enhance your routes by passing parameters directly to middleware. This feature allows attributes and middleware to work seamlessly together, giving you expressive, method-level control over your route behavior.
 
-This approach keeps your controller logic self-contained, expressive, and easy to understand — with all route-related configurations defined in one place.
+By defining middleware and their parameters right within the route attribute, your controller logic stays clean, self-contained, and easy to understand — with all route configurations centralized in one place.
 
 Example:
 ```php
-/**
- * The __invoke method is limited to 10 requests per minute per client.
- *
- * @RateLimit 10/1
- */
-#[Middleware([BlockUserMiddleware::class, Authenticate::class])]
-#[Resolver(UserRepositoryInterface::class, UserRepository::class)]
-#[Route('user/{id}', methods: ['GET'], name: 'user.list')]
-public function __invoke(UserRepositoryInterface $user, int $id) 
+#[Route(
+    uri: '/user',
+    name: 'user.index',
+    methods: ['GET', 'POST'],
+    middleware: ['auth', 'response.break:admin']
+)]
+public function __invoke() 
 {
     //
 }
 ```
+In this example, the `response.break` middleware receives the parameter `admin`, demonstrating how you can pass dynamic configuration directly through attributes. 
+
+> 💡 Learn more about passing parameters to middleware [middleware-parameters](middleware.html#middleware-parameters)
 
 ## Routing with Route Facades
 The most basic Doppar routes accept a URI and a closure, providing a very simple and expressive method of defining routes and behavior without complicated routing configuration files:
