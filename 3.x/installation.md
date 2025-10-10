@@ -111,6 +111,10 @@ Stops all servers that were started with `--background` or `--bg`.
 ```bash
 php pool server:stop
 ```
+Stops a server on a specific port.
+```bash
+php pool server:stop 9000
+```
 
 ## Initial Configuration
 
