@@ -14,6 +14,14 @@ Doppar provides a seamless and structured way to manage your database migrations
 
 ## Creating a Migration
 To generate a new migration file in Doppar, use the `make:migration` command provided by the Pool Console. This command will scaffold a new migration class in the `database/migrations` directory.
+
+```bash
+php pool make:migration create
+```
+
+This will create a empty table name migration file inside your `database/migration` folder.
+
+Now if you want to create a migration file with specific name including table name, follow this way.
 ```bash
 php pool make:migration create_users_table --create=users
 ```
@@ -70,6 +78,13 @@ To migrate your all file or newly created migration files, run this migrate comm
 php pool migrate
 ```
 
+This command will use your default database connection. You can run migration for a specific connection by running this command
+```bash
+php pool migrate --connection=mysql
+```
+
+This allows you to run a single migration file without affecting other migrations.
+
 ## Add Column to Existing Table
 In Doppar, you can extend your existing database tables by creating a migration that adds new columns. This is particularly useful when evolving your schema without interrupting current data.
 
@@ -99,6 +114,37 @@ Doppar allows you to run a specific migration file by using the `--path` option.
 ```bash
 php pool migrate --path=/database/migrations/your_migration_file.php
 ```
+
+
+Run a specific migration file
+```bash
+php pool migrate --path=/var/www/html/finance/database/migrations/2025_10_11_021857_create_another_table.php
+```
+
+Run a specific migration file on a specific connection
+```bash
+php pool migrate --connection=mysql --path=/var/www/html/finance/database/migrations/2025_10_11_021857_create_another_table.php
+```
+
+## Refreshing Migrations
+The `php pool migrate:fresh` command is a powerful tool in Doppar that allows you to reset and re-run all your migrations. This is particularly useful during development when you need to rebuild your database schema without manually rolling back and reapplying each migration.
+
+When you run:
+```bash
+php pool migrate:fresh
+```
+Doppar performs the following actions
+- Rolls back all existing migrations by executing the `down()` methods.
+- Re-runs all migrations by executing the `up()` methods
+
+This process effectively rebuilds your entire database schema.
+
+Refresh the database for a specific connection
+```bash
+php pool migrate:fresh --connection=mysql
+```
+
+This command resets all tables and re-runs all migrations on the `mysql` connection, effectively refreshing the database to its initial migrated state.
 
 ## Available Fields
 Let's see all the available columns types and options
@@ -384,16 +430,3 @@ public function up()
 }
 ```
 You can also use this method `cascadeOnDelete()`, `restrictOnDelete()`, `nullOnDelete()`, `cascadeOnUpdate()`, `restrictOnUpdate()`, `nullOnUpdate()`.
-
-## Refreshing Migrations
-The `php pool migrate:fresh` command is a powerful tool in Doppar that allows you to reset and re-run all your migrations. This is particularly useful during development when you need to rebuild your database schema without manually rolling back and reapplying each migration.
-
-When you run:
-```php
-php pool migrate:fresh
-```
-Doppar performs the following actions
-- Rolls back all existing migrations by executing the down() methods.
-- Re-runs all migrations by executing the up() methods
-
-This process effectively rebuilds your entire database schema.
