@@ -118,12 +118,12 @@ php pool migrate --path=/database/migrations/your_migration_file.php
 
 Run a specific migration file
 ```bash
-php pool migrate --path=/var/www/html/finance/database/migrations/2025_10_11_021857_create_another_table.php
+php pool migrate --path=/database/migrations/your_migration_file.php
 ```
 
 Run a specific migration file on a specific connection
 ```bash
-php pool migrate --connection=mysql --path=/var/www/html/finance/database/migrations/2025_10_11_021857_create_another_table.php
+php pool migrate --connection=mysql --path=/your_migration_file.php
 ```
 
 ## Refreshing Migrations

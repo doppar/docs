@@ -8,6 +8,10 @@ meta:
 
 ## Why Doppar?
 
+As developers, we constantly seek harmony in our craft — the balance between elegance and performance. Often, we find one at the cost of the other: elegant syntax that slows us down, or high performance wrapped in complexity.
+
+Doppar brings both worlds together. It offers aristocratic elegance in syntax and uncompromising performance under the hood — a framework designed for developers who value both beauty and speed.
+
 Doppar is engineered for speed — every repeated execution is intelligently memoized, ensuring results are delivered instantly without unnecessary reprocessing. With minimal reliance on third-party libraries and most features built directly into the core, you get lightning-fast performance right out of the box. No unnecessary bloat—just clean, efficient execution
 
 Doppar ORM Built entirely from core with zero external dependencies, Doppar delivers a powerful and expressive ORM system. Manage complex relationships with ease—no third-party packages required.
@@ -109,18 +113,25 @@ Doppar’s JIT system is designed to improve the real-world performance of your 
 Doppar doesn’t just compile Blade — it understands it, improves it, and runs it faster than ever.
 
 ## Core Concepts
-<p>Doppar brings together modern PHP practices and simplicity. Here's a taste of what’s available:</p>
+Doppar brings together modern PHP practices and elegant simplicity — empowering developers to build with grace and precision.
 
-- **Routing**: Parameters and naming
-- **Middleware**: Global & route-specific
-- **Controllers**: Structured request/response handling
-- **Views**: Blade-like templates with asset bundling
-- **ORM**: Built entirely from core with zero external dependencies
-- **Security**: CSRF Protection, sessions, cookies, and validation
-- **Auth**: Authentication, encryption, rate limiting
-- **Utilities**: Mail, file uploads, caching
-- **CLI**: Console (pool) for development tasks
-- **Localization**: Helpers and more
+| Feature | Description |
+|----------|-------------|
+| **Service Container** | On-demand service loading with optional smart provider resolution. |
+| **Service Provider** | Cleanly separate concerns and manage dependencies with ease. |
+| **Routing** | Supports both attribute-based and file-based routes. |
+| **Model Hook** | Flexible approaches to handle Eloquent model events. |
+| **Request** | An unparalleled Request object built for clarity and power. |
+| **Middleware** | Global, web or route-specific; easily configurable in multiple ways. |
+| **Controllers** | Structured request-response handling with intuitive flow. |
+| **API Presenter** | A clean, structured boilerplate for API responses. |
+| **Views** | JIT-powered Blade templates with custom control capabilities. |
+| **ORM** | A core-built, dependency-free ORM for pure performance. |
+| **Security** | CSRF protection, sessions, cookies, and validation out of the box. |
+| **Auth** | Authentication, encryption, and annotation-based rate limiting. |
+| **Utilities** | Built-in mail, file uploads, and caching tools. |
+| **CLI** | A developer console for streamlined task execution. |
+| **Localization** | Effortless support for multi-language applications. |
 
 ## API Ready
 With API authentication, rate limiting, and JSON-first controllers, Doppar is ready for your next backend. Doppar is built from the ground up with API development in mind. Whether you're creating RESTful services, backend systems for mobile apps, or headless applications for modern frontend frameworks like Vue, React, or Angular—Doppar provides all the tools you need to build secure, scalable, and high-performance APIs.
@@ -141,19 +152,22 @@ To prevent abuse and improve performance, Doppar provides built-in rate limiting
   - Control load on your infrastructure
   - Improve the fairness of resource distribution
 
-Rate limiting is managed via middleware, and it's fully customizable for different route groups (e.g., public vs. authenticated API).
+Rate limiting is managed via middleware, and it's fully customizable. You can load it using attribute based routing system or annotation based or even more file based routing system.
 
 ### Security by Default
 
 API security is a first-class concern in Doppar. The framework includes:
 
+  - Lightweight, stateless authentication
   - CSRF protection for web routes
+  - Cross-Origin Model properties encryption
   - Input validation using powerful and flexible rules
   - Request throttling
   - Header-based authentication
   - Encryption and decryption utilities
+  - Secure and strict remember-me token handling.
 
-In short, **Doppar isn't just capable of building APIs—it’s engineered for it**. From robust security features and flexible authentication to clean controller logic and performance-minded architecture, Doppar gives developers everything they need to build modern, production-grade APIs with confidence.
+In short, **Doppar isn't just capable of building APIs. it’s engineered for it**. From robust security features and flexible authentication to clean controller logic and performance-minded architecture, Doppar gives developers everything they need to build modern, production-grade APIs with confidence.
 
 ### Intelligent Rate Limiting
 Prevent abuse and ensure fair usage with Doppar’s advanced rate-limiting features. Configure request thresholds per endpoint, IP, or user to protect your backend from DDoS attacks, brute-force attempts, and excessive API calls. Dynamic rate-limiting rules adapt to traffic patterns, ensuring optimal performance while maintaining service availability for legitimate users.

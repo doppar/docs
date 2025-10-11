@@ -19,10 +19,10 @@ This command will display all registered commands grouped by functionality, maki
 ## Create Console Commands
 Beyond the default commands that come with Doppar, you have the flexibility to define your own custom commands. These are generally located within the `app/Schedule/Commands` directory of your project.
 
-To generate a new command, use the `make:schedule` command provided by Doppar. This will scaffold a new command class inside the `app/Schedule/Commands` folder. If the directory doesn't already exist, don't worry—Doppar will automatically create it the first time you execute the command:
+To generate a new command, use the `make:command` command provided by Doppar. This will scaffold a new command class inside the `app/Schedule/Commands` folder. If the directory doesn't already exist, don't worry—Doppar will automatically create it the first time you execute the command:
 
 ```bash
-php pool make:schedule InvoiceProcessSchedule
+php pool make:command InvoiceProcessCommand
 ```
 Once your command has been generated, be sure to set meaningful values for the `name` and `description` properties within the class. These values help identify and describe your command when it appears in the list view. The `name` property also serves to define how the command should be invoked, including any expected input parameters.
 
@@ -37,14 +37,14 @@ namespace App\Schedule\Commands;
 use App\Services\InvoiceService;
 use Phaseolies\Console\Schedule\Command;
 
-class InvoiceProcessSchedule extends Command
+class InvoiceProcessCommand extends Command
 {
     /**
      * The name of the console command.
      *
      * @var string
      */
-    protected $name = 'doppar:invoice-process-schedule';
+    protected $name = 'doppar:invoice-process-command';
 
     /**
      * The console command description.
@@ -164,20 +164,20 @@ In Doppar, you can define input parameters for your commands directly within the
  *
  * @var string
  */
-protected $name = 'doppar:invoice-process-schedule {status}';
+protected $name = 'doppar:invoice-process-command {status}';
 ```
 Here, status must be provided when the command is executed. This allows you to tailor the command's behavior based on user input at runtime, enabling more flexible and interactive console operations.
 
 You can also make arguments optional by adding `?` after argument text:
 ```php
 // Optional argument...
-'doppar:invoice-process-schedule {status?}'
+'doppar:invoice-process-command {status?}'
 ```
 
 ## Command Options
 In Doppar, options provide additional flexibility by allowing users to supply optional input values when executing a console command. You can define these options within the $name property using curly braces and the `--` prefix. Here's an example that includes both a required argument and an optional flag:
 ```php
-protected $name = 'doppar:invoice-process-schedule {status} {--process_per_minute=}';
+protected $name = 'doppar:invoice-process-command {status} {--process_per_minute=}';
 ```
 In this case:
 - `status` is a required argument.
@@ -185,13 +185,13 @@ In this case:
 
 To run this command with both values, you would execute:
 ```bash
-php pool doppar:invoice-process-schedule pending --process_per_minute=10
+php pool doppar:invoice-process-command pending --process_per_minute=10
 ```
 This setup lets you fine-tune how the command behaves without altering its core logic—ideal for adding customizable behavior like batch size, verbosity, or filters.
 
 If you call like this 
 ```bash
-php pool doppar:invoice-process-schedule pending --process_per_minute
+php pool doppar:invoice-process-command pending --process_per_minute
 ```
 > In this example, the --process_per_minute switch may be specified when calling the Pool command. If the `--process_per_minute` switch is passed, the value of the option will be `true`. Otherwise, the value will be `false`:
 
@@ -203,7 +203,7 @@ In Doppar, you can attach helpful descriptions to your command's arguments and o
  *
  * @var string
  */
-protected $name = 'doppar:invoice-process-schedule
+protected $name = 'doppar:invoice-process-command
                    {status: The status of the invoice}
                    {--process_per_minute: How many invoice should be processed per minute}';
 ```
@@ -228,7 +228,7 @@ $processPerMinute = $this->option('process_per_minute')
 ```
 
 ## Register Commands
-There’s no need to manually register your custom commands in Doppar. Once you've created a command using the `make:schedule` utility, Doppar automatically detects and loads it without requiring additional configuration. This keeps your setup lean and allows you to focus on building functionality rather than wiring it up.
+There’s no need to manually register your custom commands in Doppar. Once you've created a command using the `make:command` utility, Doppar automatically detects and loads it without requiring additional configuration. This keeps your setup lean and allows you to focus on building functionality rather than wiring it up.
 
 When Pool boots, all the commands in your application will be resolved by the service container and registered with Pool.
 
@@ -236,11 +236,8 @@ When Pool boots, all the commands in your application will be resolved by the se
 In some scenarios, you might want to run a Doppar console command from within your application — such as inside a route, controller, or service. This can be accomplished using the call method on the Pool facade. You can pass the command name (or class name) as the first argument and an array of parameters as the second. The method will return the command’s exit code:
 ```php
 use Phaseolies\Support\Facades\Pool;
-use Phaseolies\Support\Facades\Route;
 
-Route::get('process-pending-invoice', function () {
-    return Pool::call('doppar:invoice-process-schedule pending --process_per_minute=100');
-});
+Pool::call('doppar:invoice-process-command pending --process_per_minute=100');
 ```
 This approach is useful for triggering background tasks or deferred jobs directly from user interactions or other runtime conditions.
 
