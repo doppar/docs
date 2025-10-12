@@ -15,14 +15,55 @@ Flarion allows each user of Doppar application to generate and manage multiple A
 Each token can be assigned specific abilities, defining what the token is allowed to do within the system. This makes it easy to implement fine-grained access control across your API routes, without relying on cookies or session state — fully aligned with Doppar's stateless architecture.
 
 ## How it Works
-Doppar Flarion exists to solve one problems. Let's discuss it before digging deeper into the library.
+Instead of keeping a user logged in through a traditional session or cookie, Doppar Flarion uses Personal Access Tokens (PATs) — unique, cryptographically secure tokens linked to a user.
+Each token can have:
 
-## API Tokens
-Flarion is a lightweight authentication package for the Doppar framework that allows you to issue API tokens to your users without the complexity of OAuth. This functionality is inspired by platforms like GitHub, where users can generate personal access tokens from their account settings. For example, your Doppar application might have a settings page where users can create API tokens to integrate with external services or automate workflows.
+- `Owner` (user)
+- `Abilities (scopes)` — defining what the token is allowed to do
+- `Expiration` — to control its lifetime
+- `Lookup hash` — for efficient database searching without storing raw tokens. Lookup hash is created using `HMAC-SHA256` with your app key and your random string token.
 
-Flarion handles the generation, storage, and management of these tokens. Tokens are stored in a dedicated database table and can be assigned specific abilities (scopes) to control access. They typically have a long lifespan (often lasting for years), but users can delete them at any time for security.
+This design allows external apps, mobile clients, or CLI tools to authenticate securely via headers like:
+```php
+Authorization: Bearer {token}
+```
 
-Incoming HTTP requests are authenticated by checking the Authorization header for a valid token. If the token exists and is valid, Flarion will resolve the corresponding user and authorize the request accordingly — all in a stateless, token-based manner ideal for API-first applications.
+## Lifecycle of a Token
+Every personal access token in Doppar Flarion follows a secure, well-defined lifecycle — from generation to validation and eventual expiration.
+
+### Secure Token Generation
+A cryptographically strong random string is created using PHP’s native `CSPRNG` function:
+```php
+bin2hex(random_bytes(40));
+```
+This guarantees that every token is unique and unpredictable.
+
+### Hash-Based Lookup Creation
+To allow safe database lookups without exposing the real token, an `HMAC-SHA256` hash is generated using the application key
+```php
+hash_hmac('sha256', $token, config('app.key'));
+```
+
+### Secure Storage
+The raw token itself is never stored in the database. Instead, only the hashed lookup value and essential metadata (user ID, name, abilities, expiration time, etc.) are saved.
+
+### Safe Return to Client
+The method returns both the database record and the raw token string. The raw token is shown only once, allowing the client application to store it securely for future authenticated requests.
+
+This process ensures that each token remains unique, verifiable, and protected throughout its entire lifespan.
+## Security Analysis
+When a token is issued, it’s never stored in plain text — only a secure lookup hash is saved. Incoming requests are verified via `HMAC` hashing algorithm and validated against defined abilities. Tokens can automatically expire, and each token’s permissions are strictly limited by its assigned scopes.
+
+This approach offers simple, fast, and secure user authentication for APIs, CLI tools, or third-party integrations.
+
+Doppar Flarion’s authentication system achieves enterprise-grade security, providing robust protection, auditable usage, and fine-grained access control for every token.
+| Area                      | Status          | Description                                                                    |
+| ------------------------- | --------------- | ------------------------------------------------------------------------------ |
+| **Token generation**      | ✅ Secure        | Uses `random_bytes()` for cryptographically strong random data                 |
+| **Token lookup**          | ✅ Secure        | Uses `HMAC-SHA256` with app key; prevents rainbow-table or brute-force lookups |
+| **Token storage**         | ✅ Secure        | The actual token is never stored directly.                               |
+| **Expiration**            | ✅ Configurable  | Tokens can automatically expire based on configuration                         |
+| **Abilities**             | ✅ Scoped access | Fine-grained control using abilities array                                     |
 
 ## Installation
 You may install Doppar Flarion via the `composer require` command:
@@ -41,7 +82,7 @@ Next, register the Flarion service provider so that Doppar can initialize it pro
 This step ensures that Doppar knows about Flarion and can load its functionality when the application boots.
 
 ## Publish Configuration
-Now we need to publish the configuration files by running this pool command
+Now we need to publish the configuration files by running this pool command. This step is optional, as Doppar can automatically fetch configuration details on demand directly from the vendor package whenever needed.
 ```bash
 php pool vendor:publish --provider="Doppar\Flarion\FlarionServiceProvider"
 ```
@@ -152,10 +193,22 @@ class UserController extends Controller
     #[Middleware(AuthenticateApi::class)]
     public function getUser(Request $request)
     {
-        
+
     }
 }
 ```
+
+Doppar supports attribute-based routing, allowing you to define routes directly above your controller methods for cleaner, more expressive code.
+```php
+use Phaseolies\Utilities\Attributes\Route;
+
+#[Route(uri: 'api/user', middleware:['auth-api'])]
+public function getUser(Request $request)
+{
+   return $request->user();
+}
+```
+This approach eliminates the need for traditional route files and keeps your route definitions close to their logic, improving readability and maintainability by using one line of code.
 
 You can also apply middleware globally to all methods within a controller by placing the `#[Middleware(...)]` attribute above the class declaration:
 
@@ -180,15 +233,14 @@ class UserController extends Controller
 ## Revoking Tokens
 You may "revoke" tokens by deleting them from your database using the tokens relationship that is provided by the `Doppar\Flarion\Tokenable` trait:
 ```php
-// Revoke all tokens...
-$user->tokens()->delete();
+// Revoke all tokens
+$request->user()->tokens()->delete();
 
-// Revoke the token that was used to authenticate the current request...
-$request->user()->tokens()->where('token', $tokenId)->delete();
+// Revoke the token that was used to authenticate the current request
 $request->user()->currentAccessToken()->delete();
 
-// Revoke a specific token...
-$user->tokens()->where('id', $tokenId)->delete();
+// Revoke a specific token
+$request->user()->tokens()->where('id', $tokenId)->delete();
 ```
 
 ## Token Expiration
