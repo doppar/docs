@@ -508,7 +508,7 @@ The pluck() method in Doppar is a convenient way to extract the values of a sing
 
 Example: Get All Post Titles
 ```php
-Post::pluck('title');
+Post::query()->pluck('title');
 ```
 This will return a collection of all titles from the posts table, such as:
 ```php
