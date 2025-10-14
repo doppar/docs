@@ -47,11 +47,6 @@ Without synchronization, these operations can cause data inconsistencies or dupl
     * Blocking: retry acquisition until timeout with configurable backoff (supports exponential backoff).
 * **Configurable TTL**: every lock has a duration; if it is not refreshed or released it will expire automatically to prevent deadlocks.
 
-### Heartbeat System
-* **Automatic refresh** of locks for long-running work so they do not expire while owned.
-* Heartbeat runs in a **separate background process** (uses the Symfony Process component in the implementation).
-* **Graceful degradation**: if the heartbeat process fails, the system continues to function (locks will simply expire normally).
-
 ### Safety & Reliability
 * **Stale lock detection & cleanup**: automatically detects expired/stale locks and allows safe reclamation.
 * **Process-safe unique owner IDs**: uses a combination of process ID (PID) and random bytes to ensure uniqueness across processes and servers.
@@ -103,30 +98,6 @@ if ($lock->block(5)) { // Wait up to 5 seconds for the lock
 ```
 
 This waits for up to `5` seconds to acquire the lock before proceeding. If the lock is acquired, only this process will execute the protected operation for the next 10 seconds (or until it’s released).
-
-## Heartbeat Locks (Auto-Refresh)
-For long-running operations that might exceed the lock’s TTL, Doppar includes a heartbeat system that automatically refreshes the lock in a background process.
-
-This ensures your task remains protected without expiring mid-operation.
-```php
-use Phaseolies\Support\Facades\Cache;
-
-$lock = Cache::locked('export:large-file', 30);
-
-if ($lock->get()) {
-    try {
-        // Heartbeat starts automatically — lock is kept alive
-        $this->processLongRunningExport(); // long-running operation
-    } finally {
-        $lock->release();
-    }
-} else {
-    // Another export is already in progress.
-}
-```
-
-The heartbeat process runs separately (via the Symfony Process component) and refreshes the lock periodically until it’s released.
-If the heartbeat fails or stops, the system degrades gracefully — the lock will simply expire after its normal TTL.
 
 ## Lock Restoration
 Doppar supports safe lock restoration, allowing a process to regain ownership of a previously acquired lock after a crash, restart, or delayed execution.

@@ -130,6 +130,7 @@ Doppar brings together modern PHP practices and elegant simplicity — empowerin
 | **Security** | CSRF protection, sessions, cookies, and validation out of the box. |
 | **Auth** | Authentication, encryption, and annotation-based rate limiting. |
 | **Utilities** | Built-in mail, file uploads, and caching tools. |
+| **Atomic Lock** | Owner-based locking, Blocking and non-blocking modes with TTL. |
 | **CLI** | A developer console for streamlined task execution. |
 | **Localization** | Effortless support for multi-language applications. |
 
