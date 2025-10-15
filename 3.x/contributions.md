@@ -39,6 +39,8 @@ All Doppar projects are managed via GitHub. Feel free to explore, fork, and cont
 - [Doppar Guard](https://github.com/doppar/guard)
 - [Doppar Axios](https://github.com/doppar/axios)
 - [Doppar OAuthic](https://github.com/doppar/oauthic)
+- [Doppar Bloom](https://github.com/doppar/bloom)
+- [Doppar Insight](https://github.com/doppar/insight)
 ## Which Branch?
 When contributing to Doppar, please make sure you are targeting the correct branch for your changes:
 

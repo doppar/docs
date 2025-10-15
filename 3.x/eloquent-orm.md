@@ -33,9 +33,7 @@ Once you have created a model and its associated database table, you are ready t
 
 use App\Models\Post;
 
-$posts = Post::all();
-
-foreach ($posts as $post) {
+foreach (Post::all() as $post) {
     echo $post->title;
 }
 ```
@@ -247,18 +245,12 @@ Using select() helps tailor your queries to fetch only the data you actually nee
 ### Excludes specific columns
 Excludes specific columns from the `SELECT` query. This method is useful when you want to retrieve all columns except certain ones, such as timestamp or metadata fields.
 ```php
-<?php
-
-use App\Models\Post;
-
-$posts = Post::query()
-    ->omit('created_at', 'updated_at', 'excerpt')
-    ->get();
+Post::omit('created_at', 'updated_at', 'excerpt')->get();
 ```
 In the example above, all columns will be selected except `created_at` and `updated_at`.
 You can also pass an array instead of variadic arguments:
 ```php
-Post::query()->omit(['deleted_at', 'archived_at'])->get();
+Post::omit(['deleted_at', 'archived_at'])->get();
 ```
 If the query initially selects all columns using *, `omit()` will first resolve the actual column names via the model's table schema and then exclude the specified ones.
 
@@ -399,8 +391,9 @@ This is useful for generating reports, monthly user activity, or analytics dashb
 ### exists()
 To check whether a specific row exists in your database, you can use the exists() function. This method returns a boolean value (true or false) based on whether the specified condition matches any records. Here's an example:
 ```php
-// Returns `true` if a matching row exists, otherwise `false`.
 User::where('id', 1)->exists();
+
+// Returns `true` if a matching row exists, otherwise `false`.
 ```
 
 ### whereIn()
@@ -700,42 +693,17 @@ Let’s assume a user record has the following field `attributes` as JSON like t
   }
 }
 ```
-### jsonEqual()
-The `jsonEqual()` method allows you to query a specific value at a JSON path using `JSON_EXTRACT`, combined with JSON_UNQUOTE for proper comparison.
+### whereJson()
+The `whereJson()` method allows you to query a specific value at a JSON path to check if a JSON path contains a specific value, including nested or array-based structures.
 
 Here's how you might use it:
 ```php
-User::query()
-    ->jsonEqual('attributes', '$.theme', 'dark')
-    ->jsonEqual('attributes', '$.notifications.email', true)
+User::whereJson('attributes', '$.theme', 'dark')
+    ->whereJson('attributes', '$.notifications.email', true)
     ->get();
 ```
-This translates to SQL like:
-```sql
-SELECT * FROM users
-WHERE JSON_UNQUOTE(JSON_EXTRACT(`attributes`, ?)) = ?
-AND JSON_UNQUOTE(JSON_EXTRACT(`attributes`, ?)) = ?
-```
+
 This method is ideal for exact value matching inside a JSON structure, including support for booleans.
-
-### jsonHas()
-The `jsonHas()` method uses MySQL’s `JSON_CONTAINS()` function to check if a JSON path contains a specific value, including nested or array-based structures.
-
-Example:
-```php
-User::query()
-    ->jsonHas('attributes', '$.theme', 'dark')
-    ->jsonHas('attributes', '$.notifications.email', true)
-    ->get();
-```
-
-This generates:
-```sql
-SELECT * FROM users
-WHERE JSON_CONTAINS(`attributes`, CAST(? AS JSON), '$.theme')
-AND JSON_CONTAINS(`attributes`, CAST(? AS JSON), '$.notifications.email')
-```
-This is more flexible than `jsonEqual()` for contains-style checks, and works well with arrays or partial JSON fragments.
 
 When you need full control over the SQL expression — such as when working with JSON functions —` whereRaw()` lets you write raw SQL where clauses directly into your query.
 
@@ -1509,7 +1477,7 @@ User::saveMany([
 ```
 This will insert the records in chunks of 1000, helping prevent memory overflow and improving performance when dealing with a large volume of data.
 
-Using saveMany() is a great way to handle bulk inserts in Doppar, ensuring your application remains efficient even with large datasets.
+Using `saveMany()` is a great way to handle bulk inserts in Doppar, ensuring your application remains efficient even with large datasets.
 
 ## Mass Assignment
 
@@ -2079,6 +2047,8 @@ DB::query("CALL get_multiple_results");
 // the usual helpers like `resultSet()`, `last()`, or `lastSet()`
 // are NOT available. Instead, you'll get the raw query result.
 ```
+
+> The `DB::procedure()` method is available only for MySQ
 
 #### Executing View
 Doppar makes it easy to query database views using the `view()` method. A view behaves like a virtual table and can be queried just like a regular table, often used to simplify complex joins or aggregations.

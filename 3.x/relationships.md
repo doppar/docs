@@ -31,7 +31,8 @@ Let’s dive into the specifics of Doppar relationships, their benefits, and how
 Eloquent relationships are defined as methods on your Eloquent model classes. Since relationships also serve as powerful query builders, defining relationships as methods provides powerful method chaining and querying capabilities. For example, we may chain additional query constraints on this posts relationship:
 ```php
 $user = User::find(1);
-$user->posts()->where('status', '=', true)->get();
+
+$user->posts()->where('status', true)->get();
 ```
 
 But, before diving too deep into using relationships, let's learn how to define each type of relationship supported by Eloquent.
@@ -70,9 +71,7 @@ This is especially useful when you want to retrieve a primary model (like User) 
 
 To fetch all users along with their associated OTP data, you can use the embed method without any constraints:
 ```php
-User::query()
-    ->embed('otp')
-    ->get();
+User::embed('otp')->get()
 ```
 This is simple and useful when you need all fields from the otp table.
 
@@ -117,14 +116,16 @@ The first argument passed to the bindTo method is the name of the related model 
 Now you can get the user that owns the otp
 ```php
 $otp = Otp::find(1);
+
 $otp->user;
 ```
 
 You can add extra condition like this as a method query builder.
 ```php
 $otp = Otp::find(1);
+
 $activeUser = $otp->user()
-    ->where('status', '=', 1)
+    ->where('status', true)
     ->first();
 ```
 
@@ -172,7 +173,7 @@ $comment = Post::find(1)
 ```
 If you want to load all the posts with their associated comments, you can use `embed()` method like this. The following line demonstrates how to perform eager loading using the embed method to load related models efficiently:
 ```php
-Post::query()->embed('comments')->get();
+Post::embed('comments')->get();
 ```
 This approach ensures that all related articles for each User are loaded in a single query, By retrieving the posts and their associated comments in one go, you significantly improve performance, especially when dealing with large datasets or nested relationships.
 
@@ -203,7 +204,7 @@ use App\Models\Comment;
 
 $comment = Comment::find(1);
 
-return $comment->post?->title ?? 'default';
+$comment->post?->title ?? 'default';
 ```
 In the example above, Eloquent will attempt to find a Post model that has an id which matches the post_id column on the Comment model.
 
@@ -338,37 +339,46 @@ Tag::query()->embed('posts')->get();
 ### link()
 In Doppar, the `link()` method is used to associate records in a many-to-many relationship. This method adds entries to the pivot table, establishing a connection between related models
 ```php
-// Link tags to a post
 $post = Post::find(1);
-$post->tags()->link([1, 2, 3]); // Link tags with IDs 1, 2, and 3
+
+// Link tags with IDs 1, 2, and 3
+$post->tags()->link([1, 2, 3]);
 ```
 
 ### unlink()
 In Doppar, the `unlink()` method is used to unlink specific records from a many-to-many relationship. It removes the association between the current model (e.g., Post) and the related model (e.g., Tag) by removing the corresponding entries from the pivot table.
 ```php
 $post = Post::find(1);
-$post->tags()->unlink([1, 2, 3]); // Unlink tags with IDs 1, 2, and 3
+
+// Unlink tags with IDs 1, 2, and 3
+$post->tags()->unlink([1, 2, 3]);
 ```
 
 If you simply call unlink(), it will delete all the tags
 ```php
 $post = Post::find(1);
-$post->tags()->unlink(); // unlink all tags
+
+// unlink all tags
+$post->tags()->unlink();
 ```
 
 ### relate()
 In Doppar, the `relate()` method is used to sync the relationships between models in a many-to-many relationship. The relate() method will attach the provided IDs and can optionally detach existing relationships, depending on the second argument passed.
 ```php
 $post = Post::find(1);
+
 $post->tags()->relate([1, 2, 3]);
+
 $changes = $post->tags()->relate([1, 2, 4]); // 3 will be removed
-$post->tags()->relate([1, 2, 3], false); // link tithout unlinking
+
+$post->tags()->relate([1, 2, 3], false); // link without unlinking
 ```
 
 ### Syncing with Pivot Data Using
-In Doppar, the relate() method not only allows you to sync records in a many-to-many relationship, but also provides the ability to attach additional data to the pivot table. This is useful when you need to store extra attributes (such as timestamps or other metadata) along with the relationship between two models.
+In Doppar, the `relate()` method not only allows you to sync records in a many-to-many relationship, but also provides the ability to attach additional data to the pivot table. This is useful when you need to store extra attributes (such as timestamps or other metadata) along with the relationship between two models.
 ```php
 $post = Post::find(1);
+
 $post->tags()->relate([
     1 => ['created_at' => now()],
     2 => ['featured' => true],
@@ -396,7 +406,7 @@ User::query()
     ->embed([
         'comments.reply',
         'posts' => function ($query) {
-            $query->select(['id', 'title', 'user_id']);
+            $query->select('id', 'title', 'user_id');
         }
     ])
     ->get();
@@ -425,8 +435,8 @@ The `present()` method can be used to load a relationship with custom query cond
 ```php
 return Post::query()
     ->present('comments', function ($query) {
-        $query->where('comment', '=', 'Mrs.')
-            ->where('created_at', '=', NULL);
+        $query->where('comment', 'doppar is awesome')
+            ->where('created_at', NULL);
     })
     ->get();
 ```
@@ -438,7 +448,7 @@ use App\Models\Post;
 // Retrieve all posts that have at least one comment...
 Post::query()->ifExists('comments')->get();
 ```
-The ifExists() method in Doppar is used as a conditional check to determine whether a related model (e.g., posts) exists in the database for a given parent model (e.g., users). This method is useful for filtering results based on the existence of related data without requiring explicit joins or additional queries
+The `ifExists()` method in Doppar is used as a conditional check to determine whether a related model (e.g., posts) exists in the database for a given parent model (e.g., users). This method is useful for filtering results based on the existence of related data without requiring explicit joins or additional queries
 
 With conditions - find users who have at least one published post
 ```php
@@ -450,7 +460,7 @@ User::query()
 ```
 
 ## Quering Relationship Missing
-The absent() method is used to fetch records where a particular relationship does not exist. This is useful when you want to retrieve records that are missing related data.
+The `absent()` method is used to fetch records where a particular relationship does not exist. This is useful when you want to retrieve records that are missing related data.
 ```php
 // Retrieve all posts that has no comments
 Post::query()->absent('comments')->get();
