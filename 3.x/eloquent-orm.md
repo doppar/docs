@@ -712,8 +712,11 @@ Here’s how you can query a specific value inside a JSON column using JSON_EXTR
 User::query()
     ->whereRaw("JSON_EXTRACT(attributes, '$.theme') = ?", ['dark'])
     ->get();
+    
+// ⚠️ Important Notes:
+// - This uses raw SQL with JSON_EXTRACT, which is MySQL/MariaDB specific
 ```
-For safer, chainable, and reusable alternatives, consider jsonEqual() or jsonHas() if your use case fits.
+For safer, chainable, and reusable alternatives, consider whereJson() if your use case fits.
 
 ### selectRaw or DB::sql() for JSON Extraction
 If you want to extract a value from a JSON column in your select statement, use `DB::sql()` or `selectRaw()`:
@@ -862,15 +865,34 @@ The `whereDateBetween()` method filters records where a date or datetime column 
 Result::query()
     ->whereDateBetween('test_date', '2023-01-01', '2023-01-31')
     ->get();
+```
 
-// Between two dates with time comparison
-Event::query()
-    ->whereDateBetween(
-        'start_datetime', 
-        '2023-01-01 09:00:00', 
-        '2023-01-01 17:00:00',
-        true // include time in comparison
-    )
+### whereDateTimeBetween()
+The `whereDateTimeBetween()` method filters records where a datetime column falls between two given datetime values (inclusive of both boundaries). This method includes time comparison by default and is ideal for precise timestamp ranges.
+
+Usage example
+```php
+// Basic datetime range (inclusive of both boundaries)
+User::query()
+    ->whereDateTimeBetween('created_at', '2025-01-01 00:00:00', '2025-10-31 13:59:59')
+    ->get();
+
+// Using DateTime objects
+$start = new DateTime('2025-01-01 00:00:00');
+$end = new DateTime('2025-10-31 13:59:59');
+User::query()
+    ->whereDateTimeBetween('created_at', $start, $end)
+    ->get();
+
+// Date strings with automatic time handling
+// Start becomes '2025-01-01 00:00:00', End becomes '2025-01-31 23:59:59'
+User::query()
+    ->whereDateTimeBetween('created_at', '2025-01-01', '2025-01-31')
+    ->get();
+
+// Specific time window within a day
+User::query()
+    ->whereDateTimeBetween('created_at', '2025-01-15 09:00:00', '2025-01-15 17:00:00')
     ->get();
 ```
 
@@ -1470,9 +1492,9 @@ If you are working with a large dataset, inserting all records at once might lea
 $password = bcrypt('abc');
 
 User::saveMany([
-    ['name' => 'John', 'email' => 'john@abc.com', 'abc' => $password],
-    ['name' => 'Jane', 'email' => 'jane@abc.com', 'abc' => $password],
-    ['name' => 'Bob', 'email' => 'bob@abc.com', 'abc' => $password]
+    ['name' => 'John', 'email' => 'john@abc.com', 'password' => $password],
+    ['name' => 'Jane', 'email' => 'jane@abc.com', 'password' => $password],
+    ['name' => 'Bob', 'email' => 'bob@abc.com', 'password' => $password]
 ], 1000);
 ```
 This will insert the records in chunks of 1000, helping prevent memory overflow and improving performance when dealing with a large volume of data.

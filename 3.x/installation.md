@@ -140,16 +140,16 @@ By separating environment settings from your codebase, Doppar ensures a clean, s
 
 ## Databases and Migrations
 
-Once your Doppar application is up and running, you’ll likely want to connect it to a database to start storing and retrieving data. By default, Doppar is preconfigured to use MySQL, offering a lightweight and fast setup.
+Once your Doppar application is up and running, you’ll likely want to connect it to a database to start storing and retrieving data. By default, Doppar is preconfigured to use `SQLite`, offering a lightweight and fast setup.
 
-Doppar support only `MySQL`. Simply update the relevant **DB_*** variables in your **.env** file to match your database credentials:
+Doppar support only `MySQL` and `SQLite`. Simply update the relevant `**DB_**` variables in your **`.env`** file to match your database credentials:
 ```bash
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=doppar
-DB_USERNAME=root
-DB_PASSWORD=
+DB_CONNECTION=sqlite
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=doppar
+# DB_USERNAME=root
+# DB_PASSWORD=
 ```
 Once your **.env** file is configured, you can create and modify your database schema using Doppar’s powerful migration system. Migrations let you version-control your database changes and keep your schema consistent across environments.
 
@@ -157,7 +157,7 @@ To run migrations:
 ```bash
 php pool migrate
 ```
-> 💡 Doppar migrations are stored in the **database/migrations directory** You can create a new migration with:
+> 💡 Doppar migrations are stored in the `database/migrations `directory You can create a new migration. See details about [migration](migrations.html)
 
 ## IDE Support
 Doppar works seamlessly with any code editor or IDE, so you're free to choose the development environment that best fits your workflow.

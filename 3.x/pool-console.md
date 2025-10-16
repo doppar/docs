@@ -227,6 +227,150 @@ Options may be retrieved just as easily as arguments using the option method.
 $processPerMinute = $this->option('process_per_minute')
 ```
 
+## Interactive Input
+In addition to retrieving arguments and options, Doppar commands can interactively prompt users for input at runtime. This is particularly useful for commands that require confirmation, credentials, or additional configuration.
+
+Doppar provides several helper methods for interactive input. For example, If the user presses Enter without typing anything, the optional default value will be returned.
+```php
+$name = $this->ask('What is your name?', 'Anonymous');
+
+$this->info("Hello, {$name}!");
+```
+
+See full basic example with `confirm`, `secret` and `ask`
+```php
+// Ask for simple input
+$name = $this->ask('What is your name?', 'Anonymous');
+$this->info("Hello, {$name}!");
+
+// Ask for hidden input (e.g., password)
+$password = $this->secret('Enter your password:');
+$this->info("Password received with " . strlen($password) . " characters");
+
+// Confirm before proceeding
+$shouldContinue = $this->confirm('Do you wish to continue?', true);
+
+if (!$shouldContinue) {
+    $this->error('Operation cancelled!');
+    return 1;
+}
+
+$this->info('Continuing operation...');
+```
+
+Example console output
+```bash
+What is your name? [Anonymous]: Alice
+Hello, Alice!
+
+Enter your password:
+Password received with 10 characters
+
+Do you wish to continue? [Y/n]:
+Continuing operation...
+```
+
+## Choice-Based Input
+In addition to simple questions, Doppar allows you to prompt users to choose from a list of options — either a single option or multiple options.
+This is useful when you want to guide users toward predefined configurations or settings.
+
+Example using `choice()` and `multipleChoice()`
+```php
+// Single-choice question
+$theme = $this->choice(
+    'Select a theme',
+    ['light', 'dark', 'auto'],
+    0 // Default choice by index (0 = 'light')
+);
+$this->info("Selected theme: {$theme}");
+
+// Multiple-choice question
+$features = $this->multipleChoice(
+    'Select features to install',
+    ['api', 'admin', 'web', 'mobile', 'docs']
+    // No default array — leave it out or pass null
+);
+$this->info("Selected features: " . implode(', ', $features));
+```
+
+Example console output
+```bash
+Select a theme:
+  [0] light
+  [1] dark
+  [2] auto
+> 1
+Selected theme: dark
+
+Select features to install:
+  [0] api
+  [1] admin
+  [2] web
+  [3] mobile
+  [4] docs
+> 0,2,4
+Selected features: api, web, docs
+```
+
+## Progress Bars
+When performing long-running operations, Doppar provides an easy way to display a progress bar to give users visual feedback on the command’s progress.
+
+The progress bar can be advanced manually as your task runs, and finished once all items are processed.
+```php
+$this->info('Processing items...');
+
+// Create a progress bar with 50 steps
+$progressBar = $this->createProgressBar(50);
+
+// Simulate work
+for ($i = 0; $i < 50; $i++) {
+    usleep(100000); // 0.1 second delay to simulate processing
+    $progressBar->advance();
+}
+
+// Finish the progress bar
+$progressBar->finish();
+$this->newLine();
+
+$this->info('All items processed successfully!');
+```
+
+Example console output
+```bash
+Processing items...
+50/50 [██████████████████████████████████████████████████] 100%
+All items processed successfully!
+```
+
+## Display Table
+Doppar allows you to easily format and display tabular data in the console using the `createTable()` helper.
+This is especially useful for listing users, tasks, configurations, or any data that fits a grid layout.
+
+Example of rendering a table
+```php
+// Create a new table instance
+$table = $this->createTable();
+
+// Define headers
+$table->setHeaders(['ID', 'Name', 'Email']);
+
+// Add rows
+$table->addRow([1, 'John Doe', 'john@example.com']);
+$table->addRow([2, 'Jane Smith', 'jane@example.com']);
+
+// Render the table in the console
+$table->render();
+```
+
+Example console output
+```bash
++----+------------+-------------------+
+| ID | Name       | Email             |
++----+------------+-------------------+
+| 1  | John Doe   | john@example.com  |
+| 2  | Jane Smith | jane@example.com  |
++----+------------+-------------------+
+```
 ## Register Commands
 There’s no need to manually register your custom commands in Doppar. Once you've created a command using the `make:command` utility, Doppar automatically detects and loads it without requiring additional configuration. This keeps your setup lean and allows you to focus on building functionality rather than wiring it up.
 

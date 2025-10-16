@@ -402,7 +402,7 @@ You can bind the request body directly into controller parameters using the `#[B
 use Phaseolies\Utilities\Attributes\BindPayload;
 use App\Models\User;
 
-#[Route('/api/user', methods: ['POST'])]
+#[Route('api/user', methods: ['POST'])]
 public function store(
     #[BindPayload(strict: false)]
     User $user
