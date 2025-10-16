@@ -395,6 +395,22 @@ return $request->bindTo(new UserDTO())->toArray();
 - When handling nested form structures in APIs, admin panels, or form builders.
 - When needing clean, type-safe data layers beneath controllers or service classes.
 
+### Attribute-based DTO binding in Controllers
+You can bind the request body directly into controller parameters using the `#[BindPayload]` attribute. The router will instantiate the parameter type and hydrate it via `Request::bindTo()` before your method runs.
+
+```php
+use Phaseolies\Utilities\Attributes\BindPayload;
+use App\Models\User;
+
+#[Route('/api/user', methods: ['POST'])]
+public function store(
+    #[BindPayload(strict: false)]
+    User $user
+) {
+    return User::createFromModel($user);
+}
+```
+
 ## Tap into Input with `tapInput`
 The `tapInput()` method offers a convenient way to inspect, log, or act on a specific input value without modifying it.
 
