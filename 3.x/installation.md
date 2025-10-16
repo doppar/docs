@@ -64,7 +64,7 @@ composer -v
 
 After you have installed PHP, Composer, you're ready to create a new Doppar application. Run the following command to create a new Doppar application:
 ```bash
-composer create-project doppar/doppar example-app
+composer create-project doppar/doppar doppar-app --stability=beta
 ```
 
 ## Starting the Local Development Server
@@ -72,7 +72,7 @@ Once the application has been created, you can start Doppar's local development 
 
 Navigate to your project directory
 ```bash
-cd example-app
+cd doppar-app
 ```
 Start the server. Default port (foreground mode). Runs on the default port 8000 if available.
 ```bash
