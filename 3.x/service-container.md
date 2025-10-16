@@ -9,12 +9,27 @@ meta:
 ## Service Container
 ### Introduction
 The Doppar Service Container is a robust and versatile tool designed to streamline dependency management and facilitate dependency injection within application. At its core, dependency injection is a sophisticated concept that simplifies how class dependencies are handled: instead of a class creating or managing its own dependencies, they are "injected" into the class—typically through the constructor or, in certain scenarios, via setter methods. This approach promotes cleaner, more modular, and testable code, making the Doppar framework an ideal choice for modern, scalable web development.
+Background
+
+Doppar supported dependency binding through several approaches:
+- Parameter-Level binding with `#[Bind]` attribute
+- Method-level binding using `#[Resolver]` attribute
+- Class-level binding using `#[Resolver]` attribute
+- Service provider based binding via `$this->app->bind()` method
 
 The Doppar Service Container simplifies dependency management by providing a clean and intuitive API for binding and resolving services. Whether you're working with regular bindings, singletons, or conditional logic, the container ensures your application remains modular, testable, and scalable.
 
 To register bindings into the container, simply use the `bind()` method provided through the `$this->app` object in a service provider.
 
-Here’s a basic example:
+Summary of supported binding methods
+| Binding Type              | Scope              | Example Syntax                                                    | Singleton Support | Ideal Use Case                        |
+| ------------------------- | ------------------ | ----------------------------------------------------------------- | ----------------- | ------------------------------------- |
+| **Service Provider**      | Global             | `$this->app->bind(Interface::class, Class::class);`               | Yes             | App-wide, reusable bindings           |
+| **Class-Level Resolver**  | Controller-wide    | `#[Resolver(Interface::class, Class::class)]`                     | Yes             | Consistent dependencies in one class  |
+| **Method-Level Resolver** | Method-specific    | `#[Resolver(abstract: Interface::class, concrete: Class::class)]` | Yes             | One-off or varied bindings per method |
+| **Parameter-Level Bind**  | Parameter-specific | `#[Bind(Class::class)] Interface $param`                    | Yes             | Contextual or fine-grained binding    |
+
+Here’s a basic example of binding using service provider:
 ```php
 <?php
 
@@ -43,7 +58,7 @@ $value = app('abc'); // Returns 'xyz'
 
 This is the power of the Doppar container—elegant, minimal, and expressive service registration and resolution. This demonstrates how Doppar allows you to register lightweight bindings using closures, making your application modular and testable by default.
 
-## When to Utilize the Container in Doppar
+## Utilize the Container in Doppar
 You can often type-hint dependencies in your routes, controllers, services, and elsewhere without ever manually interacting with Doppar's container.
 
 For example, you might type-hint the `Phaseolies\Http\Request` object directly in your route handler to access the incoming HTTP request. Even though you never explicitly call the container, Doppar handles the injection of these dependencies behind the scenes:
@@ -59,10 +74,48 @@ Route::get('/', function (Request $request) {
 ## Attribute-Based Binding
 Starting with Doppar’s modern service container implementation, you can bind interfaces to their concrete implementations using attributes directly on controllers or methods. This attribute-based approach offers a clean, declarative way to configure your dependencies without manually binding them in a service provider.
 
+### #[Bind] Attribute
+The `#[Bind]` attribute provides a more expressive and localized way to bind interfaces or abstract classes to their concrete implementations directly within controller method parameters.
+
+It enhances readability and reduces boilerplate by allowing you to define bindings exactly where they are used, rather than at the class or service-provider level.
+
+With `#[Bind()]` attribute, you can perform parameter-level bindings, making dependency injection cleaner, context-specific, and easier to maintain. It reduces boilerplate code, improves readability, and makes controller actions more self-contained.
+
+See the example
+```php
+#[Route(uri: 'user/store', methods: ['POST'])]
+public function store(
+    #[Bind(UserRepository::class)] UserRepositoryInterface $userRepository
+) {
+    // #[Bind] resolves UserRepositoryInterface to UserRepository.
+}
+```
+
+This way, bindings are visible directly where dependencies are injected. The binding applies only to this method’s context, making it explicit and lightweight.
+
+### Singleton Binding
+
+You can also define a binding as a singleton by passing true as the second argument. This ensures the same instance is reused across the request lifecycle.
+```php
+#[Route(uri: 'api/post', methods: ['POST'])]
+public function store(
+    #[Bind(PostRepository::class, true)] PostRepositoryInterface $postRepository,
+    Request $request
+) {
+    // #[Bind(..., true)] resolves PostRepositoryInterface to PostRepository as a singleton.
+}
+```
+
+The second argument `(true)` marks the binding as singleton, meaning Doppar will reuse the same instance for all subsequent resolutions during the request.
+
+### In summary:
+
+`#[Bind(concrete: ClassName::class)]` binds an interface or abstract type to the specified concrete class. Adding a second argument `(true)` makes it a singleton binding for that request’s lifecycle.
+
 ### #[Resolver] Attribute
 The `#[Resolver]` attribute allows you to bind an interface to its concrete implementation (optionally as a singleton) directly where it’s needed. Doppar will automatically resolve and inject the dependency into the constructor or method during the request lifecycle.
 
-#### Basic Usage (Class-Level Binding)
+See the example of class-level binding
 ```php
 <?php
 
@@ -86,7 +139,7 @@ class UserController extends Controller
 
 In this example, Doppar binds `UserRepositoryInterface` to `UserRepository` at the class level. This means all methods within `UserController` that require `UserRepositoryInterface` will automatically receive an instance of `UserRepository`.
 
-#### Method-Level Binding
+See the example of method-level binding
 ```php
 <?php
 
@@ -113,7 +166,7 @@ This binds the dependency only for the specific method.
 
 This attribute-driven design offers a modern, lightweight alternative to traditional container configuration and is particularly useful for modular, package-oriented, and clean architecture designs.
 
-## Binding
+## Binding Using Service Provider
 In Doppar, most of your service container bindings will be registered within service providers. These providers are the central location for binding services and classes into the container.
 
 Within a service provider, you have access to the container through the `$this->app` property. This gives you the flexibility to bind interfaces or classes to their implementations easily. To register a binding, you can use the bind method. You pass the interface or class name that you want to bind, along with a closure that returns an instance of the concrete implementation.
