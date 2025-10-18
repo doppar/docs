@@ -174,6 +174,18 @@ Route::get('profile', [ProfileController::class,'index'])
 ```
 The ProfileController index method is now protected by the `blocked` middleware. Update your middleware configuration to ensure authorization is required before accessing this method.
 
+Or if your route is attribute based, then you can define middleware like this way
+```php
+class ProfileController extends Controller
+{
+    #[Route('profile', middleware: ['blocked'])]
+    public function index()
+    {
+        //
+    }
+}
+```
+
 ## Middleware Parameters
 We can define multiple route middleware parameters. To define route middleware, add a : after the middleware name. If there are multiple parameters, separate them with a , comma. See the example.
 
