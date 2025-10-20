@@ -142,7 +142,7 @@ By separating environment settings from your codebase, Doppar ensures a clean, s
 
 Once your Doppar application is up and running, you’ll likely want to connect it to a database to start storing and retrieving data. By default, Doppar is preconfigured to use `SQLite`, offering a lightweight and fast setup.
 
-Doppar support only `MySQL` and `SQLite`. Simply update the relevant `**DB_**` variables in your **`.env`** file to match your database credentials:
+Doppar support only `MySQL`, `SQLite` and `PostgreSQL`. Simply update the relevant `**DB_**` variables in your **`.env`** file to match your database credentials:
 ```bash
 DB_CONNECTION=sqlite
 # DB_HOST=127.0.0.1

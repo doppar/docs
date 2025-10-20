@@ -101,6 +101,7 @@ Schema::table('users', function (Blueprint $table) {
     $table->string('company_name', 50)->after('email');
 });
 ```
+> 💡 The `after()` function is not supported by the pgsql driver. If you use this, doppar will ignore this silently.
 
 Now run migrate command to add `company_name` column to your users table.
 

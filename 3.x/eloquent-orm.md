@@ -979,6 +979,9 @@ User::query()
 ```
 This filters users whose email matches the pattern `name@demo.com`, where name consists of lowercase letters only.
 
+> 📌 `REGEXP` is not supported by PostgreSQL (pgsql) and SQLite by default.
+While MySQL and MariaDB natively support `REGEXP`.
+
 Perform a case-insensitive match using LIKE
 ```php
 User::query()

@@ -34,7 +34,7 @@ From accessing configuration values to generating routes and handling authentica
 
 ## String Helpers
 
-[mask()](#mask), [truncate()](#truncate), [snake()](#snake), [camel()](#camel), [random()](#random), [isPalindrome()](#ispalindrome), [countWord()](#countword), [title()](#title), [slug()](#slug), [contains()](#contains), [limitWords()](#limitwords), [removeWhiteSpace()](#removewhitespace), [startsWith()](#startswith), [endsWith()](#endswith), [studly()](#studly), [reverse()](#reverse), [extractNumbers()](#extractnumbers), [longestCommonSubstring()](#longestcommonsubstring), [leetSpeak()](#leetspeak), [extractEmails()](#extractemails), [highlightKeyword()](#highlightkeyword)
+[mask()](#mask), [truncate()](#truncate), [snake()](#snake), [camel()](#camel), [random()](#random), [isPalindrome()](#ispalindrome), [countWord()](#countword), [title()](#title), [slug()](#slug), [contains()](#contains), [limitWords()](#limitwords), [removeWhiteSpace()](#removewhitespace), [startsWith()](#startswith), [endsWith()](#endswith), [studly()](#studly), [reverse()](#reverse), [extractNumbers()](#extractnumbers), [longestCommonSubstring()](#longestcommonsubstring), [leetSpeak()](#leetspeak), [extractEmails()](#extractemails), [highlightKeyword()](#highlightkeyword) [after](#after) [before](#before) [between](#between)
 
 ### env()
 The `env()` function in Doppar is used to retrieve environment variables from the application's configuration. It allows you to define environment-specific settings in a `.env` file and access them throughout your application. If the specified variable is not found, you can provide a default value as a fallback.
@@ -751,9 +751,37 @@ $highlighted = str()->highlightKeyword($text, "Doppar");
 // Returns: "<strong>Doppar</strong> is awesome. Learn <strong>Doppar</strong> now!"
 
 $highlighted = str()->highlightKeyword(
-    $text, 
-    "Doppar", 
+    $text,
+    "Doppar",
     "span class='highlight'"
-); 
+);
 // Returns: "<span class='highlight'>Doppar</span> is awesome. Learn <span class='highlight'>Doppar</span> now!"
 ```
+
+### after()
+The `after()` function returns the portion of a string that appears after the first occurrence of a given substring.
+```php
+$text = "Hello, world!";
+$result = str()->after($text, "Hello, ");
+// Returns: "world!"
+```
+If the search term is not found, the original string is returned. If $search is an empty string, the full `$subject` is returned unchanged.
+
+### before()
+The `before()` function returns the portion of a string that appears before the first occurrence of a given substring.
+```php
+$text = "Hello, world!";
+$result = str()->before($text, ", world!");
+// Returns: "Hello"
+```
+
+If the search term is not found, the original string is returned. If $search is an empty string, the full `$subject` is returned unchanged.
+
+### between()
+The `between()` function extracts the substring between two specified values — the first occurrence of `$from` and `$to`.
+```php
+$text = "Welcome [John] to Doppar!";
+$result = str()->between($text, "[", "]");
+// Returns: "John"
+```
+It internally uses the `after()` and `before()` functions to isolate the content between the two markers.

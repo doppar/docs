@@ -78,6 +78,11 @@ class UserController extends Controller
 }
 ```
 
+Now you can view the details of your registered routes by running the following pool command:
+```bash
+php pool route:list
+```
+
 In this example, only the route uri `('user')` is provided. Doppar will automatically assume default values for other parameters — such as using the `GET` method and no assigned name or middleware.
 
 See the below example with handling incoming HTTP `methods`
@@ -181,6 +186,38 @@ public function __invoke()
 In this example, the `response.break` middleware receives the parameter `admin`, demonstrating how you can pass dynamic configuration directly through attributes. 
 
 > 💡 Learn more about passing parameters to middleware [middleware-parameters](middleware.html#middleware-parameters)
+
+## Routing with Rate Limit
+Though rate limiting can be implemented using middleware, it can now be defined directly within the route attributes.
+
+See the example of rate limiting using middleware
+```php
+#[Route(
+      uri: 'home',
+      methods: ['GET'],
+      middleware: ['throttle:10,1']
+)]
+public function home(): Response
+{
+      //
+}
+```
+In this example, the throttle middleware restricts access to 10 requests per minute.
+
+Now we can also implement this by passing `rateLimit` and `rateLimitDecay` naming params like this way
+```php
+#[Route(
+    uri: 'home',
+    methods: ['GET'],
+    rateLimit: 3,       // Allow up to 3 requests
+    rateLimitDecay: 1,  // Within 1 minute
+)]
+public function home(): Response
+{
+    //
+}
+```
+This approach eliminates the need to manually specify middleware for simple throttling needs.
 
 ## Routing with Route Facades
 The most basic Doppar routes accept a URI and a closure, providing a very simple and expressive method of defining routes and behavior without complicated routing configuration files:

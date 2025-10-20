@@ -241,6 +241,11 @@ return response()->view('welcome')
     ->setHeader('Content-Type', 'text/html');
 ```
 
+You can set headers also using `withHeaders` methods like this way
+```php
+return view('welcome')->withHeaders(['Content-Type' => 'text/html']);
+```
+
 ## JSON Responses
 The json method will automatically set the Content-Type header to `application/json`, as well as convert the given array to JSON using the json_encode PHP function:
 ```php
