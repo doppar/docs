@@ -34,7 +34,7 @@ From accessing configuration values to generating routes and handling authentica
 
 ## String Helpers
 
-[mask()](#mask), [truncate()](#truncate), [snake()](#snake), [camel()](#camel), [random()](#random), [isPalindrome()](#ispalindrome), [countWord()](#countword), [title()](#title), [slug()](#slug), [contains()](#contains), [limitWords()](#limitwords), [removeWhiteSpace()](#removewhitespace), [startsWith()](#startswith), [endsWith()](#endswith), [studly()](#studly), [reverse()](#reverse), [extractNumbers()](#extractnumbers), [longestCommonSubstring()](#longestcommonsubstring), [leetSpeak()](#leetspeak), [extractEmails()](#extractemails), [highlightKeyword()](#highlightkeyword) [after](#after) [before](#before) [between](#between)
+[mask()](#mask), [truncate()](#truncate), [snake()](#snake), [camel()](#camel), [random()](#random), [isPalindrome()](#ispalindrome), [countWord()](#countword), [title()](#title), [slug()](#slug), [contains()](#contains), [limitWords()](#limitwords), [removeWhiteSpace()](#removewhitespace), [startsWith()](#startswith), [endsWith()](#endswith), [studly()](#studly), [reverse()](#reverse), [extractNumbers()](#extractnumbers), [longestCommonSubstring()](#longestcommonsubstring), [leetSpeak()](#leetspeak), [extractEmails()](#extractemails), [highlightKeyword()](#highlightkeyword) [after](#after) [before](#before) [between](#between) [isJson()](#isjson)
 
 ### env()
 The `env()` function in Doppar is used to retrieve environment variables from the application's configuration. It allows you to define environment-specific settings in a `.env` file and access them throughout your application. If the specified variable is not found, you can provide a default value as a fallback.
@@ -785,3 +785,15 @@ $result = str()->between($text, "[", "]");
 // Returns: "John"
 ```
 It internally uses the `after()` and `before()` functions to isolate the content between the two markers.
+
+### isJson()
+The `isJson()` function checks whether a given string is a valid JSON structure. It returns true if the string can be successfully parsed as JSON, and false otherwise.
+```php
+$jsonString = '{"name": "Alice", "age": 25}';
+$result = str()->isJson($jsonString);
+// Returns: true
+
+$invalidString = "{name: Alice, age: 25}";
+$result = str()->isJson($invalidString);
+// Returns: false
+```
