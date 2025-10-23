@@ -126,7 +126,7 @@ Doppar brings together modern PHP practices and elegant simplicity — empowerin
 | **Controllers** | Structured request-response handling with intuitive flow. |
 | **API Presenter** | A clean, structured boilerplate for API responses. |
 | **Views** | JIT-powered Blade templates with custom control capabilities. |
-| **ORM** | A core-built, dependency-free ORM for pure performance. |
+| **Entity ORM** | A core-built, dependency-free Entity ORM for pure performance. |
 | **Security** | CSRF protection, sessions, cookies, and validation out of the box. |
 | **Auth** | Authentication, encryption, and annotation-based rate limiting. |
 | **Utilities** | Built-in mail, file uploads, and caching tools. |
