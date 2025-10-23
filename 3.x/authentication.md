@@ -30,7 +30,7 @@ This will scaffold the essential authentication logic into your application, inc
 - Middleware for route protection
 
 ## Authentication Model Configuration
-The `config/auth.php` file in Doppar defines the Eloquent model used for authentication.
+The `config/auth.php` file in Doppar defines the Entity model used for authentication.
 
 By default, Doppar uses the `App\Models\User` model. However, if your application requires custom authentication logic or uses a different user-related model (e.g., Admin, Customer, or Member), you can update this value accordingly.
 ```php

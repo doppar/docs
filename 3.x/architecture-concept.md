@@ -91,7 +91,7 @@ Basic Model Example
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {

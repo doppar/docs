@@ -1,9 +1,9 @@
 ---
-title: Eloquent ORM
-description: Doppar Eloquent ORM page
+title: Entity ORM
+description: Doppar Entity ORM page
 meta:
   - name: keywords
-    content: Eloquent ORM
+    content: Entity ORM
 ---
 
   - [Getting Started](#getting-started)
@@ -13,21 +13,27 @@ meta:
   - [Aggregation](#aggregation)
   - [Querying JSON Columns](#querying-json-columns)
   - [Querying Date Columns](#querying-date-columns)
-  - [Transform Eloquent Collection](#transform-eloquent-collection)
+  - [Transform Entity Collection](#transform-entity-collection)
   - [Pagination](#pagination)
   - [Database Transactions](#database-transactions)
-  - [Eloquent Join](#eloquent-join)
+  - [Entity Join](#entity-join)
   - [DB Query](#db-query)
   - [Handling Large Dataset](#handling-large-dataset)
   - [Handling Multiple Database Connection](#handling-multiple-database-connection)
 
-## Eloquent
+## Entity ORM
 ### Introduction
-Doppar features its own powerful data interaction tool, Eloquent, an object-relational mapper (ORM), which simplifies and enhances the way you work with your database. With ORM, every database table is linked to a dedicated "Data Model" that serves as your gateway to managing table data seamlessly. Beyond just fetching records, Doppar Data Mapper empowers you to effortlessly insert, update, and delete records, making database interactions intuitive and efficient. Whether you're building complex queries or handling simple data operations, ORM ensures a smooth and enjoyable experience, tailored to streamline your development workflow.
+Doppar introduces Entity, a modern, intuitive, and powerful Object-Relational Mapper (ORM) designed to make database interactions seamless and efficient. With Entity ORM, every database table is represented by a dedicated Data Model, providing a clean, object-oriented interface to query, insert, update, and delete records without writing raw SQL.
+
+Beyond simple CRUD operations, Doppar Entity ORM empowers developers to build complex queries, manage relationships effortlessly, and perform advanced data operations with clarity and precision. Features like eager loading, nested relationships, and relationship-based filtering let you work with related data intuitively, reducing boilerplate code and boosting productivity.
+
+Whether you are handling simple tables or designing a complex relational data structure, Doppar Entity ORM ensures your workflow remains smooth, expressive, and maintainable — turning database interactions into a natural and enjoyable part of your development process.
+
+Crafted entirely within Doppar's core, this Entity ORM eliminates all third-party dependencies—delivering pure, high-performance data handling with zero external overhead.
 
 ## Query Using ORM
 ### Retrieving Models
-Once you have created a model and its associated database table, you are ready to start retrieving data from your database. You can think of each Eloquent model as a powerful query builder allowing you to fluently query the database table associated with the model. The model's all method will retrieve all of the records from the model's associated database table:
+Once you have created a model and its associated database table, you are ready to start retrieving data from your database. You can think of each Entity model as a powerful query builder allowing you to fluently query the database table associated with the model. The model's all method will retrieve all of the records from the model's associated database table:
 ```php
 <?php
 
@@ -40,7 +46,7 @@ foreach (Post::all() as $post) {
 You can also fetch all data using direct `get()` method like `Post::get()`.
 
 ### Expending Queries
-The all method in Eloquent fetches every record from a model’s corresponding table. However, because Eloquent models double as query builders, you can refine queries using conditions and retrieve only the matching results by calling the get method.
+The all method in Entity fetches every record from a model’s corresponding table. However, because Entity models double as query builders, you can refine queries using conditions and retrieve only the matching results by calling the get method.
 ```php
 Post::where('status', true)
     ->orderBy('title')
@@ -101,7 +107,7 @@ What It Does:
 > Note: These methods are non-intrusive and designed for development use only.
 
 ### Collections
-As observed, Eloquent methods such as `all` and `get` are designed to fetch multiple records from the database. Rather than returning a standard PHP array, these methods yield an instance of `Phaseolies\Support\Collection`, providing a rich set of tools to work with the retrieved models efficiently.
+As observed, Entity methods such as `all` and `get` are designed to fetch multiple records from the database. Rather than returning a standard PHP array, these methods yield an instance of `Phaseolies\Support\Collection`, providing a rich set of tools to work with the retrieved models efficiently.
 
 If you want to convert collection to array, you can use `toArray()` method.
 ```php
@@ -147,7 +153,7 @@ User::orderBy('id', 'desc')->groupBy('name')->get();
 ```
 
 ### random()
-The `random()` method in Doppar's Eloquent ORM extension allows you to retrieve a random subset of records from the database. It's particularly useful when you want to display randomized content, such as featured products, suggested users, or shuffled items in a feed.
+The `random()` method in Doppar's Entity ORM extension allows you to retrieve a random subset of records from the database. It's particularly useful when you want to display randomized content, such as featured products, suggested users, or shuffled items in a feed.
 
 Internally, `random()` applies an `ORDER BY RAND()` clause to the query and limits the result set using the provided number.
 
@@ -158,7 +164,7 @@ User::random(10)->get();
 This will return 10 random users from the users table.
 
 ### toSql()
-The toSql() method in Eloquent is a useful tool when you want to inspect the raw SQL query that would be executed for a given Eloquent query. Instead of retrieving the results from the database, toSql() returns the SQL statement as a string, allowing you to debug or log the query before it's run. This is especially helpful during development when you need to understand how your query builder chain is being translated into SQL.
+The toSql() method in Entity is a useful tool when you want to inspect the raw SQL query that would be executed for a given Entity query. Instead of retrieving the results from the database, toSql() returns the SQL statement as a string, allowing you to debug or log the query before it's run. This is especially helpful during development when you need to understand how your query builder chain is being translated into SQL.
 
 Here's an example:
 ```php
@@ -171,13 +177,13 @@ select * from `users` where `status` = ?
 Using `toSql()` helps you optimize and troubleshoot queries by giving insight into what Doppar is sending to the database under the hood.
 
 ### find()
-The `find()` method in Eloquent is used to retrieve a single record from the database by its primary key. It offers a quick and efficient way to look up a specific model instance without having to write a full where clause. If a matching record is found, an instance of the model is returned; otherwise, null is returned.
+The `find()` method in Entity is used to retrieve a single record from the database by its primary key. It offers a quick and efficient way to look up a specific model instance without having to write a full where clause. If a matching record is found, an instance of the model is returned; otherwise, null is returned.
 
 Here’s a basic example:
 ```php
 User::find(1);
 ```
-In this case, Eloquent returns a collection of User instances corresponding to the given IDs. find() is ideal when you know the exact primary key(s) you're looking for and want a concise way to retrieve the corresponding record(s).
+In this case, Entity returns a collection of User instances corresponding to the given IDs. find() is ideal when you know the exact primary key(s) you're looking for and want a concise way to retrieve the corresponding record(s).
 
 This is the sort version of this query
 ```php
@@ -219,7 +225,7 @@ User::oldest('id')->get();
 These methods offer a clean and readable way to sort query results by time or any relevant field, enhancing code clarity while maintaining flexibility.
 
 ### Selecting Specific Columns
-In many cases, you may not need to retrieve every column from a table—especially when working with large datasets. Eloquent's `select()` method allows you to specify exactly which columns you want to fetch, helping optimize performance and reduce memory usage.
+In many cases, you may not need to retrieve every column from a table—especially when working with large datasets. Entity's `select()` method allows you to specify exactly which columns you want to fetch, helping optimize performance and reduce memory usage.
 
 Here are a few examples:
 ```php
@@ -255,7 +261,7 @@ Post::omit(['deleted_at', 'archived_at'])->get();
 If the query initially selects all columns using *, `omit()` will first resolve the actual column names via the model's table schema and then exclude the specified ones.
 
 ## selectRaw()
-The selectRaw() method in Doppar's query builder provides a powerful way to include raw SQL expressions in your queries. It's especially useful when you need to perform calculations, use SQL functions, or include complex expressions that go beyond Eloquent's default capabilities.
+The selectRaw() method in Doppar's query builder provides a powerful way to include raw SQL expressions in your queries. It's especially useful when you need to perform calculations, use SQL functions, or include complex expressions that go beyond Entity's default capabilities.
 
 ### Basic Usage
 
@@ -340,8 +346,47 @@ Why Use selectRaw Here?
 
 Bindings are passed as an array to selectRaw() and must match the number of ? placeholders in the SQL expression.
 
+### whereLike()
+The `whereLike()` method provides a convenient way to perform SQL LIKE pattern matching on a column. It’s especially useful for building search filters or partial text matching queries without writing raw SQL.
+
+Basic LIKE condition
+```php
+User::whereLike('name', 'john')->get();
+```
+SQL Equivalent:
+```sql
+SELECT * FROM users WHERE name LIKE '%john%';
+```
+Combining with other conditions
+```php
+User::where('status', 'active')
+    ->whereLike('email', 'example.com')
+    ->get();
+```
+
+SQL Equivalent:
+```sql
+SELECT * FROM users
+WHERE status = 'active'
+  AND email LIKE '%example.com%';
+```
+
+### orWhereLike()
+The `orWhereLike()` method adds a logical `OR` condition with a `LIKE` clause.
+```php
+User::where('status', 'active')
+    ->orWhereLike('name', 'john')
+    ->get();
+```
+
+You can pass third argument as `true` or `false` to handle case-sensitive search.
+
+```php
+User::whereLike('username', 'Admin', true)->get();
+```
+
 ### whereRaw()
-The `whereRaw()` method allows you to write a raw SQL WHERE clause directly into an Eloquent query. This is useful when your query requires SQL features that aren't easily expressed using Eloquent's fluent methods — such as complex conditions, custom SQL functions, or case-insensitive matching.
+The `whereRaw()` method allows you to write a raw SQL WHERE clause directly into an Entity query. This is useful when your query requires SQL features that aren't easily expressed using Entity's fluent methods — such as complex conditions, custom SQL functions, or case-insensitive matching.
 
 You pass a raw SQL string as the first argument, and an optional array of bindings as the second. This helps maintain parameter binding and protects against SQL injection.
 
@@ -354,7 +399,7 @@ User::query()
 This query returns all users whose name matches “jewel” in a case-insensitive way, by applying the `LOWER()` SQL function to both the column and the search term.
 
 ### orderByRaw()
-The `orderByRaw()` method allows you to write a raw SQL ORDER BY clause directly into an Eloquent query. This is useful when you need advanced sorting logic that can't be easily represented using Eloquent’s fluent orderBy() method — such as ordering by multiple columns with different sort directions or using SQL functions.
+The `orderByRaw()` method allows you to write a raw SQL ORDER BY clause directly into an Entity query. This is useful when you need advanced sorting logic that can't be easily represented using Entity’s fluent orderBy() method — such as ordering by multiple columns with different sort directions or using SQL functions.
 
 You pass a raw SQL string as the first argument, which defines the custom sorting logic. Because the input is raw SQL, it gives you full control over the order clause — but it’s important to ensure the syntax is correct and secure.
 
@@ -365,10 +410,10 @@ Employee::query()
     ->get();
 ```
 
-Use orderByRaw() when your ordering requirements exceed the capabilities of standard Eloquent methods.
+Use orderByRaw() when your ordering requirements exceed the capabilities of standard Entity methods.
 
 ### groupByRaw()
-The `groupByRaw()` method allows you to define a raw SQL GROUP BY clause in an Eloquent query. It’s especially useful when you need to group results by SQL functions or multiple columns that can't be easily handled using Doppar’s fluent groupBy() method.
+The `groupByRaw()` method allows you to define a raw SQL GROUP BY clause in an Entity query. It’s especially useful when you need to group results by SQL functions or multiple columns that can't be easily handled using Doppar’s fluent groupBy() method.
 
 You pass a raw SQL string as the argument, which gives you full control over the grouping logic.
 
@@ -479,7 +524,7 @@ Post::query()
 This retrieves all posts that have a value in the published_at field, meaning they’ve been published.
 
 ### orWhereNull()
-The orWhereNull() method in Eloquent is used to add an OR condition to the query, checking if a column is NULL. In your example
+The orWhereNull() method in Entity is used to add an OR condition to the query, checking if a column is NULL. In your example
 ```php
 Post::query()
     ->where('status', 'draft')
@@ -488,7 +533,7 @@ Post::query()
 ```
 
 ### orWhereNotNull()
-The orWhereNotNull() method in Eloquent is used to add an OR condition to the query, checking if a column is not NULL. In your example:
+The orWhereNotNull() method in Entity is used to add an OR condition to the query, checking if a column is not NULL. In your example:
 ```php
 Post::query()
     ->where('status', 'draft')
@@ -508,14 +553,14 @@ This will return a collection of all titles from the posts table, such as:
 [
     "How to Use Doppar",
     "Getting Started with PHP",
-    "Understanding Eloquent Queries"
+    "Understanding Entity Queries"
 ]
 ```
 
 ### DB::sql()
-The `DB::sql()` method is used to insert raw SQL expressions into an Eloquent query. It’s useful when you need to perform calculations, use SQL functions, or alias complex expressions directly within a select(), orderBy(), or other query builder methods.
+The `DB::sql()` method is used to insert raw SQL expressions into an Entity query. It’s useful when you need to perform calculations, use SQL functions, or alias complex expressions directly within a select(), orderBy(), or other query builder methods.
 
-This is especially handy when Eloquent’s query builder doesn’t cover a specific SQL feature or function.
+This is especially handy when Entity’s query builder doesn’t cover a specific SQL feature or function.
 
 Here’s an example:
 ```php
@@ -1141,7 +1186,84 @@ User::match(fn($query) => $query->present("posts"))
 
 The `match()` method enhances query readability and reduces repetitive condition-building, especially in service layers or controllers.
 
-## Conditional Query Execution 
+## Searching Relationship Column
+The `search()` method provides a simple and expressive way to perform text-based searches across your model’s columns and its related entities. It allows you to build flexible search filters without writing complex joins or manual conditions.
+
+Example schema that we want to search
+```sql
+posts
+    id - integer
+    title - string
+    user_id - integer
+
+category
+    id - integer
+    name - string
+    post_id - integer
+
+user
+    id - integer
+    name - string
+
+tags
+    id - integer
+    name - string
+
+post_tag
+    post_id - integer
+    tag_id - integer
+```
+
+Now the following query searches for the posts title, the user’s name, or the category’s name matches the given search term.
+```php
+Post::query()
+    ->search(attributes: [
+        'title',          // column from the posts table
+        'user.name',      // linkOne relation: post → user (searches the user `name`)
+        'category.name',  // linkOne relation: post → category (searches the category `name`)
+        'tags.name'       // many-to-many relation — not supported
+    ], searchTerm: $request->search)
+    ->get();
+```
+
+> The function `search()` accepts an optional third argument to enable case-sensitive searches.
+
+Relation search currently supports `one-to-one` and `one-to-many` relationships. If a relation or column does not exist, Doppar automatically skips it from the query.
+
+See another example
+```php
+User::query()
+    ->search([
+        'name',          // searching name
+        'email',          // searching email
+        'posts.title',    // linkMany relation (users → posts) searching `title`
+        'address.address_line' // linkOne relation (users → address) searching `address_line` column
+    ], $request->searchTerm)
+    ->get();
+```
+
+## Nested conditions using callbacks
+The `where()` and `orWhere()` methods allow you to define precise filtering conditions for your queries.
+They can be chained for complex logical grouping, and both accept closures for nested conditions — providing expressive, readable query composition.
+
+The following query fetches products that are active (status = true) and satisfy one of the following conditions:
+- Have a price greater than 5000, or
+- Have exactly 100 units in stock and belong to categories 8 or 9.
+```php
+Product::query()
+    ->where('status', true)
+    ->where(function ($query) {
+        $query->where('price', '>', 5000)
+              ->orWhere(function ($q) {
+                  $q->where('stock', 100)
+                    ->whereIn('category_id', [8, 9]);
+              });
+    })
+    ->get();
+```
+This structure produces a clean, readable way to express complex, nested conditions without worry.
+
+## Conditional Query Execution
 In Doppar, the `if()` method provides a powerful and elegant way to conditionally add query constraints based on a given condition. This allows you to build more flexible and dynamic queries, improving code readability and reducing unnecessary complexity.
 
 Doppar ORM's `if()` method allows you to conditionally add query constraints based on a given condition. If the condition evaluates to true, the corresponding query modification is applied; otherwise, it is skipped.
@@ -1227,8 +1349,8 @@ This automatically applies both `admin()` query filters. Your model should have 
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
-use Phaseolies\Database\Eloquent\Builder;
+use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Builder;
 
 class User extends Model
 {
@@ -1244,7 +1366,7 @@ class User extends Model
     }
 }
 ```
-Doppar inspects query builder method calls. If the method name matches a defined method on the model, Doppar executes it as part of the query. Method must return `Phaseolies\Database\Eloquent\Builder` instance. You can chain as many dynamic binding as you want.
+Doppar inspects query builder method calls. If the method name matches a defined method on the model, Doppar executes it as part of the query. Method must return `Phaseolies\Database\Entity\Builder` instance. You can chain as many dynamic binding as you want.
 
 ### Query Binding with Parameters
 Doppar lets you define reusable queries and pass parameters to them, making your code more flexible. By simply adding arguments to your methods, Doppar automatically integrates them into the query logic, keeping your code clean and expressive.
@@ -1515,14 +1637,14 @@ $user = User::create([
 ]);
 ```
 
-However, before using the **create** method, you will need to specify a `$creatable` property on your model class. These properties are required because all Eloquent models are protected against mass assignment vulnerabilities by default.
+However, before using the **create** method, you will need to specify a `$creatable` property on your model class. These properties are required because all Entity models are protected against mass assignment vulnerabilities by default.
 
 ```php
 <?php
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class User extends Model
 {
@@ -1672,8 +1794,8 @@ $post->decrement('views', 1, [
 
 Doppar ORM empowers you to run comprehensive statistical queries, manage data updates, and build analytics-driven features with minimal effort. Whether you're building dashboards, reports, or tracking metrics, these aggregation tools are essential for maintaining efficient and elegant code.
 
-## Transform Eloquent Collection
-The Doppar ORM offers expressive methods like `map()`, `filter()`, and `each()` to transform, filter, and iterate over Eloquent collections with ease. These methods provide fine control over the shape and content of your data after fetching it from the database.
+## Transform Entity Collection
+The Doppar ORM offers expressive methods like `map()`, `filter()`, and `each()` to transform, filter, and iterate over Entity collections with ease. These methods provide fine control over the shape and content of your data after fetching it from the database.
 
 ### map() – Transforming Collection Items
 Use the `map()` method to transform each item in a collection. This is especially useful when you want to reformat or limit the fields returned in your response.
@@ -1706,7 +1828,7 @@ $post = Post::find(1);
 
 $tagNames = $post->tags->map->name;
 
-// Collection: ['doppar', 'php', 'eloquent']
+// Collection: ['doppar', 'php', 'entity']
 ```
 
 Here, `$post->tags` returns a collection of related Tag models, and `map->name` transforms it into a collection of just the name values
@@ -1748,7 +1870,7 @@ $users->each->sendEmail();
 ```
 This is equivalent to the closure example above, but much more concise.
 
-These methods make Doppar’s Eloquent collection manipulation concise, readable, and highly adaptable for API responses, data formatting, and conditional logic. See more from [collections](collections.html).
+These methods make Doppar’s Entity collection manipulation concise, readable, and highly adaptable for API responses, data formatting, and conditional logic. See more from [collections](collections.html).
 
 ## Pagination
 Pagination is an essential feature for working with large datasets, enabling you to fetch and display data in manageable chunks. This improves both performance and user experience, especially in applications that deal with lists like users, posts, products, or logs.
@@ -1822,7 +1944,7 @@ php pool publish:pagination
 Once you modify the `jump.blade.php` and `number.blade.php` files, the changes will immediately reflect in your pagination view. This allows you to fully customize the appearance and behavior of the pagination links to align with your application's design and requirements. Feel free to update these files as needed to create a seamless and visually consistent user experience.
 
 ## Retrieving a Paginated Subset of Records
-To fetch a specific subset of records from the database—such as a “page” of users—you can use the offset and limit methods on an Eloquent query.
+To fetch a specific subset of records from the database—such as a “page” of users—you can use the offset and limit methods on an Entity query.
 ```php
 User::query()
     ->offset(4)  // Skip the first 4 records
@@ -1883,10 +2005,10 @@ This approach helps mitigate issues caused by deadlocks by retrying the transact
 
 Using transactions properly ensures database consistency and prevents data corruption due to incomplete operations. Doppar provides flexible methods for handling transactions, allowing both automatic and manual control based on the use case.
 
-<a name="eloquent-join"></a>
+<a name="entity-join"></a>
 
-## Eloquent Join
-In Doppar, Eloquent manual joins allow you to retrieve data from multiple tables based on a related column. The join method in Eloquent's Query Builder provides an easy way to combine records from different tables. This document explains how to perform various types of joins manually using Eloquent's Eloquent ORM and Query Builder.
+## Entity Join
+In Doppar, Entity manual joins allow you to retrieve data from multiple tables based on a related column. The join method in Entity's Query Builder provides an easy way to combine records from different tables. This document explains how to perform various types of joins manually using Entity's Entity ORM and Query Builder.
 
 #### Basic Join Example
 A simple join operation can be performed using the join method to combine records from two tables based on a common key. Below is an example of joining users and posts tables:
@@ -2432,7 +2554,7 @@ DB_SECOND_PASSWORD=
 ### Querying with Multiple Connections
 In real-world applications, especially large-scale or modular systems, it's common to store data across multiple databases. For example, reporting data might live in a separate database from transactional data, or different clients (in a multi-tenant architecture) may each have their own database.
 
-Doppar makes it easy to query from different database connections using Eloquent models. Whether you want a model to always use a specific connection, or you want to dynamically switch connections at runtime, Doppar provides clean and flexible options.
+Doppar makes it easy to query from different database connections using Entity models. Whether you want a model to always use a specific connection, or you want to dynamically switch connections at runtime, Doppar provides clean and flexible options.
 
 Assume you're using a model like `Report`. Below are three ways to run queries on different database connections:
 
@@ -2461,7 +2583,7 @@ In Doppar, you can assign a specific database connection to a model by setting t
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Report extends Model
 {

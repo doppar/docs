@@ -252,9 +252,9 @@ You can conditionally register a service within the container, applying the bind
 ```php
 $this->app->when(fn() => config('cache.enabled'))
     ?->bind(UserRepositoryInterface::class, function ($app) {
-        $eloquentRepo = $app->make(EloquentUserRepository::class);
+        $EntityRepo = $app->make(EntityUserRepository::class);
         return new CachedUserRepository(
-            $eloquentRepo,
+            $EntityRepo,
             $app->make('cache')
         );
     });

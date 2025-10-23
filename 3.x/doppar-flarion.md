@@ -101,7 +101,7 @@ To begin issuing tokens for users, your User model should use the `Doppar\Flario
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 use Doppar\Flarion\Tokenable;
 
 class User extends Model
@@ -120,7 +120,7 @@ Route::post('create/token', function (Request $request) {
 });
 ```
 
-You may access all of the user's tokens using the tokens Eloquent relationship provided by the `Doppar\Flarion\Tokenable` trait:
+You may access all of the user's tokens using the tokens Entity relationship provided by the `Doppar\Flarion\Tokenable` trait:
 ```php
 foreach ($user->tokens as $token) {
     // ...

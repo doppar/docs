@@ -234,10 +234,11 @@ Schema::create('posts', function (Blueprint $table) {
 ```
 
 #### timestamps()
-Defines two columns: `created_at` and `updated_at`. These are automatically managed by Eloquent to track when a record is created and last updated.
+Defines two columns: `created_at` and `updated_at`. These are automatically managed by Entity to track when a record is created and last updated.
 ```php
 Schema::create('posts', function (Blueprint $table) {
     $table->timestamps();
+    $table->timestampsTz(); // Create timestamp columns with timezone
 });
 ```
 
@@ -322,7 +323,8 @@ $table->longBlob('long_blob_column'); // Stores up to 4 GB
 Doppar migration utilizes several specialized column types to handle unique data requirements:
 ```php
 // Defines a column with a set of predefined string  values. Commonly used for status indicators or categorical data.
-$table->enum('enum_column', ['active', 'pending', 'cancelled']); 
+$table->enum('enum_column', ['active', 'pending', 'cancelled']);
+$table->enumNullable('role', ['admin', 'user']); // Nullable enum definition
 
 // Allows storage of multiple values from a predefined list in a single column.
 $table->set('set_column', ['red', 'green', 'blue']);
@@ -332,6 +334,9 @@ $table->uuid('uuid_column'); // Creates a column to store Universally Unique Ide
 $table->ipAddress('ip_address_column'); // Stores IPv4 and IPv6 addresses.
 $table->macAddress('mac_address_column'); // Stores MAC addresses. Typically stored as strings in the format 00:00:00:00:00:00
 $table->json('json_column'); // Stores JSON-formatted data. Supported in MySQL 5.7+
+$table->jsonArray('preferences'); // Define array-compatible JSON column
+
+$table->bit('is_active')->default(1); // Define bit column for status flags
 ```
 
 ## Spatial Types (GIS)

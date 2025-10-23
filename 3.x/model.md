@@ -14,7 +14,7 @@ content: Model
 Before diving into Doppar's data management capabilities, it’s important to familiarize yourself with some key model properties that shape how your data is handled. Doppar offers the flexibility to customize these properties to suit your specific needs. Key properties include `$pageSize`, which controls the number of records displayed per page; `$primaryKey`, which defines the unique identifier for your table; $table, which specifies the database table associated with the model; `$creatable`, which determines whether new records can be added and `$unexposable` and `$timeStamps`, which allows you to hide sensitive or irrelevant data from being exposed and handle datetime columns. The `$connection` property specifies the database connection the model should use. Once this property is defined, all queries and operations on the model will automatically use the specified connection With Doppar, you have full control to tweak these properties, ensuring your data interactions are both efficient and secure. Let's see the User model as for example.
 
 ## Creating Model Classes
-To get started, let's create an Eloquent model. Models typically live in the `app\Models` directory and extend the `Phaseolies\Database\Eloquent\Model` class. You may use the `make:model` Pool command to generate a new model:
+To get started, let's create an Entity model. Models typically live in the `app\Models` directory and extend the `Phaseolies\Database\Entity\Model` class. You may use the `make:model` Pool command to generate a new model:
 ```bash
 php pool make:model Post
 ```
@@ -26,7 +26,7 @@ This command will generate a new model inside `App\Models` directory. Models gen
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {
@@ -46,7 +46,7 @@ Specifies the column name that serves as the unique identifier for the table. By
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {
@@ -66,7 +66,7 @@ Specifies the database table associated with this model
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {
@@ -86,7 +86,7 @@ Specifies which attributes can be mass-assigned when creating or updating record
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {
@@ -106,7 +106,7 @@ Specifies which attributes should be hidden when the model is converted to an ar
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class User extends Model
 {
@@ -126,7 +126,7 @@ Indicates whether the model should maintain timest(`created_at` and `updated_at`
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {
@@ -146,7 +146,7 @@ Specifies the database connection the model should use. Once this property is de
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Report extends Model
 {
@@ -167,7 +167,7 @@ By default, `$timeStamps` uses the datetime format. However, you can convert it 
 namespace App\Models;
 
 use Phaseolies\Utilities\Casts\CastToDate;
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {
@@ -196,7 +196,7 @@ The Doppar provides `Phaseolies\Support\Contracts\Encryptable` interface for pro
 ```php
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 use Phaseolies\Support\Contracts\Encryptable;
 
 class User extends Model implements Encryptable
@@ -215,7 +215,7 @@ class User extends Model implements Encryptable
 }
 ```
 
-In this case, the `email` field will always be encrypted when you will fecth data. Now When you perform a query like this using Eloquent.
+In this case, the `email` field will always be encrypted when you will fecth data. Now When you perform a query like this using Entity.
 
 ```php
 User::find(1);
@@ -373,7 +373,7 @@ Example:
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class User extends Model
 {
@@ -429,7 +429,7 @@ A hook `TagModelBootingHook` class will be created like that
 
 namespace App\Hooks;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class TagModelBootingHook
 {
@@ -456,7 +456,7 @@ Example:
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class User extends Model
 {
@@ -500,7 +500,7 @@ Hook Class: `UserUpdatedHook`
 
 namespace App\Hooks;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class UserUpdatedHook
 {
@@ -610,5 +610,5 @@ The `before_deleted` and `after_deleted` hooks are only triggered when using the
 
 If you want to skip hooks, you can call `withoutHook()` before `delete()`. Hooks will not trigger when deleting records using query builder methods like `User::query()->where('id', $id)->delete()` or raw SQL queries.
 
-Always use Model Eloquent’s `delete()` method to ensure hooks run as expected.
+Always use Model Entity’s `delete()` method to ensure hooks run as expected.
 :::

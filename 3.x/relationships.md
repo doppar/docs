@@ -1,9 +1,9 @@
 ---
 title: Relationships
-description: Doppar Eloquent Relationships page
+description: Doppar Entity Relationships page
 meta:
   - name: keywords
-    content: Eloquent Relationships
+    content: Entity Relationships
 ---
 
   - [One to One / Link One](#one-to-one-link-one)
@@ -16,11 +16,13 @@ meta:
 
 ## Relationships
 ### Introduction
-The Doppar relationship is a term that refers to a specialized type of relationship in data modeling, often used in the context of web development.
+The Doppar Entity relationship system provides a powerful way to represent and manage connections between database tables in an object-oriented manner.
 
-In many database systems, tables are often related to one another. For example, a blog post may have many comments or an order could be related to the user who placed it. Eloquent makes managing and working with these relationships easy, and supports a variety of common relationships.
+In real-world applications, tables are often interconnected. For instance, a library system might have Book records linked to multiple Author records, or a Customer may have multiple Orders. Doppar Entity ORM makes it simple to define and work with these relationships, whether one-to-one, one-to-many, or many-to-many.
 
-Let’s dive into the specifics of Doppar relationships, their benefits, and how they compare to more conventional relationship types like one-to-one, one-to-many, and many-to-many.
+With Entity, managing related data is intuitive: you can retrieve, filter, and manipulate related records seamlessly, while taking advantage of features like eager loading, nested relationships, and relationship-based query constraints.
+
+Let’s explore the types of relationships supported by Doppar, their advantages, and how they streamline working with complex relational data compared to traditional methods.
 
   - [One to One / Link One](#one-to-one-link-one)
   - [One To One Inverse / Bind To](#one-to-one-inverse-bind-to)
@@ -28,23 +30,23 @@ Let’s dive into the specifics of Doppar relationships, their benefits, and how
   - [Many To Many / bindToMany ](#many-to-many-bind-to-many)
 
 ## Defining Relationships
-Eloquent relationships are defined as methods on your Eloquent model classes. Since relationships also serve as powerful query builders, defining relationships as methods provides powerful method chaining and querying capabilities. For example, we may chain additional query constraints on this posts relationship:
+Entity relationships are defined as methods on your Entity model classes. Since relationships also serve as powerful query builders, defining relationships as methods provides powerful method chaining and querying capabilities. For example, we may chain additional query constraints on this posts relationship:
 ```php
 $user = User::find(1);
 
 $user->posts()->where('status', true)->get();
 ```
 
-But, before diving too deep into using relationships, let's learn how to define each type of relationship supported by Eloquent.
+But, before diving too deep into using relationships, let's learn how to define each type of relationship supported by Entity.
 
 ## One to One / Link One
-A one-to-one relationship is one of the simplest types of database associations. For instance, a `User` model may be linked to a single `Otp` model. To define this relationship, you can add an otp method to the User model. This method should invoke the `linkOne` method and return its result. The `linkOne` method is provided by the `Phaseolies\Database\Eloquent\Model` base class, making it easily accessible within your model.
+A one-to-one relationship is one of the simplest types of database associations. For instance, a `User` model may be linked to a single `Otp` model. To define this relationship, you can add an otp method to the User model. This method should invoke the `linkOne` method and return its result. The `linkOne` method is provided by the `Phaseolies\Database\Entity\Model` base class, making it easily accessible within your model.
 ```php
 <?php
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class User extends Model
 {
@@ -97,7 +99,7 @@ So, we can access the Otp model from our User model. Next, let's define a relati
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Otp extends Model
 {
@@ -130,14 +132,14 @@ $activeUser = $otp->user()
 ```
 
 ## One to Many / Link Many
-A one-to-many relationship is ideal for scenarios where a single model serves as the parent to multiple related models. For example, a single blog post might have countless comments attached to it. To define this type of relationship in your model, simply create a method that represents the connection. As with all relationships in Eloquent, this method encapsulates the logic and structure of the association, making your code expressive and intuitive.
+A one-to-many relationship is ideal for scenarios where a single model serves as the parent to multiple related models. For example, a single blog post might have countless comments attached to it. To define this type of relationship in your model, simply create a method that represents the connection. As with all relationships in Entity, this method encapsulates the logic and structure of the association, making your code expressive and intuitive.
 
 ```php
 <?php
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {
@@ -152,7 +154,7 @@ class Post extends Model
 ```
 The first argument passed to the linkMany method is the name of the related model class. Second argument is the Foreign key on related table (comments.post_id) and the third one is Local key on this table (posts.id). All the arguments is mandatory.
 
-Once the relationship method has been defined, we can access the collection of related comments by accessing the comments property. Remember, since Eloquent provides "dynamic relationship properties", we can access relationship methods as if they were defined as properties on the model:
+Once the relationship method has been defined, we can access the collection of related comments by accessing the comments property. Remember, since Entity provides "dynamic relationship properties", we can access relationship methods as if they were defined as properties on the model:
 
 ```php
 use App\Models\Post;
@@ -184,7 +186,7 @@ Now that we can access all of a post's comments, let's define a relationship to 
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Comment extends Model
 {
@@ -206,7 +208,7 @@ $comment = Comment::find(1);
 
 $comment->post?->title ?? 'default';
 ```
-In the example above, Eloquent will attempt to find a Post model that has an id which matches the post_id column on the Comment model.
+In the example above, Entity will attempt to find a Post model that has an id which matches the post_id column on the Comment model.
 
 ## Many to Many / Bind To Many
 Many-to-many relationships are a bit more involved than linkOne or linkMany relationships. A common example is the relationship between posts and tags. A single post can have multiple tags, and each tag can be associated with multiple posts. For instance, a blog post might be tagged with "Doppar" and "PHP", and those same tags might be used on other posts as well. So, a post has many tags, and a tag belongs to many posts.
@@ -240,7 +242,7 @@ Doppar ORM supports many-to-many relationships through an intermediate pivot tab
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {
@@ -267,7 +269,7 @@ foreach ($post->tags as $tag) {
     // ...
 }
 ```
-You can easily retrieve all the related tag names of a post as a plain array using Eloquent’s pluck method:
+You can easily retrieve all the related tag names of a post as a plain array using Entity’s pluck method:
 ```php
 $tagNames = $post->tags->pluck('name')->toArray();
 ```
@@ -299,7 +301,7 @@ To define the "inverse" of a many-to-many relationship, you should define a meth
 
 namespace App\Models;
 
-use Phaseolies\Database\Eloquent\Model;
+use Phaseolies\Database\Entity\Model;
 
 class Tag extends Model
 {
@@ -425,21 +427,31 @@ When fetching model records, there are times you might want to filter results ba
 
 In Doppar ORM, the present() method can be used to load relationships that are present (i.e., do not exist) in the model, or when you want to ensure related data is included, even if it is not empty.
 ```php
-use App\Models\Post;
-
 // Retrieve all posts that have at least one comment...
-$posts = Post::query()->present('comments')->get();
+Post::query()->present('comments')->get();
 ```
 
 The `present()` method can be used to load a relationship with custom query conditions. You can define specific conditions inside the closure passed to present() to filter the related data.
 ```php
-return Post::query()
+Post::query()
     ->present('comments', function ($query) {
         $query->where('comment', 'doppar is awesome')
             ->where('created_at', NULL);
     })
     ->get();
 ```
+
+You can also use `orPresent()` like this way
+```php
+User::query()
+    ->whereYear('created_at', 2025)
+    ->orPresent('posts', function ($query) {
+        $query->where('status', true);
+    })
+    ->get();
+```
+
+You can use `orPresent()` to add an `OR EXISTS` condition to your query. This is helpful when combining relationship existence logic with other filters.
 
 You can do the same thing using `ifExists` method
 ```php
@@ -466,6 +478,14 @@ The `absent()` method is used to fetch records where a particular relationship d
 Post::query()->absent('comments')->get();
 ```
 
+You can also use orAbsent() like this way.
+```php
+User::query()
+    ->whereYear('created_at', 2025)
+    ->orAbsent('posts')
+    ->get();
+```
+
 In the Doppar framework, the `ifNotExists()` method works similarly to the `ifExists()` method but with the inverse logic. Instead of filtering posts who that has at least one comment, it retrieves posts that don't have any related comments. This can be useful when you want to find records without any associated data.
 ```php
 // Find posts that don't have any comments
@@ -476,12 +496,8 @@ Post::query()->ifNotExists('comments')->get();
 ## whereLinked()
 Filters models based on the existence of related records that match a given condition. This method allows you to query models that are linked (via relationships) to other models with specific field values.
 ```php
-<?php
-
-use App\Models\User;
-
 // Find users who have at least one published post
-$users = User::query()
+User::query()
     ->whereLinked('posts', 'status', true)
     ->orderBy('id', 'asc')
     ->get();

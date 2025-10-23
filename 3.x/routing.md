@@ -419,7 +419,7 @@ Generated route for this `products` bundle
 
 By default, bundle routes use the `primaryKey` field as the route key for model binding along with fallback to `id`.  
 
-If your model does not have an `id` column, or you want to bind routes using a different column (for example, `slug`), you can override the `getRouteKeyName()` method in your Eloquent model.
+If your model does not have an `id` column, or you want to bind routes using a different column (for example, `slug`), you can override the `getRouteKeyName()` method in your Entity model.
 
 ```php
 /**

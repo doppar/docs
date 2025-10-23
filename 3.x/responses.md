@@ -44,7 +44,7 @@ You can also return collection like
 Route::get('/', fn () => collect([1, 2, 3, 4]));
 ```
 
-> Did you know you can also return Eloquent collections from your routes or controllers? They will automatically be converted to JSON.
+> Did you know you can also return Entity collections from your routes or controllers? They will automatically be converted to JSON.
 
 ## Response Objects
 Typically, you won't just be returning simple strings or arrays from your route actions. Instead, you will be returning full `Phaseolies\Http\Response` instances.
@@ -55,8 +55,8 @@ Route::get('/', function () {
 });
 ```
 
-## Eloquent Models Collections
-For Eloquent, Doppar usage its own Eloquent Model and Collection. So you can return Eloquent collection data as `Phaseolies\Http\Response`, Doppar will automatically convert the models and collections to JSON responses while respecting the model's hidden attributes:
+## Entity Models Collections
+For Entity, Doppar usage its own Entity Model and Collection. So you can return Entity collection data as `Phaseolies\Http\Response`, Doppar will automatically convert the models and collections to JSON responses while respecting the model's hidden attributes:
 ```php
 use App\Models\User;
 

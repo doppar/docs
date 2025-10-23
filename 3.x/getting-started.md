@@ -74,7 +74,7 @@ Handling thousands of concurrent connections while keeping performance predictab
 - **Scalable & Modular** Perfect for projects of all sizes—from microservices to full-scale.
 - **API Presenter Bundle** Fully internal, zero-config API Presenter. no overrides required.
 - **Two-Factor Authentication (TOTP)** Industry-standard TOTP Authentication.
-- **Rich Ecosystem** Eloquent ORM, Routing, Middleware, Pool Console, Caching and more.
+- **Rich Ecosystem** Entity ORM, Routing, Middleware, Pool Console, Caching and more.
 - **Developer-Focused** Simplifies development with thoughtful conventions.
 
 ## JIT Template Compilation
@@ -120,7 +120,7 @@ Doppar brings together modern PHP practices and elegant simplicity — empowerin
 | **Service Container** | On-demand service loading with optional smart provider resolution. |
 | **Service Provider** | Cleanly separate concerns and manage dependencies with ease. |
 | **Routing** | Supports both attribute-based and file-based routes. |
-| **Model Hook** | Flexible approaches to handle Eloquent model events. |
+| **Model Hook** | Flexible approaches to handle Entity model events. |
 | **Request** | An unparalleled Request object built for clarity and power. |
 | **Middleware** | Global, web or route-specific; easily configurable in multiple ways. |
 | **Controllers** | Structured request-response handling with intuitive flow. |
@@ -187,4 +187,4 @@ By following Doppar’s conventions, your packages can hook into the application
 Doppar makes package development not just possible, but **enjoyable and powerful**. Whether you're solving a problem for your own project or building tools for the wider community, **Doppar’s extensibility helps you do it cleanly, efficiently, and in a scalable way**.
 
 ## Build Something Great
-Doppar is designed to get out of your way—so you can build faster and cleaner. From commands (pool) to rich Eloquent ORM tools, Doppar ensures your workflow is smooth and enjoyable.
+Doppar is designed to get out of your way—so you can build faster and cleaner. From commands (pool) to rich Entity ORM tools, Doppar ensures your workflow is smooth and enjoyable.

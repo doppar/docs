@@ -10,7 +10,7 @@ meta:
 ### Introduction
 Doppar provides a convenient and fluent Collection class built on top of the powerful `ramsey/collection` package. Collections are an elegant and flexible way to work with arrays of data, especially when you want to perform transformations, filtering, grouping, and other operations in a chainable and expressive syntax.
 
-In Doppar, the Collection class enhances `Ramsey\Collection\Collection` with additional utility methods and integrations tailored for Doppar's ecosystem, including Eloquent model support and developer-friendly features like memory usage tracking and deep flattening. To make it easy to work with collections, Doppar provides the global `collect()` helper function:
+In Doppar, the Collection class enhances `Ramsey\Collection\Collection` with additional utility methods and integrations tailored for Doppar's ecosystem, including Entity model support and developer-friendly features like memory usage tracking and deep flattening. To make it easy to work with collections, Doppar provides the global `collect()` helper function:
 
 Jump directly to a method:
 
@@ -109,7 +109,7 @@ $allProducts = $products->all();
 
 Unlike the `toArray()` method, `all()` does not perform any transformation or casting on the items. It simply returns the raw `$data` array stored within the collection.
 
->  Use `all()` when you want untouched items, and use `toArray()` when working with Eloquent models or objects that implement `toArray()`
+>  Use `all()` when you want untouched items, and use `toArray()` when working with Entity models or objects that implement `toArray()`
 
 ## `first()`
 The `first()` method retrieves the first item in the collection. If the collection is empty, it returns null. This is helpful when you're only interested in the first element of a dataset—such as the first result of a query, the first matched item, or the initial record in a transformed list.
@@ -712,7 +712,7 @@ Array
 `flatten()` works only on nested arrays or array-like structures. If you store objects with nested collections or models, flattening won't traverse inside them unless they are cast to arrays first.
 
 ## `pluck()` with `flatten()` and `unique()`
-The combination of `pluck()`, `flatten()`, and `unique()` allows you to efficiently extract and deduplicate deeply nested data structures within a collection. This is particularly useful when working with `Eloquent relationships` or nested arrays, such as retrieving a list of unique post titles from a collection of users, each having multiple posts.
+The combination of `pluck()`, `flatten()`, and `unique()` allows you to efficiently extract and deduplicate deeply nested data structures within a collection. This is particularly useful when working with `Entity relationships` or nested arrays, such as retrieving a list of unique post titles from a collection of users, each having multiple posts.
 
 ##### Example
 ```php

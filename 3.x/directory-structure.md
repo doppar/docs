@@ -73,7 +73,7 @@ Middleware classes are stored here. Middleware allows you to filter or modify HT
 This is the core HTTP Kernel that registers global and route-specific middleware and handles the incoming HTTP request lifecycle.
 
 ### `app/Models/`
-This directory contains your application's Eloquent-style models or custom ORM classes. These models represent your data schema and encapsulate logic for interacting with your database.
+This directory contains your application's Entity models or custom ORM classes. These models represent your data schema and encapsulate logic for interacting with your database.
 
 ### `app/Providers/`
 Application service providers live in this directory. They are responsible for bootstrapping various components of your application like binding services into the container, event listeners, etc
