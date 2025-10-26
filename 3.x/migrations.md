@@ -436,3 +436,69 @@ public function up()
 }
 ```
 You can also use this method `cascadeOnDelete()`, `restrictOnDelete()`, `nullOnDelete()`, `cascadeOnUpdate()`, `restrictOnUpdate()`, `nullOnUpdate()`.
+
+
+## Running Migrations on Specific Connection
+Doppar supports multi-database migrations out-of-the-box through its custom Schema and Blueprint classes. These allow you to define and execute schema changes (e.g., creating tables) on any configured database connection—not just the default one.
+
+This is especially useful for:
+- Modular applications where different modules use isolated databases
+- Multi-tenant systems
+- Reporting or archive databases
+
+#### Creating a Table on `mysql_second`
+Doppar’s `Schema::connection()` method returns a new instance of Schema configured to use the given database connection. Internally, this class uses the `DB::connection()` method to route all schema operations (create, drop, check, modify) to the appropriate database.
+```php
+<?php
+
+use Phaseolies\Support\Facades\Schema;
+use Phaseolies\Database\Migration\Blueprint;
+use Phaseolies\Database\Migration\Migration;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::connection('mysql_second')
+            ->create('reports', function (Blueprint $table) {
+                $table->id();
+                $table->timestamps();
+            });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::connection('mysql_second')->dropIfExists('reports');
+    }
+};
+```
+All schema operations become connection-aware simply by chaining `connection('connection_name')`. For example:
+```php
+use Phaseolies\Support\Facades\Schema;
+
+if (Schema::connection('mysql_second')->hasTable('user')) {
+    // Perform some logic if the 'user' table exists in mysql_second
+}
+
+// Drop a table on a different connection
+Schema::connection('archive_db')->dropIfExists('logs');
+
+// Create a table with foreign key checks disabled
+Schema::connection('tenant_db')->disableForeignKeyConstraints();
+
+Schema::connection('tenant_db')
+    ->create('orders', function (Blueprint $table) {
+        $table->id();
+        $table->timestamps();
+    });
+
+Schema::connection('tenant_db')->enableForeignKeyConstraints();
+```
+
+The `Schema::connection()` method makes it simple to work with multiple databases in Doppar. Whether you're creating tables, checking schema state, or managing constraints, you can confidently direct all schema commands to the right database with clean and expressive syntax.
