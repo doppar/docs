@@ -6,9 +6,7 @@ meta:
     content: Entity Builder
 ---
 
-  - [Getting Started](#getting-started)
   - [Query Using Builder](#query-using-builder)
-  - [Query Binding](#query-binding)
   - [Insertion and Update](#insertion-and-update)
   - [Aggregation](#aggregation)
   - [Querying Date Columns](#querying-date-columns)

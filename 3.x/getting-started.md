@@ -3,7 +3,7 @@ title: Getting Started
 description: Doppar Getting Started page
 meta:
   - name: keywords
-    content: Getting Started
+    content: Getting Started, Doppar Framework, PHP Framework, Doppar ORM, Doppar Entity Builder
 ---
 
 ## Why Doppar?
@@ -14,9 +14,66 @@ Doppar brings both worlds together. It offers aristocratic elegance in syntax an
 
 Doppar is engineered for speed — every repeated execution is intelligently memoized, ensuring results are delivered instantly without unnecessary reprocessing. With minimal reliance on third-party libraries and most features built directly into the core, you get lightning-fast performance right out of the box. No unnecessary bloat—just clean, efficient execution
 
-Doppar ORM Built entirely from core with zero external dependencies, Doppar delivers a powerful and expressive ORM system. Manage complex relationships with ease—no third-party packages required.
+Doppar `Entity ORM` and `Entity Builder` Built entirely from core with zero external dependencies, Doppar delivers a powerful and expressive `Entity ORM` and `Entity Builder` system. Manage complex relationships with ease—no third-party packages required.
 
 Whether you're a seasoned PHP developer or just diving in, Doppar makes it easy to build powerful applications quickly and cleanly.
+
+## Ultra-Clean Syntax - Unmatched Clarity
+Doppar is built around one core principle — clarity without compromise. Every class, method, and directive is designed to be instantly understandable and beautifully expressive. Doppar turns complex backend logic into readable, fluent, and elegant code that feels natural to write and effortless to maintain.
+
+Unlike traditional PHP frameworks that trade simplicity for abstraction, Doppar delivers both — a syntax that’s catchy. In Doppar, everything is explicit, discoverable, and self-documenting. No hidden bindings. No magic facades. No framework guesswork.
+```php
+#[Route(uri: 'user/store', methods: ['POST'], middleware: ['auth'])]
+public function store(
+    #[Bind(YourConcrete::class)] YourAbstraction $lala
+) {
+    //
+}
+```
+
+With attribute-based routing and inline dependency binding, Doppar makes intent crystal clear. Every dependency, every route, and every behavior is defined right where it belongs — in your code.
+
+## Unmatched Dependency Injection
+Doppar’s Service Container redefines how PHP frameworks handle dependency management.
+It offers an unparalleled level of clarity, control, and flexibility, allowing you to inject, bind, and resolve services without hidden magic or external dependencies.
+
+With Doppar, dependency injection is first-class, built directly into the core — not added as an afterthought. Whether through service providers, attribute-based bindings, or automatic resolution, the container adapts seamlessly to your application’s structure.
+
+Doppar keeps your bindings visible and meaningful. No verbose configurations. No hidden service maps. Just pure, expressive code that tells you exactly what’s happening.
+```php
+#[Route(uri: 'user/store', methods: ['POST'])]
+public function store(
+  #[Bind(UserRepository::class)] UserRepositoryInterface $userRepository
+) {
+    // #[Bind] resolves UserRepositoryInterface to UserRepository
+    // Explicitly and transparently.
+}
+```
+
+Localize your dependencies exactly where they are used. Doppar intelligently resolves classes without manual setup. It turns dependency management into an elegant, explicit part of your codebase. Doppar’s container is more than a dependency injector — it’s a clarity engine.
+
+## Unmatched Request Object
+Doppar introduces a next-generation Request Object that goes far beyond simple input retrieval.
+With fluent pipelines, inline validation, and declarative transformations, the Doppar Request turns raw input handling into a clean, expressive, and composable workflow.
+
+Instead of juggling multiple validation layers or helper functions, Doppar lets you filter, transform, and ensure your data — all within a single, elegant chain.
+```php
+$data = $request
+    ->pipeInputs([
+        'title' => fn($v) => ucfirst(trim($v)),
+        'tags' => fn($v) => is_string($v) ? explode(',', $v) : $v
+    ])
+    ->contextual(fn($data) => [
+        'slug' => Str::slug($data['title'])
+    ])
+    ->ensure('slug', fn($slug) => strlen($slug) > 0)
+    ->only('title','slug');
+
+Post::create($data);
+```
+
+This design makes Doppar’s Request object not just a data carrier — but a powerful input processing engine.
+It gives you the clarity of functional pipelines with the simplicity of modern PHP
 
 ## Doppar Benchmark: High-Concurrency Performance Test
 We stress-tested Doppar under extreme concurrency to evaluate its throughput, latency, and stability on a real database-backed endpoint. The results speak for themselves. We compared request handling and latency of Doppar under high concurrency with a database-backed endpoint.
@@ -66,16 +123,30 @@ Handling thousands of concurrent connections while keeping performance predictab
 
 👉 If you’re building systems that demand real scalability, high concurrency, and reliable performance, Doppar is ready to power them.
 
-### Key highlights:
-- **Simplicity with Power** Intuitive architecture that stays out of your way.
-- **Feature-Based Development** Organize your application by features, not layers.
-- **Just-in-Time (JIT)** Advanced JIT compilation for the Blade template engine.
-- **Performance First** Lightweight and efficient, designed for speed without compromise.
-- **Scalable & Modular** Perfect for projects of all sizes—from microservices to full-scale.
-- **API Presenter Bundle** Fully internal, zero-config API Presenter. no overrides required.
-- **Two-Factor Authentication (TOTP)** Industry-standard TOTP Authentication.
-- **Rich Ecosystem** Entity ORM, Routing, Middleware, Pool Console, Caching and more.
-- **Developer-Focused** Simplifies development with thoughtful conventions.
+## Entity Builder and Entity ORM
+Doppar introduces two powerful, fully native systems — Entity ORM and Entity Builder — built entirely from the core with zero external dependencies. Together, they redefine how developers interact with databases by combining expressive syntax, high performance, and total control.
+
+![Doppar Entity Builder and Entity ORM](/doppar-entity-builder.png)
+
+## Entity ORM
+Entity ORM is a modern, intuitive, and high-performance Object-Relational Mapper designed to make database interactions seamless and efficient. Each database table is represented by a dedicated Data Model, giving you a clean, object-oriented interface for querying, inserting, updating, and deleting records — all without writing raw SQL.
+
+Beyond simple CRUD operations, Entity ORM empowers you to manage complex data relationships with ease. Features like eager loading, nested relationships, and relationship-based filtering make it effortless to work with related data while eliminating repetitive boilerplate code.
+
+Whether you’re handling straightforward tables or building intricate relational architectures, Entity ORM keeps your workflow smooth, expressive, and maintainable — turning database interactions into a natural, enjoyable part of your development process.
+
+Crafted entirely within Doppar’s core, Entity ORM delivers pure, dependency-free performance for clean, reliable, and scalable data handling.
+
+## Entity Builder
+Entity Builder is a powerful, flexible, and model-free query builder built for developers who want full control over database operations — without relying on predefined models.
+
+With Entity Builder, you can construct, execute, and manage even the most complex SQL queries through a clean, expressive, and chainable interface. From fetching and filtering to joins, inserts, and updates, Entity Builder translates raw SQL power into elegant, object-oriented syntax that feels intuitive and effortless.
+
+While Entity ORM excels in model-driven development, Entity Builder shines in dynamic scenarios — such as data analysis, raw manipulation, or rapid prototyping — letting you query any table directly. It supports nearly all ORM-level query capabilities (minus relationship-based operations) while maintaining the same clarity, consistency, and speed.
+
+Fully integrated into Doppar’s ecosystem, Entity Builder runs without any third-party dependencies, ensuring unmatched reliability and performance across all data-driven applications.
+
+With Doppar Entity Builder, you get the freedom of SQL with the clarity, safety, and precision of Doppar.
 
 ## JIT Template Compilation
 Doppar brings advanced `Just-in-Time (JIT)` compilation to the Blade template engine — a performance-focused feature that transforms how views are compiled and rendered at runtime.
