@@ -9,10 +9,12 @@ meta:
   - [One to One / Link One](#one-to-one-link-one)
   - [One To One Inverse / Bind To](#one-to-one-inverse-bind-to)
   - [One to Many / Link Many](#one-to-many-link-many)
+  - [Eager Loading, Lazy Loading](#eager-loading-lazy-loading)
   - [Many To Many / bindToMany ](#many-to-many-bind-to-many)
   - [Nested Relationship](#nested-relationship)
   - [Quering Relationship Existence](#quering-relationship-existence)
   - [Quering Relationship Missing](#quering-relationship-missing)
+  - [Relationship Count](#relationship-count)
 
 ## Relationships
 ### Introduction
@@ -209,6 +211,70 @@ $comment = Comment::find(1);
 $comment->post?->title ?? 'default';
 ```
 In the example above, Entity will attempt to find a Post model that has an id which matches the post_id column on the Comment model.
+
+## Eager Loading, Lazy Loading
+Efficiently managing related data is crucial in applications that rely on relational databases. Doppar Entity ORM provides mechanisms to control when and how related models are fetched, helping you optimize performance and avoid common pitfalls such as the `N+1` query problem.
+
+### Lazy Loading
+By default, Doppar uses lazy loading. This means that related models are only fetched when you access the relationship property. While convenient, lazy loading can lead to multiple queries when iterating over collections of parent models.
+
+Example:
+```php
+$users = User::all(); // 1 query
+
+foreach ($users as $user) {
+    echo $user->posts->count(); // 1 query per user
+}
+```
+If there are `100` users, lazy loading will execute `101` queries in total:
+
+| Operation                 | Queries |
+| ------------------------- | ------- |
+| Fetch all users           | 1       |
+| Fetch posts for each user | 100     |
+| **Total**                 | 101     |
+
+This is the classic `N+1` query problem, where `N` is the number of parent records.
+
+### Eager Loading
+Doppar solves this problem with eager loading using the `embed()` method. Eager loading retrieves the parent models and their related models in a single optimized query.
+
+Example:
+```php
+$users = User::embed('posts')->get();
+
+foreach ($users as $user) {
+    echo $user->posts->count(); // No additional queries
+}
+```
+
+With eager loading, only 2 queries are executed:
+
+| Operation                         | Queries |
+| --------------------------------- | ------- |
+| Fetch all users                   | 1       |
+| Fetch posts for all users (embed) | 1       |
+| **Total**                         | 2       |
+
+This approach dramatically reduces database load and improves performance, especially for large datasets.
+
+### Nested Eager Loading
+Doppar also supports nested eager loading, allowing you to preload relationships multiple levels deep in a single, efficient workflow.
+
+Example:
+```php
+$posts = Post::query()->embed('comments.user')->get();
+```
+This query:
+- Fetches all posts (1 query)
+- Fetches all related comments (1 query)
+- Fetches all users associated with the comments (1 query)
+
+Total queries: 3
+
+Without eager loading, lazy loading would trigger 1 query for posts + N queries for comments + M queries for users, which could easily run into hundreds or thousands of queries. You can debug this situation using [doppar insight](doppar-insight.html) package.
+
+By strategically using `embed()` for eager loading and nesting related relationships, Doppar Entity ORM ensures your applications remain performant while maintaining clean, readable code.
 
 ## Many to Many / Bind To Many
 Many-to-many relationships are a bit more involved than linkOne or linkMany relationships. A common example is the relationship between posts and tags. A single post can have multiple tags, and each tag can be associated with multiple posts. For instance, a blog post might be tagged with "Doppar" and "PHP", and those same tags might be used on other posts as well. So, a post has many tags, and a tag belongs to many posts.
@@ -504,3 +570,67 @@ User::query()
 ```
 
 In the example above, only users who have at least one related Post with `status = true` will be returned.
+
+## Relationship Count
+The `embedCount()` method is used to count related records without loading all the details. This is useful when you only need to know how many related items exist, for example, how many posts a user has, without fetching all posts from the database. Using `embedCount()` can make your queries faster and more efficient.
+
+For example:
+```php
+// Count posts for each user
+User::query()->embedCount('posts')->get();
+```
+Or count multiple relations at once:
+```php
+User::query()
+    ->embedCount(['posts', 'comments', 'followers'])
+    ->get();
+// Access like this way
+// $user->posts_count
+// $user->comments_count
+// $user->followers_count
+```
+
+### Conditional Counting
+You can apply conditions to only count certain related records. This is useful if you want to count only “active” or “published” items.
+```php
+// Count only active posts for each user
+User::query()
+    ->embedCount('posts', function ($query) {
+        $query->where('status', true);
+    })
+    ->get();
+```
+
+Or count multiple relations with individual conditions:
+```php
+// Count published posts and approved comments for each user
+User::query()->embedCount([
+    'posts' => fn($q) => $q->where('published', true),
+    'comments' => fn($q) => $q->where('approved', true),
+])->get();
+```
+
+### Combining `embed()` and `embedCount()`
+Sometimes you need to load full relations for some fields but just count others.
+```php
+// Load full posts and OTPs, but only count posts
+User::query()
+    ->embed(['posts', 'otp'])
+    ->embedCount(['posts'])
+    ->paginate(15);
+```
+
+### Using Counts in a Foreach Loop
+After counting relations, you can access the counts in your loop. This is helpful when showing counts in a UI or report.
+```php
+$users = User::query()->embedCount(['posts', 'comments'])->get();
+
+foreach ($users as $user) {
+    echo "User: {$user->name}\n";
+    echo "Posts count: {$user->posts_count}\n";
+    echo "Comments count: {$user->comments_count}\n";
+}
+```
+`posts_count` and `comments_count` are automatically added by embedCount() and represent the number of related records.
+
+
