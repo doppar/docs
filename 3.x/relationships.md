@@ -519,10 +519,21 @@ User::query()
 
 You can use `orPresent()` to add an `OR EXISTS` condition to your query. This is helpful when combining relationship existence logic with other filters.
 
+The `present()` methods let you filter parent records depending on whether a relationship (or chain of relationships) has related records matching specific conditions.
+
+With nested relationship support, you can now query across multiple levels using dot notation (e.g. comments.reply.user).
+```php
+Post::query()
+    ->present('comments.reply.user', function ($query) {
+        $query->where('status', true);
+    })
+    ->get();
+```
+
+This returns all users that have at least one `post → comment → reply` where `status = true`.
+
 You can do the same thing using `ifExists` method
 ```php
-use App\Models\Post;
-
 // Retrieve all posts that have at least one comment...
 Post::query()->ifExists('comments')->get();
 ```
@@ -536,6 +547,17 @@ User::query()
     })
     ->get();
 ```
+
+The `ifExists()` method works similarly, filtering results based on the existence of related nested records.
+```php
+User::query()
+    ->ifExists('posts.comments.reply', function ($query) {
+        $query->where('approved', true);
+    })
+    ->get();
+```
+
+This returns all users that have at least one `post → comment → reply` where `approved = true`.
 
 ## Quering Relationship Missing
 The `absent()` method is used to fetch records where a particular relationship does not exist. This is useful when you want to retrieve records that are missing related data.
@@ -570,6 +592,16 @@ User::query()
 ```
 
 In the example above, only users who have at least one related Post with `status = true` will be returned.
+
+You can also use nested relationships in your `whereLinked()` method to apply conditions on deeper relationship chains.
+```php
+// Find posts that have at least one comment with an approved reply
+Post::query()
+    ->whereLinked('comments.reply', 'status', true)
+    ->pluck('id');
+```
+
+his will return all `Post` records that have at least one `Comment` whose related `Reply` has `status = true`.
 
 ## Relationship Count
 The `embedCount()` method is used to count related records without loading all the details. This is useful when you only need to know how many related items exist, for example, how many posts a user has, without fetching all posts from the database. Using `embedCount()` can make your queries faster and more efficient.
@@ -633,4 +665,17 @@ foreach ($users as $user) {
 ```
 `posts_count` and `comments_count` are automatically added by embedCount() and represent the number of related records.
 
+### Nested Relationship Count
+The `embedCount()` method also allows you to include the nested related models count when retrieving records. You can optionally apply conditions to filter which related records are counted.
+```php
+Post::embedCount('comments.reply')->get();
+```
+Each Post record will include a field comments data including `reply_count` representing the total number of reply records across all each comments.
 
+Apply a condition to count only related records matching specific criteria.
+```php
+Post::embedCount('comments.reply', function ($query) {
+    $query->where('status', false);
+})->get();
+```
+Each Post record will include a count of only those reply records where `status = false`, under each related comments
