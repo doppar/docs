@@ -1189,6 +1189,16 @@ posts
     title - string
     user_id - integer
 
+comments
+    id - integer
+    body - string
+    post_id - integer
+
+replies
+    id - integer
+    body - string
+    comment_id - integer
+
 category
     id - integer
     name - string
@@ -1211,27 +1221,22 @@ Now the following query searches for the posts title, the user’s name, or the 
 ```php
 Post::query()
     ->search(attributes: [
-        'title',          // column from the posts table
-        'user.name',      // linkOne relation: posts → user (searches the user `name`)
-        'category.name',  // linkOne relation: posts → category (searches the category `name`)
-        'tags.name'       // many-to-many relation — posts → tags (searches the tag `name`)
+        'title',
+        'user.name',
+        'category.name',
+        'tags.name'
+        'comments.replies.body'
     ], searchTerm: $request->search)
     ->get();
 ```
 
-Relation search currently supports `one-to-one` and `one-to-many` relationships. If a relation or column does not exist, Doppar automatically skips it from the query.
+What is happening in the above query?
 
-See another example
-```php
-User::query()
-    ->search([
-        'name',          // searching name
-        'email',          // searching email
-        'posts.title',    // linkMany relation (users → posts) searching `title`
-        'address.address_line' // linkOne relation (users → address) searching `address_line` column
-    ], $request->searchTerm)
-    ->get();
-```
+- **title** – Searches the `title` column in the `posts` table.
+- **user.name** – Searches the `name` column in the related `user` model.
+- **category.name** – Searches the `name` column in the related `category` model.
+- **tags.name** – Searches the `name` column in the related `tags` model.
+- **comments.reply.body** – Searches the `body` column in the `reply` model related to `comments`.
 
 ## Nested conditions using callbacks
 The `where()` and `orWhere()` methods allow you to define precise filtering conditions for your queries.
