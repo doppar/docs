@@ -378,12 +378,6 @@ User::where('status', 'active')
     ->get();
 ```
 
-You can pass third argument as `true` or `false` to handle case-sensitive search.
-
-```php
-User::whereLike('username', 'Admin', true)->get();
-```
-
 ### whereRaw()
 The `whereRaw()` method allows you to write a raw SQL WHERE clause directly into an Entity query. This is useful when your query requires SQL features that aren't easily expressed using Entity's fluent methods — such as complex conditions, custom SQL functions, or case-insensitive matching.
 
@@ -1218,14 +1212,12 @@ Now the following query searches for the posts title, the user’s name, or the 
 Post::query()
     ->search(attributes: [
         'title',          // column from the posts table
-        'user.name',      // linkOne relation: post → user (searches the user `name`)
-        'category.name',  // linkOne relation: post → category (searches the category `name`)
-        'tags.name'       // many-to-many relation — not supported
+        'user.name',      // linkOne relation: posts → user (searches the user `name`)
+        'category.name',  // linkOne relation: posts → category (searches the category `name`)
+        'tags.name'       // many-to-many relation — posts → tags (searches the tag `name`)
     ], searchTerm: $request->search)
     ->get();
 ```
-
-> The function `search()` accepts an optional third argument to enable case-sensitive searches.
 
 Relation search currently supports `one-to-one` and `one-to-many` relationships. If a relation or column does not exist, Doppar automatically skips it from the query.
 

@@ -300,14 +300,6 @@ db()->bucket('users')
     ->get();
 ```
 
-You can pass third argument as `true` or `false` to handle case-sensitive search.
-
-```php
-db()->bucket('users')
-    ->whereLike('username', 'Admin', true)
-    ->get();
-```
-
 ### whereRaw()
 The `whereRaw()` method allows you to write a raw SQL WHERE clause directly into an Entity query. This is useful when your query requires SQL features that aren't easily expressed using Entity's fluent methods — such as complex conditions, custom SQL functions, or case-insensitive matching.
 
