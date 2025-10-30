@@ -99,6 +99,18 @@ class Post extends Model
 }
 ```
 
+### Generating `$creatable` Properties Automatically
+We value your time — manually adding each column to your `$creatable` property can be tedious.
+To make this easier, you can automatically generate the list of columns using a simple command:
+```bash
+php pool get:column posts
+```
+This command inspects the `posts` table and outputs the corresponding `$creatable` property for your model:
+```php
+protected $creatable = ['title', 'status', 'description'];
+```
+That’s it — no need to type out each column manually. A quick command, and your $creatable array is ready to go ✨.
+
 ### $unexposable
 Specifies which attributes should be hidden when the model is converted to an array or JSON or Collection. This is particularly useful for hiding sensitive information, such as passwords, from being exposed in API responses or other outputs.
 ```php

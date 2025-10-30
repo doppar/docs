@@ -467,8 +467,8 @@ Explanation:
 - **reply:** Loads replies for each comment (assuming a reply is a nested relationship under a comment).
 - **user:** Loads the user who authored each reply.
 
-### Specific Column Selection
-The embed() method in Doppar ORM allows you to eager load related models and even specify which columns to load for each relationship. This helps optimize queries by only selecting the necessary data.
+## Specific Column Selection
+The `embed()` method in Doppar ORM allows you to eager load related models and even specify which columns to load for each relationship. This helps optimize queries by only selecting the necessary data.
 ```php
 User::query()
     ->embed([
@@ -479,6 +479,98 @@ User::query()
     ])
     ->get();
 ```
+
+You can optimize your queries by fetching only the columns you need from related models. To do this, simply specify the desired columns after the relation name using the `relation:columns` syntax.
+
+For example:
+```php
+User::query()
+    ->embed([
+        'comments.reply',
+        'posts:id,title,status'
+    ])
+    ->get();
+```
+In this example:
+- The `comments.reply` relationship will be fully loaded.
+- The posts relationship will only retrieve the `id`, `title`, and `status` columns — reducing unnecessary data and improving query performance.
+
+You can also select specific columns from `nested (deep) relationships` using the same syntax.
+Simply include the column list after the full relation path.
+```php
+User::query()
+    ->embed([
+        'comments.reply:id,body',
+        'posts:id,title,status',
+    ])
+    ->get();
+```
+In this example:
+- `comments.reply:id,body`
+  - Loads the reply relation of each comment, but only includes the `id` and `body` columns.
+- `posts:id,title,status`
+  - Loads each user's posts, selecting only the `id`, `title`, and `status` fields.
+
+### Applying Conditions
+You can also apply query constraints to your embedded relationships by passing a closure. This allows you to filter, sort, or otherwise modify the relationship query before it is executed.
+```php
+Post::query()
+    ->embed([
+        'comments:id,body' => function ($query) {
+            $query->where('approved', true)
+                  ->orderBy('created_at', 'DESC');
+        },
+    ])
+    ->get();
+```
+
+In this example:
+- The comments relation is embedded, but only the `id` and `body` columns are selected.
+- The closure applies additional conditions:
+  - Only `approved` comments are retrieved.
+  - Comments are ordered by `created_at` in descending order (newest first).
+
+### Embedding Relationships with Conditions, Limits, and Counts
+You can combine multiple features — such as selecting specific columns, applying conditions, limiting results, and counting related records — all within the `embed()` and `embedCount()` methods.
+
+For example:
+```php
+Post::query()
+    ->where('id', 1)
+    ->select('id', 'title', 'user_id', 'category_id')
+    ->embed([
+        'comments:id,body,created_at' => function ($query) {
+            $query->where('status', true)
+                  ->limit(2)
+                  ->oldest('created_at');
+        },
+        'tags',
+        'user:id,name',
+        'category:id,name',
+    ])
+    ->embedCount('comments')
+    ->where('status', true)
+    ->first();
+```
+Explanation
+ - `comments:id,body,created_at`
+   - Loads only the `id`, `body`, and `created_at` columns from the comments relation.
+   - The embedded query:
+     - Filters comments where `status = true`
+     - Limits the result to `2` comments
+     - Orders them by `created_at` (oldest first)
+
+- `tags` Loads all related tags without additional constraints.
+- `user:id,name` Loads the `post’s author`, selecting only the `id` and `name` columns.
+- `category:id,name` Loads the category relation, selecting only the `id` and `name`.
+- `embedCount('comments')`
+Adds a `comments_count` attribute with the total number of related comments.
+- `Final filters:`
+  - The main query filters `posts where id = 1 and status = true`, then retrieves the first matching record.
+
+This approach offers precise control over both the parent and related models — letting you build rich, optimized data responses in a single query.
+
+> 💡 For many-to-many relationships, all related columns — including pivot columns — are always included automatically. Selecting specific columns for these relations is not supported.
 
 ### Fetching Multiple Relationships
 This query retrieves users along with their related articles and address using the embed method. By embedding multiple relationships, it ensures that all necessary data is fetched in a single query, improving efficiency and reducing additional database calls.
