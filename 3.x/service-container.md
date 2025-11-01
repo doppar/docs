@@ -74,7 +74,7 @@ Route::get('/', function (Request $request) {
 ## Attribute-Based Binding
 Starting with Doppar’s modern service container implementation, you can bind interfaces to their concrete implementations using attributes directly on controllers or methods. This attribute-based approach offers a clean, declarative way to configure your dependencies without manually binding them in a service provider.
 
-### #[Bind] Attribute
+## #[Bind] Attribute
 The `#[Bind]` attribute provides a more expressive and localized way to bind interfaces or abstract classes to their concrete implementations directly within controller method parameters.
 
 It enhances readability and reduces boilerplate by allowing you to define bindings exactly where they are used, rather than at the class or service-provider level.
@@ -105,8 +105,26 @@ public function store(
     // #[Bind(..., true)] resolves PostRepositoryInterface to PostRepository as a singleton.
 }
 ```
-
 The second argument `(true)` marks the binding as singleton, meaning Doppar will reuse the same instance for all subsequent resolutions during the request.
+
+## Bind Attribute in Contructor
+In Doppar, you can automatically inject dependencies into your controllers or services using attribute-based binding you already know that. You can also specify which concrete class should be injected for a given interface, directly in the constructor by this following way.
+
+```php
+class PostController extends Controller
+{
+    public function __construct(
+        #[Bind(PostRepository::class)] private PostRepositoryInterface $postRepository,
+    ) {}
+
+    #[Route('/')]
+    public function __invoke(Request $request)
+    {
+        //
+    }
+}
+```
+When the framework instantiates the `PostController`, it looks for all constructor parameters marked with `#[Bind()]`. Doppar automatically creates (or fetches) an instance of the specified class and assigns it to the declared property.
 
 ### In summary:
 
