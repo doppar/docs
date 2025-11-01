@@ -270,6 +270,22 @@ class LoginController extends Controller
     }
 }
 ```
+## Exists In Validation
+To validate if a value exists in a specific database table, you follow this example
+```php
+$request->sanitize([
+    'category_id' => 'required|exists_in:category,id'
+]);
+```
+The above validation will be applied like that, the `category_id` field is required and must exist in the `id` column of the `category` table.
+
+You can also skip the column name, by default it will use id as the column name
+```php
+$request->sanitize([
+    'category_id' => 'required|exists_in:category'
+]);
+```
+The above validation will be applied like that, it will check if the given `category_id` exists in the id column of the `category` table.
 
 ## Image validation
 In Doppar, you can use the `sanitize()` method to validate and sanitize incoming request data. This ensures that the submitted data meets specific criteria before being processed. To validate an uploaded file, use the following code:
