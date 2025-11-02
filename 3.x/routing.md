@@ -289,6 +289,38 @@ public function show(
 ```
 This ensures strict route validation and avoids passing null models to your logic.
 
+## Globally Set Route Key Name
+In Doppar, you can define a global route key name for your model to simplify and standardize how it’s resolved during route model binding.
+
+This eliminates the need to repeatedly specify the binding column in your route definitions.
+
+### Defining the Global Route Key
+Inside your model, override the `getRouteKeyName()` method to specify which column should be used for route model binding.
+```php
+/**
+ * Get the route key name for model binding.
+ *
+ * @return string
+ */
+#[\Override]
+public function getRouteKeyName(): string
+{
+    return 'email';
+}
+```
+With this method in place, Doppar will automatically use the `email` column whenever this model is bound in a route — no additional configuration is required.
+
+### Overriding the Global Column
+If you need to bind using a different column for a specific route, you can override the global route key by explicitly specifying the column in the `#[Model]` attribute:
+```php
+#[Route('/profile/{user}', methods: ['GET'])]
+public function show(#[Model('username')] ?User $user)
+{
+    return $user;
+}
+```
+Here, Doppar will temporarily ignore the global `email` key and use the `username` column instead.
+
 ## Routing with Route Facades
 The most basic Doppar routes accept a URI and a closure, providing a very simple and expressive method of defining routes and behavior without complicated routing configuration files:
 ```php
