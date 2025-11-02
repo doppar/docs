@@ -138,6 +138,28 @@ public function store(Request $request)
 
 In this example, the store method will respond to both `POST` and `PATCH` requests sent to the `/post/store` endpoint. This flexibility makes it easy to manage different request types for the same route, supporting both resource creation and partial updates within a single controller action.
 
+## Route Prefix with `#[Mapper]`
+Doppar supports controller-level route prefixes and middleware via the `#[Mapper]` attribute. This feature allows developers to declare common URI segments and middleware for all routes within a controller, reducing repetition and improving readability.
+
+Basic usage example:
+```php
+use Phaseolies\Utilities\Attributes\Mapper;
+
+#[Mapper(prefix: 'user', middleware: ['auth'])]
+class UserController extends Controller
+{
+    #[Route(uri: '/{id}', middleware: ['admin'])]
+    public function show($id)
+    {
+        // Endpoint: http://example.com/user/1
+        // The auth middleware is applied to all routes.
+        // Individual routes can still define -
+        // Additional middleware (e.g., admin for the show method).
+        return $id;
+    }
+}
+```
+
 ## Attribute Routing with Middleware
 Doppar’s attribute-based routing also supports middleware assignment directly within the route definition. This allows you to apply one or more middleware layers to a specific controller method without configuring them separately in a route file.
 
@@ -218,6 +240,54 @@ public function home(): Response
 }
 ```
 This approach eliminates the need to manually specify middleware for simple throttling needs.
+
+## Route Model Binding
+Doppar introduces a powerful and expressive way to automatically resolve route parameters into model instances using PHP attributes. This feature allows you to specify how a model should be retrieved — by its ID, by a specific column, or with exception-handling behavior — directly in your controller method signature.
+
+Below are examples demonstrating various use cases for the `#[Model]` attribute.
+```php
+use Phaseolies\Utilities\Attributes\Model;
+
+#[Route('/profile/{user}', methods: ['GET'])]
+public function show(#[Model] ?User $user) 
+{
+    // The $user instance is automatically fetched using the 'id' column.
+    // If no matching user is found, null will be assigned by default.
+    return $user;
+}
+```
+
+In this example, the `{user}` route parameter is automatically resolved to a User model instance by matching the `id` column. If the user is not found, the `$user` variable will be null (no exception is thrown)
+
+## Explicit Model Binding
+The `#[Model('email')]` attribute clearly expresses that binding should occur based on the `email` column rather than the default `id`.
+
+```php
+#[Route('/profile/{user}', methods: ['GET'])]
+public function show(#[Model('email')] ?User $user) 
+{
+    // Fetched using the 'email' column.
+    return $user;
+}
+```
+
+In this example, the `{user}` route parameter is automatically resolved to a User model instance by matching the `email` column. If the user is not found, the $user variable will be null (no exception is thrown)
+
+## Model Binding with Exception Handling
+This example demonstrates how Doppar can automatically enforce strict model resolution for route parameters. By setting `exception: true` in the `#[Model]` attribute, the framework will attempt to fetch the User model by the specified column (email in this case).
+
+If a matching user is not found, a `NotFoundHttpException` is thrown immediately, preventing null values from being passed to the controller. This ensures that your route always receives a valid model instance or fails fast, making your controller logic simpler and safer.
+```php
+#[Route('/profile/{user}', methods: ['GET'])]
+public function show(
+    #[Model(column: 'email', exception: true)] ?User $user
+) {
+    // If no user is found,
+    // NotFoundHttpException will be thrown automatically.
+    return $user;
+}
+```
+This ensures strict route validation and avoids passing null models to your logic.
 
 ## Routing with Route Facades
 The most basic Doppar routes accept a URI and a closure, providing a very simple and expressive method of defining routes and behavior without complicated routing configuration files:
