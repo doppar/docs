@@ -1072,7 +1072,65 @@ This is useful for simple pagination or when you want to retrieve a specific sli
 ## Database Transactions
 A database transaction is a sequence of database operations that are executed as a single unit. Transactions ensure data integrity by following the ACID properties (Atomicity, Consistency, Isolation, Durability). If any operation within the transaction fails, the entire transaction is rolled back, preventing partial updates that could leave the database in an inconsistent state.
 
-Doppar provides built-in support for handling database transactions using the `DB::transaction()` method, `DB::beginTransaction()`, `DB::commit()`, and `DB::rollBack()`.
+Doppar provides built-in support for handling database transactions using `#[Transaction]` attribute and the `DB::transaction()` method, `DB::beginTransaction()`, `DB::commit()`, and `DB::rollBack()`.
+
+You can manage transactions directly using the `DB` facade. This method gives you complete control over when to begin, commit, or roll back.
+
+## Attribute-Based Transaction
+The `#[Transaction]` attribute provides automatic database transaction management for doppar controller methods. It eliminates the need for manual transaction handling and ensures data consistency. You can simplify transaction management with the `#[Transaction]` attribute. This approach automatically wraps your controller methods in a transaction — no manual calls required.
+
+Basic usage
+```php
+use Phaseolies\Utilities\Attributes\Transaction;
+
+#[Transaction]
+#[Route(uri: 'orders', methods: ['POST'])]
+public function store(Request $request)
+{
+    // store method automatically wrapped in transactions
+}
+```
+
+### Specify database connection
+You can target a specific database connection. Specify which database connection to use:
+```php
+#[Transaction(connection: 'mysql')]
+#[Transaction(connection: 'pgsql')]
+#[Transaction(connection: 'sqlite')]
+```
+
+If not specified, uses the default connection from `config/database.php`.
+
+### Retry Attempts
+You can also configure automatic retries for transient failures or deadlocks.
+```php
+#[Transaction(attempts: 3)]  // Retry up to 3 times
+#[Transaction(attempts: 5)]  // Retry up to 5 times
+```
+
+### Combined Configuration
+You can use connention and attempts in your `#[Transaction]` attribute
+```php
+class OrderController extends controller
+{
+    #[Transaction(connection: 'pgsql', attempts: 3)]
+    #[Route(uri: 'orders', methods: ['POST'])]
+    public function store()
+    {
+        // pgsql connection + default 3 attempts
+    }
+
+    #[Transaction(connection: 'mysql', attempts: 3)]
+    #[Route(uri: 'orders/{id}', methods: ['PUT'])]
+    public function update()
+    {
+        // mysql connection + default 3 attempts
+    }
+}
+```
+
+This flexible configuration system makes it easy to enforce consistent transaction behavior across your entire controller
+while retaining the ability to fine-tune individual operations for different use cases.
 
 ### Using `DB::transaction()` for Simplicity
 The `DB::transaction()` method automatically handles committing the transaction if no exception occurs and rolls it back if an exception is thrown.
