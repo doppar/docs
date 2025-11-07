@@ -125,7 +125,7 @@ class PostController extends Controller
 }
 ```
 
-In this example, the index method is mapped to the `/posts` endpoint, responding to `GET` requests pointing to route name `post.list`.
+In this example, the index method is mapped to the `/posts` endpoint, responding to `GET` requests pointing to route name `post.index`.
 
 Each route can declare one or multiple HTTP methods using the methods parameter, giving fine-grained control over how requests are handled.
 ```php

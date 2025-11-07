@@ -15,3 +15,5 @@ Doppar is inspired by [Laravel](https://laravel.com), one of the most popular PH
 
 Doppar continues to evolve with community feedback, modern best practices, and a commitment to developer happiness.
 
+Doppar is proudly maintained by [techmahedy](https://github.com/techmahedy), [rrr63](https://github.com/rrr63) and [CharrafiMed](https://github.com/CharrafiMed). Their ongoing contributions ensure Doppar remains secure, reliable, and continuously improving.
+

@@ -16,11 +16,32 @@ By applying rate limits to routes or groups of routes, Doppar ensures fair usage
 You can easily apply rate limiting to a route using the throttle middleware. The syntax follows the format throttle:`{max_requests},{minutes}`.
 
 ```php
-Route::get('show', [PostController::class, 'index'])
+class LoginController extends Controller
+{
+    #[Route(uri: 'login', middleware: ['throttle:10,1'])]
+    public function login()
+    {
+        //
+    }
+}
+```
+
+If you define your route as file-based using the `Route` facade, you can set the rate limit in the following way.
+```php
+Route::post('login', [LoginController::class, 'login'])
     ->middleware(['throttle:10,1']);
 ```
 
-Here `throttle:10,1` Limits requests to 10 per minute. This means that any client (such as a browser, mobile app, or script) can call the `/show` endpoint up to 10 times per minute. If they exceed this limit, the server will respond with a `429 Too Many Requests` status code.
+Here `throttle:10,1` Limits requests to `10` per minute. This means that any client (such as a browser, mobile app, or script) can call the `/login` endpoint up to `10` times per minute. If they exceed this limit, the server will respond with a `429 Too Many Requests` status code.
+
+You can directly pass the `rateLimit` and `rateLimitDecay` in your attribute based routing system to define rate limit in the following way.
+```php
+#[Route(uri: 'login', rateLimit: 10, rateLimitDecay: 1)]
+public function login()
+{
+    //
+}
+```
 
 ## Customizing Rate Limits
 You can customize the rate limit by changing the parameters:
@@ -28,8 +49,8 @@ You can customize the rate limit by changing the parameters:
 throttle:<max_requests>,<decay_minutes>
 ```
 For example:
-- throttle:5,1 – 5 requests per minute
-- throttle:100,60 – 100 requests per hour
+- `throttle:5,1 – 5` requests per minute
+- `throttle:100,60 – 100` requests per hour
 
 ## Annotation-Based
 In addition to applying rate limits via middleware, Doppar also supports annotation-based rate limiting. This allows you to define rate limits directly within your controller methods, keeping the configuration close to the logic it applies to.

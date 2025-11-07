@@ -226,23 +226,122 @@ To prevent abuse and improve performance, Doppar provides built-in rate limiting
 
 Rate limiting is managed via middleware, and it's fully customizable. You can load it using attribute based routing system or annotation based or even more file based routing system.
 
-### Security by Default
+## Security by Default
+Security is a first-class concern in Doppar. The framework is engineered to provide enterprise-grade protection out of the box, offering developers a secure foundation for applications ranging from microservices to full-scale enterprise systems.
 
-API security is a first-class concern in Doppar. The framework includes:
+### Core Security Features Overview
+| Feature                     | Description                                                                   | Protection Against                                                      |
+| --------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Model Properties Encryption | Automatic, transparent encryption of sensitive database fields at rest.       | Data breaches, unauthorized database access.                            |
+| Stateless Authentication    | Lightweight, performant token-based authentication (Flarion).                 | Session hijacking, replay attacks, traditional session vulnerabilities. |
+| CSRF Protection             | Automatically managed tokens for web routes.                                  | Cross-Site Request Forgery (CSRF).                                      |
+| Input Validation            | Powerful, flexible, and strictly enforced request rules.                      | Injection attacks (SQLi, XSS), mass assignment, data corruption.        |
+| Request Throttling          | Middleware-driven rate limiting for critical routes.                          | Denial of Service (DoS), brute force, API abuse.                        |
+| Sensitive Input Exclusion   | Prevents sensitive fields (e.g., passwords) from being stored in the session. | Session exposure of sensitive user data.                                |
+| Remember-Me Handling        | Secure and strict token generation and validation.                            | Persistent session hijacking.                                           |
 
-  - Lightweight, stateless authentication
-  - CSRF protection for web routes
-  - Cross-Origin Model properties encryption
-  - Input validation using powerful and flexible rules
-  - Request throttling
-  - Header-based authentication
-  - Encryption and decryption utilities
-  - Secure and strict remember-me token handling.
+From robust security features and flexible authentication to clean controller logic and performance-minded architecture, Doppar gives developers everything they need to build modern, production-grade APIs with confidence.
 
-In short, **Doppar isn't just capable of building APIs. it’s engineered for it**. From robust security features and flexible authentication to clean controller logic and performance-minded architecture, Doppar gives developers everything they need to build modern, production-grade APIs with confidence.
+### Data-at-Rest Protection
+Doppar provides a sophisticated and transparent way to encrypt cross-origin supported sensitive model attributes directly in the database.
 
-### Intelligent Rate Limiting
-Prevent abuse and ensure fair usage with Doppar’s advanced rate-limiting features. Configure request thresholds per endpoint, IP, or user to protect your backend from DDoS attacks, brute-force attempts, and excessive API calls. Dynamic rate-limiting rules adapt to traffic patterns, ensuring optimal performance while maintaining service availability for legitimate users.
+### Implementation with `Encryptable` Contract
+To enable encryption for a model, it must implement the `Phaseolies\Support\Contracts\Encryptable` interface and define the fields to be encrypted in the `getEncryptedProperties()` method.
+```php
+namespace App\Models;
+
+use Phaseolies\Database\Entity\Model;
+use Phaseolies\Support\Contracts\Encryptable;
+
+class User extends Model implements Encryptable
+{
+    /**
+     * Return an array of model attributes that should be encrypted
+     */
+    public function getEncryptedProperties(): array
+    {
+        return [
+            'email', // This field will be encrypted
+        ];
+    }
+}
+```
+
+When a model is serialized (e.g., converted to JSON for an API response or logging), the encrypted value is preserved unless you explicitly decrypt it, ensuring sensitive data is not accidentally exposed.
+```php
+{
+    "id": 1,
+    "name": "Aliba",
+    "email": "T0RvMnZqWUIzVWhURkNKdWZSN0ZPaDZvN3g2M0o0L21nUTZ1",
+    // ...
+}
+```
+
+## API Security
+Doppar's Flarion package provides a lightweight, stateless personal access token (PAT) system, ideal for APIs, mobile apps, and third-party integrations.
+
+### Secure Token Lifecycle
+Tokens are hashed using `HMAC-SHA256` with the application key to prevent brute-force or rainbow table attacks. Only the hashed lookup and metadata (user ID, abilities, expiration) are stored in the database. Raw tokens are never persisted
+
+| Stage          | Security Mechanism                 | Description                                                                                                                   |
+| -------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Generation     | CSPRNG (bin2hex(random_bytes(40))) | Generates a cryptographically strong, unique, and unpredictable raw token.                                                    |
+| Storage        | HMAC-SHA256 Hashing                | The raw token is never stored. Instead, a secure lookup hash is created using the application key and stored in the database. |
+| Validation     | HMAC Verification                  | Incoming tokens are hashed and checked against the stored lookup hash for a fast and secure verification process.             |
+| Access Control | Scoped Abilities                   | Each token is issued with a specific array of permissions (abilities), strictly limiting its power.                           |
+| Expiration     | Configurable Lifespan              | Tokens can be configured to automatically expire, minimizing the window for a potential exploit.                              |
+
+This architecture ensures that even if the database is breached, the raw access tokens are never compromised, making the system fast, simple, and enterprise-grade secure.
+
+## Sensitive Input Exclusions
+Doppar prevents sensitive information from persisting beyond the immediate request by defining a list of fields that are never stored in the session or debug context:
+
+```php
+// config/app.php excerpt
+"exclude_sensitive_input" => [
+    'password',
+    '_insight_redirect_chain' // Example: for internal framework tooling
+],
+```
+
+## Request Throttling
+Doppar uses flexible middleware to protect routes from abuse and DoS attacks. The throttle middleware allows for fine-grained control over request limits.
+
+Example Route Throttling:
+```php
+#[Route(uri: 'login', rateLimit: 10, rateLimitDecay: 1)]
+public function login()
+{
+    //
+}
+```
+If the limit is exceeded, the client receives an `HTTP 429 Too Many Requests` response, protecting the server resources. This prevent abuse and ensure fair usage with Doppar’s advanced rate-limiting features. 
+
+Configure request thresholds per endpoint, IP, or user to protect your backend from DDoS attacks, brute-force attempts, and excessive API calls. Dynamic rate-limiting rules adapt to traffic patterns, ensuring optimal performance while maintaining service availability for legitimate users.
+
+## Input Validation
+Doppar provides a powerful and flexible input validation system to ensure incoming request data is always safe and properly formatted. Automatically validates and cleans request data using the `sanitize()` method. Further modifies or transforms validated inputs via `pipeInputs()` like method. Built-in protection for web routes to prevent Cross-Site Request Forgery.
+
+Also model `$creatable` property to explicitly whitelist attributes that can be set in bulk operations, preventing unauthorized updates.
+
+Example:
+```php
+$request->sanitize([
+    'name' => 'required|min:2|max:20',
+    'email' => 'required|email|unique:users|min:2|max:100',
+    'password' => 'required|min:2|max:20',
+    'confirm_password' => 'required|same_as:password',
+]);
+
+$payload = $request
+    ->pipeInputs([
+        'email' => fn($input) => strtolower(trim($input)),
+        'password' => fn($input) => bcrypt($input)
+    ])
+    ->only('name', 'email', 'password');
+
+User::create($payload);
+```
 
 ### Designed to Scale
 
