@@ -1,0 +1,427 @@
+---
+title: Queue
+description: Doppar queue manager
+meta:
+  - name: keywords
+    content: queue manager
+---
+
+## Queue
+### Introduction
+A queue is a background job processing system that allows tasks to run asynchronously instead of blocking your main application flow. It improves performance, distributes workload efficiently, and ensures time-consuming tasks are handled reliably in the background. Queues are essential for scaling modern applications and maintaining smooth user experiences.
+
+Doppar queue system offers robust features including multiple queue support for organizing jobs by priority or category, automatic retry logic with configurable attempts and delays, and comprehensive failed job tracking for easier debugging. It supports delayed execution for scheduling jobs in the future, graceful shutdown handling to safely stop workers, and built-in memory management that automatically restarts workers when limits are exceeded.
+
+ - [Features](#features)
+ - [Installation](#installation)
+ - [Quick Start](#quick-start)
+ - [Job Lifecycle](#job-lifecycle)
+ - [Queue Commands](#queue-commands)
+ - [Production Setup](#production-setup)
+
+## Features
+The Doppar Framework queue system is designed to handle background tasks efficiently with reliability and scalability in mind. Its feature set ensures smooth job processing, better performance, and full control over how tasks are executed. See the features of doppar queue.
+
+- ***Multiple Queue Support*** - Organize jobs by priority and type
+- ***Automatic Retry Logic*** - Configurable retry attempts with delays
+- ***Failed Job Tracking*** - Store and analyze failed jobs
+- ***Delayed Execution*** - Schedule jobs for future execution
+- ***Graceful Shutdown*** - Handle SIGTERM and SIGINT signals
+- ***Memory Management*** - Automatic worker restart on memory limits
+- ***Job Serialization*** - Safely serialize complex job data
+- ***Fluent API*** - Fluent syntax for job dispatching
+- ***Custom Failure Callbacks*** - Handle job failures gracefully
+
+## Installation
+You may install Doppar Queue via the composer require command:
+```bash
+composer require doppar/queue
+```
+
+### Register Provider
+Next, register the Queue service provider so that Doppar can initialize it properly. Open your `config/app.php` file and add the QueueServiceProvider to the providers array:
+```php
+'providers' => [
+    // Other service providers...
+    \Doppar\Queue\QueueServiceProvider::class,
+],
+```
+
+This step ensures that Doppar knows about Queue and can load its functionality when the application boots.
+
+### Publish Configuration
+Now we need to publish the configuration files by running this pool command. This step is optional, as Doppar can automatically fetch configuration details on demand directly from the vendor package whenever needed.
+```php
+php pool vendor:publish --provider="Doppar\Queue\QueueServiceProvider"
+```
+
+Now run migrate command to migrate queue related tables
+```php
+php pool migrate
+```
+
+This creates two tables:
+- `queue_jobs` - Stores pending and processing jobs
+- `failed_jobs` - Stores failed jobs for debugging
+
+## Quick Start
+Doppar makes it easy to create a new queue job using the pool command. For example, to generate a job for sending a welcome email, run:
+```bash
+php pool make:job SendWelcomeEmail
+```
+
+This will create a ready-to-use job class that you can customize and dispatch to your queue.
+
+Now update your newly create jobs as like this
+```php
+<?php
+
+namespace App\Jobs;
+
+use Doppar\Queue\Job;
+
+class SendWelcomeEmailJob extends Job
+{
+    protected $user;
+
+    public function __construct($user)
+    {
+        $this->user = $user;
+    }
+
+    /**
+     * Execute the job.
+     *
+     * @return void
+     */
+    public function handle(): void
+    {
+        // Send email logic
+    }
+
+    /**
+     * Handle a job failure.
+     *
+     * @param \Throwable $exception
+     * @return void
+     */
+    public function failed(\Throwable $exception): void
+    {
+        //
+    }
+}
+```
+
+### Dispatch the Job
+Once your job class is ready, you can dispatch it to the queue like this:
+```php
+(new SendWelcomeEmail($user))->dispatch();
+```
+
+This sends the job to the queue for asynchronous processing, allowing your application to continue running without waiting for the task to complete.
+
+### Run the Worker
+To start processing queued jobs, run the worker using the following command:
+```bash
+php pool queue:run
+```
+
+### Job Properties
+Each job in Doppar queue can be configured with the following properties:
+| Property      | Type   | Default     | Description                                   |
+| ------------- | ------ | ----------- | --------------------------------------------- |
+| `$tries`      | int    | 3           | Maximum number of retry attempts.             |
+| `$retryAfter` | int    | 60          | Seconds to wait before retrying a failed job. |
+| `$queueName`  | string | `'default'` | The queue to which the job will be pushed.    |
+| `$jobDelay`   | int    | 0           | Delay in seconds before executing the job.    |
+
+### Retry Jobs
+Sometimes jobs may fail due to temporary issues, like network errors or external service downtime. Doppar queue allows you to automatically retry failed jobs a configurable number of times. You can specify the number of attempts for each job using the `$tries` property in your job class.
+```php
+<?php
+
+namespace App\Jobs;
+
+use Doppar\Queue\Job;
+
+class SendWelcomeEmailJob extends Job
+{
+    /**
+     * The number of times the job may be attempted.
+     *
+     * @var int
+     */
+    public $tries = 3;
+}
+```
+
+### Retry Delay
+You can control how long the queue should wait before retrying a failed job using the `$retryAfter` property. This allows temporary issues to resolve before the job is attempted again, preventing immediate repeated failures.
+```php
+<?php
+
+namespace App\Jobs;
+
+use Doppar\Queue\Job;
+
+class SendWelcomeEmailJob extends Job
+{
+    /**
+     * The number of seconds to wait before retrying.
+     *
+     * @var int
+     */
+    public $retryAfter = 60;
+}
+```
+
+### With Queue and Delay
+You can specify a custom queue and set a delay for job execution. This is useful when you want to separate jobs by type or control when they are processed.
+```php
+(new ProcessVideo($videoPath))
+    ->onQueue('videos')
+    ->delayFor(300)
+    ->dispatch();
+```
+
+In this example, the job is pushed to the videos queue and will execute after a `300-second` delay. To start processing this specific queue, run:
+```bash
+php pool queue:run --queue=videos
+```
+
+### Using Static Helper
+Doppar provides a convenient static helper to dispatch jobs immediately without manually instantiating them:
+```php
+SendWelcomeEmail::dispatchNow($user);
+```
+This creates a new instance of the `SendWelcomeEmail` job and pushes it to the queue in a single line. Ideal for quick dispatching when you don’t need to customize the job further.
+
+### Dispatch to a Specific Queue
+You can assign a job to a particular queue using the `dispatchOn` method. This is useful for separating jobs by type or priority:
+```php
+(new GenerateReport($data))->dispatchOn('reports');
+```
+
+The job is sent to the reports queue, allowing you to run workers dedicated to specific queues for better control and efficiency.
+
+### Dispatch After a Delay
+Jobs can be scheduled to run after a specific delay using `dispatchAfter`. This is perfect for sending reminders or delayed notifications:
+```php
+(new SendReminder($user))->dispatchAfter(3600); // 1 hour
+```
+Here, the job will be executed 1 hour later, without blocking your application or requiring manual scheduling.
+
+### Running the Queue Worker
+To start processing jobs from the default queue, simply run:
+```bash
+php pool queue:run
+```
+
+The worker will continuously poll the queue and execute jobs as they arrive.
+
+### Custom Options
+You can customize the worker’s behavior with the following options:
+```bash
+php pool queue:run --queue=emails --sleep=3 --memory=256 --timeout=3600
+```
+
+- `--queue` – Process jobs from a specific queue (e.g., emails).
+- `--sleep` – Number of seconds to wait between polling when no jobs are available.
+- `--memory` – Maximum memory in MB before the worker automatically restarts.
+- `--timeout` – Maximum execution time in seconds before the worker stops.
+
+This allows you to run workers efficiently in production and tailor them to different job types or workloads.
+
+### Available Options
+These options let you customize how the worker polls the queue, manages resources, and handles long-running tasks efficiently.
+| Option      | Description                             | Default   |
+| ----------- | --------------------------------------- | --------- |
+| `--queue`   | Name of the queue to process            | `default` |
+| `--sleep`   | Seconds to wait when the queue is empty | `3`       |
+| `--memory`  | Maximum memory in MB before restarting  | `128`     |
+| `--timeout` | Maximum execution time in seconds       | `3600`    |
+
+### Running Multiple Workers
+You can run multiple workers simultaneously to process different queues in parallel. This is useful for prioritizing tasks or separating workloads:
+```bash
+# Terminal 1 – High priority queue
+php pool queue:run --queue=high-priority &
+
+# Terminal 2 – Default queue
+php pool queue:run --queue=default &
+
+# Terminal 3 – Low priority queue
+php pool queue:run --queue=low-priority &
+```
+
+## Job Lifecycle
+When using the Doppar queue system, every job follows a structured lifecycle from dispatch to completion. Understanding this lifecycle helps you manage retries, failures, and queue processing more effectively.
+
+- **Dispatch** – A job is created and pushed to the queue.
+- **Queue Storage** – job is stored in the queue database, waiting to be picked up by a worker.
+- **Worker Pickup** – The queue worker polls the queue and reserves the job for processing.
+- **Execution** – The worker executes the job by calling its `handle()` method.
+- **Outcome** – The job can either succeed or fail:
+    - **Success** – The job is removed from the queue.
+    - **Failure** – If retry attempts remain, the job is released back to the queue after the configured delay. If no retries are left, the job is marked as failed and logged for analysis.
+
+This lifecycle ensures reliability, safe retries, and proper handling of background tasks.
+
+```bash
+┌─────────────┐
+│  Dispatch   │
+│    Job      │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│   Queue     │
+│  Database   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│   Worker    │
+│   Picks Up  │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│   Execute   │
+│   handle()  │
+└──────┬──────┘
+       │
+   ┌───┴───┐
+   │       │
+ Success  Failure
+   │       │
+   ▼       ▼
+ Delete  Retry?
+        │
+    ┌───┴───┐
+    │       │
+   Yes     No
+    │       │
+    ▼       ▼
+Release  Failed
+to Queue  Jobs
+```
+
+This diagram illustrates the flow clearly, showing how Doppar handles jobs from dispatch through execution, including retries and failures.
+
+### Dynamic Queue Assignment
+You can assign a specific queue to a job by setting the `$queueName` property in the job class. This is useful for categorizing jobs by type or priority:
+```php
+class SendInvoiceEmail extends Job
+{
+    /**
+     * The name of the queue the job should be sent to.
+     *
+     * @var string
+     */
+    public $queueName = 'billing';
+
+    // Job logic here...
+}
+```
+When dispatched, this job will automatically be pushed to the `billing` queue.
+
+For jobs that need dynamic routing based on runtime conditions, you can use the `onQueue()` method:
+```php
+(new ProcessOrder($order))
+    ->onQueue($order->priority === 'high' ? 'urgent' : 'standard')
+    ->dispatch();
+```
+
+Here, the job will be sent to the `urgent` queue if the order is high priority, otherwise it goes to the `standard` queue. This allows flexible queue management depending on job-specific criteria.
+
+## Queue Commands
+Doppar provides a set of CLI commands to manage and monitor your queues efficiently. These commands allow you to run workers, inspect failed jobs, retry or flush jobs, and view queue statistics.
+
+### Process Jobs
+Processes jobs in the queue one by one. You can specify options such as queue name, sleep interval, memory limit, and execution timeout.
+```bash
+# Run the default queue
+php pool queue:run
+
+# Run a specific queue with custom options
+php pool queue:run --queue=emails --sleep=3 --memory=256 --timeout=3600
+```
+
+### List Failed Jobs
+Lists all jobs that have failed and been recorded in the failed jobs table. Useful for monitoring and debugging job issues.
+```bash
+# List all failed jobs
+php pool queue:failed
+```
+
+### Delete Failed Jobs
+Deletes failed jobs from the failed jobs table. You can delete a specific job by ID or all failed jobs if no ID is provided.
+```bash
+# Delete a specific failed job
+php pool queue:flush 5
+
+# Delete all failed jobs
+php pool queue:flush
+```
+
+### Retry Failed Jobs
+Retries failed jobs either by ID or all failed jobs if no ID is specified. Jobs will be pushed back to the queue for reprocessing.
+```bash
+# Retry a specific failed job
+php pool queue:retry 3
+
+# Retry all failed jobs
+php pool queue:retry
+```
+
+### Monitor Queue Statistics
+Displays statistics about the queues, including pending jobs, failed jobs, and active workers. Useful for monitoring queue health and performance.
+```bash
+# Monitor all queues
+php pool queue:monitor
+```
+
+## Production Setup
+To run Doppar queue workers in production reliably, it’s recommended to use Supervisor to manage worker processes. Supervisor ensures that workers automatically restart if they fail and allows you to run multiple processes in parallel.
+
+### Create Supervisor Configuration
+Create a file at `/etc/supervisor/conf.d/queue-worker.conf` with the following contents:
+```bash
+[program:queue-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/html/pool queue:run --sleep=3 --memory=256
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=4
+redirect_stderr=true
+stdout_logfile=/var/www/html/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+### Start Supervisor
+Reload Supervisor to apply the new configuration and start the workers:
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start queue-worker:*
+```
+
+
+### Monitor Workers
+You can check the status of your Doppar queue workers managed by Supervisor with:
+```bash
+sudo supervisorctl status queue-worker:*
+```
+This displays all running worker processes, their current state, and uptime.
+
+### Automated Monitoring
+To keep track of queue statistics regularly, you can create a cron job that runs the Doppar queue monitor every 5 minutes:
+```bash
+*/5 * * * * php /var/www/html/pool queue:monitor >> /var/log/queue-monitor.log
+```
+
+This will append queue statistics, such as pending and failed jobs, to the log file for easy monitoring and analysis.

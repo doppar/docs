@@ -589,6 +589,37 @@ $users->each(function ($user) {
 ```
 > `each()` is for iteration, not transformation. If you need to transform data, use map() instead.
 
+## `take()` and `takeLast()`
+The `take()` method returns a new collection containing only the first N items from the current collection.
+
+Passing a positive `$limit` takes items from the beginning. Passing a negative `$limit` is treated as a request to take items from the end, and is automatically forwarded internally to `takeLast()`.
+
+This method never modifies the original collection—it always returns a new instance.
+```php
+$collection = collect([10, 20, 30, 40, 50]);
+
+$firstTwo = $collection->take(2);
+// [10, 20]
+
+$lastTwo = $collection->take(-2);
+// [40, 50]
+```
+
+The `takeLast()` method returns a new collection containing only the last N items from the current collection.
+
+If `$limit` is 0 or negative, an empty collection is returned. If `$limit` exceeds the size of the collection, the entire collection is returned.
+
+This method also returns a new instance and never mutates the original collection.
+```php
+$collection = collect([10, 20, 30, 40, 50]);
+
+$lastThree = $collection->takeLast(3);
+// [30, 40, 50]
+
+$none = $collection->takeLast(0);
+// []
+```
+
 ## `push()`
 The `push()` method adds a single item to the end of the collection. It modifies the current collection in-place and returns the updated collection instance, making it suitable for method chaining if needed.
 
