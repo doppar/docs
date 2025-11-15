@@ -82,7 +82,7 @@ Next, register the Flarion service provider so that Doppar can initialize it pro
 This step ensures that Doppar knows about Flarion and can load its functionality when the application boots.
 
 ## Publish Configuration
-Now we need to publish the configuration files by running this pool command. This step is optional, as Doppar can automatically fetch configuration details on demand directly from the vendor package whenever needed.
+Now we need to publish the configuration files by running this pool command.
 ```bash
 php pool vendor:publish --provider="Doppar\Flarion\FlarionServiceProvider"
 ```

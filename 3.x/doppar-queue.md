@@ -50,7 +50,7 @@ Next, register the Queue service provider so that Doppar can initialize it prope
 This step ensures that Doppar knows about Queue and can load its functionality when the application boots.
 
 ### Publish Configuration
-Now we need to publish the configuration files by running this pool command. This step is optional, as Doppar can automatically fetch configuration details on demand directly from the vendor package whenever needed.
+Now we need to publish the configuration files by running this pool command.
 ```php
 php pool vendor:publish --provider="Doppar\Queue\QueueServiceProvider"
 ```
@@ -72,22 +72,30 @@ php pool make:job SendWelcomeEmail
 
 This will create a ready-to-use job class that you can customize and dispatch to your queue.
 
-Now update your newly create jobs as like this
+### Dispatch the Job
+Once your job class is ready, you can dispatch it to the queue like this:
+```php
+(new SendWelcomeEmail($user))->dispatch();
+```
+
+This sends the job to the queue for asynchronous processing, allowing your application to continue running without waiting for the task to complete.
+
+Now update your newly create jobs as like this. By default you will get `#[Queueable]` as commented, uncomment it to use this job class as queueable.
+
 ```php
 <?php
 
 namespace App\Jobs;
 
 use Doppar\Queue\Job;
+use Doppar\Queue\Dispatchable;
+use Doppar\Queue\Attributes\Queueable;
+use App\Models\User;
 
+#[Queueable]
 class SendWelcomeEmailJob extends Job
 {
-    protected $user;
-
-    public function __construct($user)
-    {
-        $this->user = $user;
-    }
+    public function __construct(public User $user){};
 
     /**
      * Execute the job.
@@ -96,7 +104,7 @@ class SendWelcomeEmailJob extends Job
      */
     public function handle(): void
     {
-        // Send email logic
+        info("Email has been sent to $this->user->email");
     }
 
     /**
@@ -112,19 +120,30 @@ class SendWelcomeEmailJob extends Job
 }
 ```
 
-### Dispatch the Job
-Once your job class is ready, you can dispatch it to the queue like this:
-```php
-(new SendWelcomeEmail($user))->dispatch();
-```
-
-This sends the job to the queue for asynchronous processing, allowing your application to continue running without waiting for the task to complete.
-
 ### Run the Worker
 To start processing queued jobs, run the worker using the following command:
 ```bash
 php pool queue:run
 ```
+
+> 💡 Your job class is now ready to work as a queueable job. However, if you remove or comment out the `#[Queueable]` attribute, it will run as a `synchronous` job, meaning it will execute immediately without being queued.
+
+### Customize `#[Queueable]` Attributes
+You can customize how a job behaves in the queue by configuring the `#[Queueable]` attribute directly on the job class:
+```php
+#[Queueable(tries: 3, retryAfter: 60, delayFor: 300, onQueue: 'email')]
+class SendWelcomeEmailJob extends Job
+{
+    //
+}
+```
+
+Now run the queue worker like this way
+```bash
+php pool queue:run --queue=email
+```
+
+Uncomment and adjust these values as needed to control the job's queueing behavior.
 
 ### Job Properties
 Each job in Doppar queue can be configured with the following properties:
@@ -210,6 +229,56 @@ Jobs can be scheduled to run after a specific delay using `dispatchAfter`. This 
 (new SendReminder($user))->dispatchAfter(3600); // 1 hour
 ```
 Here, the job will be executed 1 hour later, without blocking your application or requiring manual scheduling.
+
+### Force Queue
+To ensure a job is always pushed to the queue—regardless of whether it uses the `#[Queueable]` attribute—you can explicitly force it to queue:
+```php
+(new GenerateReport($data))->forceQueue();
+```
+
+### Dispatch as Sync
+To force a job to run immediately—without being queued—you can dispatch it synchronously:
+```php
+SendReminder::dispatchSync($user);
+```
+
+## Job Dispatching with Static API
+You can now dispatch jobs directly using static methods, eliminating the need to manually instantiate job objects. This makes the process simpler, more readable, and flexible.
+```php
+$jobId = SendEmailJob::dispatchWith($user);
+```
+The `SendEmailJob` will work as like
+- If the job class uses the `#[Queueable]` attribute, it will be queued
+- If the job class does not have the `#[Queueable]` attribute, it will run synchronously
+
+### Dispatch Job Synchronously
+You can force a job to run immediately, bypassing the queue, by using the `queueAsSync` method:
+```php
+SendEmailJob::queueAsSync($user);
+```
+The job executes instantly without being pushed to any queue.
+
+### Dispatch Job to a Specific Queue
+You can force a job to always be queued on a specific queue using the `queueOn` method:
+```php
+// Queue the job on the 'high-priority' queue
+$jobId = SendEmailJob::queueOn('high-priority', $user);
+
+// Queue another job on the 'reports' queue
+$jobId = GenerateReport::queueOn('reports', $reportData);
+```
+Dispatches the job to a specified queue, regardless of whether the job class has the `#[Queueable]` attribute. Ensures the job is always queued.
+
+### Dispatch Job with Delay
+You can schedule a job to be queued after a specified delay using the `queueAfter` method:
+```php
+// Queue the job to run 5 minutes later (300 seconds)
+$jobId = SendEmailJob::queueAfter(300, $user);
+
+// Queue another job to run 10 minutes later
+$jobId = GenerateReport::queueAfter(600, $reportData);
+```
+Dispatches the job to the queue after a delay (in seconds), regardless of the `#[Queueable]` attribute.
 
 ### Running the Queue Worker
 To start processing jobs from the default queue, simply run:
