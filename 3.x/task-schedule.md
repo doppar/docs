@@ -37,6 +37,33 @@ class Schedule
 ```
 Using the `everyMinute()` method ensures that the `user:sync` command will be executed once every minute by the scheduler.
 
+## Every-Second Scheduling
+The `everySecond` method schedules the command to run once every second, providing the highest possible execution frequency within Doppar's task scheduler.
+```bash
+$schedule->command('health:check')->everySecond();
+```
+
+### Daemon Mode for Second-Based Scheduling
+Running the scheduler in `daemon` mode enables second-level task execution, allowing schedules that run every second (such as `everySecond()`) to be processed continuously without waiting for the next minute tick.
+```bash
+php pool cron:run --daemon
+```
+
+### Standard Minute-Based Scheduling
+Without `daemon` mode, the scheduler operates in the traditional minute-based cycle. This is suitable for commands that run every minute or use classic cron expressions.
+```bash
+php pool cron:run
+```
+
+## Run at Specific Seconds
+The `atSeconds` method allows a command to run at specific second marks within each minute. In this example, the command executes four times per minute—at the `0th`, `15th`, `30th`, and `45th` second.
+Using `noOverlap()` ensures the next run will not start until the previous one has finished.
+```php
+$schedule->command('sync:data')
+    ->atSeconds([0, 15, 30, 45]) // Runs 4 times per minute
+    ->noOverlap();
+```
+
 ## Customized Cron Expression
 The cron method accepts a standard cron syntax (*/15 * * * *), which means the command will execute every 15 minutes, regardless of the hour, day, or month.
 ```php
@@ -182,6 +209,13 @@ In addition to basic scheduling, the `Phaseolies\Console\Schedule\ScheduledComma
 
 | Method                         | Description                                                                |
 | ------------------------------ | -------------------------------------------------------------------------- |
+| `everySeconds(int $seconds)`   | Run the task **every second**.                                             |
+| `everyFiveSeconds()`           | Run the task **every five seconds**.                                       |
+| `everyTenSeconds()`            | Run the task **every ten seconds**.                                        |
+| `everyFifteenSeconds()`        | Run the task **every fifteen seconds**.                                    |
+| `everyTwentySeconds()`         | Run the task **every twenty seconds**.                                     |
+| `everyThirtySeconds()`         | Run the task **every thirty second**.                                      |
+| `atSeconds($seconds)`          | Run the task **specific second**.                                             |
 | `everyMinute()`                | Run the task **every minute**.                                             |
 | `everyTwoMinutes()`            | Run the task **every 2 minutes**.                                          |
 | `everyThreeMinutes()`          | Run the task **every 3 minutes**.                                          |
@@ -216,7 +250,11 @@ In addition to basic scheduling, the `Phaseolies\Console\Schedule\ScheduledComma
 ## Running the Scheduler
 After setting up your scheduled tasks, the next step is to run them on your server. The `cron:run` command in Doppar checks your scheduled tasks against the current server time and triggers any that are due. To keep this process automated, you typically add a cron entry like this to your server’s crontab:
 ```bash
+# Standard Minute-Based Scheduling
 * * * * * cd /path-to-your-project && php pool cron:run >> /dev/null 2>&1
+
+# Daemon Mode for Second-Based Scheduling
+* * * * * cd /path-to-your-project && php pool cron:run --daemon >> /dev/null 2>&1
 ```
 
 This runs the scheduler every minute, ensuring your tasks are executed at the correct times without manual intervention.

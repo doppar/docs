@@ -337,43 +337,47 @@ When using the Doppar queue system, every job follows a structured lifecycle fro
 This lifecycle ensures reliability, safe retries, and proper handling of background tasks.
 
 ```bash
-┌─────────────┐
-│  Dispatch   │
-│    Job      │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│   Queue     │
-│  Database   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│   Worker    │
-│   Picks Up  │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│   Execute   │
-│   handle()  │
-└──────┬──────┘
-       │
-   ┌───┴───┐
-   │       │
- Success  Failure
-   │       │
-   ▼       ▼
- Delete  Retry?
-        │
-    ┌───┴───┐
-    │       │
-   Yes     No
-    │       │
-    ▼       ▼
-Release  Failed
-to Queue  Jobs
+          ┌──────────────┐
+          │   Dispatch    │
+          │      Job      │
+          └───────┬───────┘
+                  │
+                  ▼
+          ┌──────────────┐
+          │    Queue      │
+          │   (Database)  │
+          └───────┬───────┘
+                  │
+                  ▼
+          ┌──────────────┐
+          │    Worker     │
+          │   Picks Job   │
+          └───────┬───────┘
+                  │
+                  ▼
+          ┌──────────────┐
+          │   Execute     │
+          │   Job         │
+          └───────┬───────┘
+                  │
+        ┌─────────┴─────────┐
+        │                   │
+        ▼                   ▼
+   ┌──────────┐       ┌──────────┐
+   │  Success │       │  Failure │
+   └─────┬────┘       └─────┬────┘
+         │                  │
+         ▼                  ▼
+   Delete Job         Retry Attempt?
+                          │
+                 ┌────────┴────────┐
+                 │                 │
+                 ▼                 ▼
+           ┌──────────┐     ┌──────────┐
+           │ Release  │     │  Failed  │
+           │ to Queue │     │   Jobs   │
+           └──────────┘     └──────────┘
+
 ```
 
 This diagram illustrates the flow clearly, showing how Doppar handles jobs from dispatch through execution, including retries and failures.
