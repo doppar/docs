@@ -10,6 +10,59 @@ meta:
 ### Introduction
 In Doppar, scheduled tasks allow you to automate repetitive operations such as sending emails, processing invoices, or cleaning up stale data using cron jobs. Instead of relying on external tools or manual execution, you can define and control all your scheduled logic within a dedicated Schedule class. This ensures that your application remains self-contained and consistent in how background jobs are managed.
 
+## Why Choose Doppar Scheduler
+### Real-Time Precision
+Doppar runs tasks with second-level accuracy, enabling real-time automation, monitoring, and event-driven pipelines. Perfect for applications that cannot wait for the next minute.
+
+### Smart Dual-Mode Engine
+Run tasks using standard cron or switch to Doppar’s built-in daemon for continuous execution. No external tools. No systemd. No Supervisor. Just plug-and-run.
+
+### True Background Job Execution
+
+Launch tasks in the background with full process management:
+- Per-task PID tracking
+- Process metadata
+- Logs for each job
+- Auto-cleanup after completion
+
+This turns Doppar into a mini process manager.
+
+### Crash-Resilient Daemon
+If a task fails, Doppar's daemon continues running without dying. Signals like SIGTERM and SIGINT are handled gracefully, so shutdowns are safe and clean.
+
+### Full Observability
+Every task writes its own logs and metadata, making your system transparent and easy to debug. The daemon logs heartbeats, providing real-time operational visibility.
+
+Doppar Task Scheduling System — Feature Overview
+| Feature                  | Doppar Scheduling System                              | Notes / Advantage                                         |
+| ------------------------ | ----------------------------------------------------- | --------------------------------------------------------- |
+| **Execution Precision**  | **✔ Second-based scheduling (every X seconds)**       | Enables high-frequency automation and real-time jobs      |
+|                          | **✔ Real-time daemon mode**                           | Runs tasks continuously                                   |
+|                          | Minute, hourly, daily intervals                       | Full range of scheduling options                          |
+| **Daemon Capabilities**  | **✔ Built-in daemon engine**                          | No need for external tools like Supervisor or systemd     |
+|                          | **✔ Graceful shutdown (SIGTERM, SIGINT)**             | Safe cleanup + predictable exit behavior                  |
+|                          | **✔ Crash-resistant loop with auto-recovery**         | Daemon never silently stops; auto stabilizes              |
+|                          | **✔ Heartbeat logging**                               | Great for monitoring and uptime analytics                 |
+| **Concurrency & Safety** | **✔ `noOverlap()` with per-command lock files**       | Prevents double execution with strong guarantees          |
+|                          | **✔ PID tracking for each task**                      | Know exactly what is running at any moment                |
+|                          | **✔ Atomic lock writing with retries**                | Eliminates race conditions in concurrent environments     |
+| **Process Management**   | **✔ First-class background jobs (`inBackground()`)**  | Fully managed async task execution                        |
+|                          | **✔ Per-task dedicated logs**                         | Cleaner debugging + individual task history               |
+|                          | **✔ Process metadata (PID, timestamps, OS, command)** | Deep introspection for debugging and monitoring           |
+|                          | **✔ Automatic cleanup after completion**              | Prevents deadlocks and stale process references           |
+| **Scheduling Engine**    | **✔ Dual-mode scheduling (standard + daemon)**        | Works with cron AND real-time loops                       |
+|                          | **✔ High-speed due-checking loop**                    | Millisecond-level responsiveness                          |
+|                          | **✔ Safe fallback when daemon is not running**        | Tasks still run instead of being missed                   |
+| **Developer Experience** | **✔ Fluent and expressive scheduling API**            | Easy to read, easy to write                               |
+|                          | **✔ Rich CLI output formatting**                      | Clean, informative console messages                       |
+|                          | **✔ Auto-detection of high-frequency tasks**          | Smarter runtime behavior with minimal setup               |
+| **Observability**        | **✔ JSON-formatted process info**                     | Machine-readable — ideal for dashboards or log processors |
+|                          | **✔ Separate logs for daemon and tasks**              | Better separation of concerns                             |
+|                          | **✔ Built-in warnings and status hints**              | Helps diagnose issues instantly                           |
+| **Platform Support**     | **✔ Full POSIX signal support**                       | Behaves like a real system service                        |
+|                          | **✔ Shell-based background process launching**        | Compatible with Linux/macOS environments                  |
+
+
 ## Scheduling Pool Commands
 You can register an Pool command using the command method, passing either the command's `name` or its fully qualified class name. If your command requires additional parameters, simply supply them as we discussed [here](http://doppar.com/versions/3.x/pool-console.html#command-arguments). You can register you pool command in `App\Schedule\Schedule` class inside `schedule()` method.
 ```php

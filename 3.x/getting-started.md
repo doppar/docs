@@ -75,6 +75,53 @@ Post::create($data);
 This design makes Doppar’s Request object not just a data carrier — but a powerful input processing engine.
 It gives you the clarity of functional pipelines with the simplicity of modern PHP
 
+## Dual-Mode Engine For Task Scheduling
+Doppar provides a powerful dual-mode scheduling engine that lets you run tasks the way your application needs — either through traditional cron or a real-time daemon loop. This flexibility makes Doppar suitable for everything from standard automation to high-frequency, second-based operations.
+
+### Standard Mode
+In standard mode, Doppar works just like a typical scheduler: your system cron triggers the scheduler every minute, and Doppar runs all due tasks.
+
+- Perfect for everyday jobs
+- Low resource usage
+- Simple server setup
+- Ideal for minute-level or hourly tasks
+
+Run it with:
+```bash
+php pool cron:run
+```
+
+### Daemon Mode (Real-Time Execution)
+Daemon mode activates Doppar’s continuous scheduling engine. Instead of waiting for cron, Doppar runs in a loop, checking tasks many times per second.
+
+- Supports second-based scheduling
+- Real-time execution
+- Great for monitoring loops, automation pipelines, IoT, bots, and fast tasks
+- No supervisor or systemd required — Doppar manages itself
+
+Start the daemon:
+```bash
+php pool cron:run --daemon
+```
+
+While the daemon runs, Doppar automatically:
+
+- Handles task timing
+- Manages background jobs
+- Prevents overlapping
+- Tracks PIDs
+- Logs every action
+- Recovers safely after errors
+- Responds to SIGTERM/SIGINT for graceful shutdowns
+
+### One Scheduler, Two Execution Styles
+Whether you need basic automation or high-frequency task execution, Doppar gives you both — fully integrated into one cohesive scheduling system.
+
+- Cron mode → simple, dependable, minimal
+- Daemon mode → fast, reactive, always running
+
+Choose the mode that fits your application, or combine both for maximum power.
+
 ## Doppar Benchmark: High-Concurrency Performance Test
 We stress-tested Doppar under extreme concurrency to evaluate its throughput, latency, and stability on a real database-backed endpoint. The results speak for themselves. We compared request handling and latency of Doppar under high concurrency with a database-backed endpoint.
 
