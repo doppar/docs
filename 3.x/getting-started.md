@@ -122,7 +122,62 @@ Whether you need basic automation or high-frequency task execution, Doppar gives
 
 Choose the mode that fits your application, or combine both for maximum power.
 
-## Doppar Benchmark: High-Concurrency Performance Test
+## Doppar Queue Component
+The Doppar queue system is designed to handle background tasks efficiently with reliability and scalability in mind. Its feature set ensures smooth job processing, better performance, and full control over how tasks are executed. See the features of doppar queue.
+
+- **Multiple Queue Support** - Organize jobs by priority and type
+- **Automatic Retry Logic** - Configurable retry attempts with delays
+- **Failed Job Tracking** - Store and analyze failed jobs
+- **Delayed Execution** - Schedule jobs for future execution
+- **Graceful Shutdown** - Handle SIGTERM and SIGINT signals
+- **Memory Management** - Automatic worker restart on memory limits
+- **Job Serialization** - Safely serialize complex job data
+- **Fluent API** - Fluent syntax for job dispatching
+- **Custom Failure Callbacks** - Handle job failures gracefully
+
+Very easy to customize doppar job behaves in the queue by configuring the `#[Queueable]` attribute directly on the job class like this way.
+```php
+#[Queueable(tries: 3, retryAfter: 10, delayFor: 300, onQueue: 'email')]
+class SendWelcomeEmailJob extends Job
+{
+    //
+}
+```
+Your job class is now ready to work as a queueable job with your customized configuration. How cool is this right?
+
+## Doppar AI Component
+Doppar AI lets you run powerful AI models locally in PHP, combining TransformersPHP for on-device inference and Symfony AI Agent for a clean developer workflow. Choose any supported Hugging Face model, and call it directly from your controllers using the Pipeline API.
+
+```php
+use Doppar\AI\Pipeline;
+use Doppar\AI\Enum\TaskEnum;
+
+$messages = [
+    ['role' => 'user', 'content' => 'Resolve 5 * 4 ?'],
+];
+
+$output = Pipeline::execute(
+    task: TaskEnum::TEXT_GENERATION,
+    model: 'HuggingFaceTB/SmolLM2-360M-Instruct',
+    messages : $messages
+);
+
+// "generated_text" => "5 * 4 = 20"
+```
+On first run the model is downloaded automatically and then cached in `storage/app/transformers`, giving you fast, fully self-hosted AI responses.
+
+Another example with sentiment analysis
+```php
+$output = Pipeline::execute(
+    task: TaskEnum::SENTIMENT_ANALYSIS,
+    data: 'I Love Doppar AI Really',
+    model: 'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
+);
+
+// Output: [['label' => 'POSITIVE', 'score' => 0.9998]]
+```
+
+## Doppar Benchmark - High-Concurrency Performance Test
 We stress-tested Doppar under extreme concurrency to evaluate its throughput, latency, and stability on a real database-backed endpoint. The results speak for themselves. We compared request handling and latency of Doppar under high concurrency with a database-backed endpoint.
 
 ### Test Setup
