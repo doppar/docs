@@ -15,7 +15,7 @@ While many of these functions are used internally by the framework itself, they 
 From accessing configuration values to generating routes and handling authentication, Doppar's helpers make your development workflow faster and cleaner.
 
 ## Core Helpers
-[env()](#env), [app()](#app), [resolve()](#resolve), [ddd()](#ddd), [is_auth()](#is-auth), [config()](#config), [cookie()](#cookie), [csrf_token()](#csrf-token), [bcrypt()](#bcrypt), [old()](#old), [fake()](#fake), [route()](#route), [session()](#session), [url()](#url), [request()](#request), [response()](#response), [view()](#view), [redirect()](#redirect), [back()](#back), [tap()](#tap)
+[db()](#db), [throttle()](#throttle), [env()](#env), [app()](#app), [resolve()](#resolve), [ddd()](#ddd), [is_auth()](#is-auth), [config()](#config), [cookie()](#cookie), [csrf_token()](#csrf-token), [bcrypt()](#bcrypt), [old()](#old), [fake()](#fake), [route()](#route), [session()](#session), [url()](#url), [request()](#request), [response()](#response), [view()](#view), [redirect()](#redirect), [back()](#back), [tap()](#tap)
 ## Path Helpers
 
 [base_path()](#base-path), [base_url()](#base-url), [storage_path()](#storage-path), [public_path()](#public-path), [resource_path()](#resource-path), [config_path()](#config-path), [database_path()](#database-path)
@@ -35,6 +35,39 @@ From accessing configuration values to generating routes and handling authentica
 ## String Helpers
 
 [mask()](#mask), [truncate()](#truncate), [snake()](#snake), [camel()](#camel), [random()](#random), [isPalindrome()](#ispalindrome), [countWord()](#countword), [title()](#title), [slug()](#slug), [contains()](#contains), [limitWords()](#limitwords), [removeWhiteSpace()](#removewhitespace), [startsWith()](#startswith), [endsWith()](#endswith), [studly()](#studly), [reverse()](#reverse), [extractNumbers()](#extractnumbers), [longestCommonSubstring()](#longestcommonsubstring), [leetSpeak()](#leetspeak), [extractEmails()](#extractemails), [highlightKeyword()](#highlightkeyword) [after](#after) [before](#before) [between](#between) [isJson()](#isjson)
+
+### db()
+The `db()` function in Doppar provides access to the database instance configured for your application. It allows you to interact with your database collections, buckets, or tables using a simple and fluent API.
+```php
+db()->bucket('post')->get();
+```
+
+### throttle()
+The `throttle()` helper provides a simple interface to your `RateLimiter` service for controlling request rates, especially useful when interacting with cloud-based LLMs or API request. It helps prevent abuse and manage API usage efficiently.
+
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\OpenAI;
+
+$key = 'ai-agent:' . auth()->id();
+
+if (throttle()->tooManyAttempts($key, 10)) {
+    $seconds = throttle()->availableIn($key);
+    return response()->json([
+        'error' => "Too many requests. Try again in {$seconds} seconds."
+    ], 429);
+}
+
+throttle()->hit($key, 60); // 10 requests per minute
+
+$response = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'))
+    ->model('gpt-4')
+    ->prompt($userInput)
+    ->send();
+```
+
+Use this `throttle()` helper method any where in doppar application.
 
 ### env()
 The `env()` function in Doppar is used to retrieve environment variables from the application's configuration. It allows you to define environment-specific settings in a `.env` file and access them throughout your application. If the specified variable is not found, you can provide a default value as a fallback.
