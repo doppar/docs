@@ -8,7 +8,9 @@ meta:
 
 ## AI
 ### Introduction
-Doppar AI is a powerful component that brings advanced artificial intelligence capabilities to your PHP applications. It provides two main components: **`Pipeline`** for running transformer-based machine learning tasks locally, and **`Agent`** for interacting with cloud-based large language models (LLMs) like OpenAI and Gemini. Whether you need sentiment analysis, text generation, image classification, or conversational AI, Doppar AI makes it simple and accessible.
+Doppar AI is a powerful component that brings advanced artificial intelligence capabilities to your PHP applications. It is built on top of **[Symfony AI](https://github.com/symfony/ai)** and **[Transformers.php](https://github.com/CodeWithKyrian/transformers-php)**, providing a smooth integration of machine learning models and large language models (LLMs) into your Doppar ecosystem.
+
+It provides two main components: **`Pipeline`** for running transformer-based machine learning tasks locally, and **`Agent`** for interacting with cloud-based large language models (LLMs) like OpenAI and Gemini. Whether you need sentiment analysis, text generation, image classification, or conversational AI, Doppar AI makes it simple and accessible.
 
 The component leverages the Transformers.php library to run machine learning models directly on your server, eliminating the need for external API calls for many tasks. For advanced conversational AI and complex reasoning, the Agent component provides a fluent interface to interact with state-of-the-art language models from OpenAI, Google Gemini, or your own self-hosted models.
 
