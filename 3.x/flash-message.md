@@ -46,18 +46,18 @@ return redirect('/register');
 This is useful when you're not chaining off a redirect or doing session manipulation manually.
 
 ## Displaying Flash Messages
-In your Blade template, simply check if a flash key exists using `session()->has()`, and then display it using `session()->pull()`:
-```blade
-@if (session()->has('success'))
+In your Odo template, simply check if a flash key exists using `session()->has()`, and then display it using `session()->pull()`:
+```Odo
+#if (session()->has('success'))
     <div class="alert alert-success">
-        {{ session()->pull('success') }}
+        [[ session()->pull('success') ]]
     </div>
-@endif
+#endif
 
-@if (session()->has('error'))
+#if (session()->has('error'))
     <div class="alert alert-danger">
-        {{ session()->pull('error') }}
+        [[ session()->pull('error') ]]
     </div>
-@endif
+#endif
 ```
 You can wrap these in partials or components to keep your views clean and reusable.

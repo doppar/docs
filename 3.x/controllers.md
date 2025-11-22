@@ -186,7 +186,7 @@ Doppar also allows you to generate a complete controller using the `--complete` 
 
 This option creates a controller preconfigured with:
 - A default route (including URI and name)
-- Default Blade views for the controller
+- Default odo views for the controller
 
 Example:
 ```bash

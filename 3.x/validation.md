@@ -135,26 +135,26 @@ $request->sanitizeIf(!app()->isProduction(), [
 In this example, the excerpt field will only be sanitized using the provided rules if the app is not in production.
 
 ## Show Validation Error Message
-To show validation error message in your blade file, doppar has a very elegent syntax. Showing validation error message specific key wise. So, in our example, the user will be redirected to our controller's create method when validation fails, allowing us to display the error messages in the view:
+To show validation error message in your Odo file, doppar has a very elegent syntax. Showing validation error message specific key wise. So, in our example, the user will be redirected to our controller's create method when validation fails, allowing us to display the error messages in the view:
 ```html
- @errors
+#errors
     <div class="alert alert-danger">
         <ul>
-            @foreach (session()->pull('errors') as $messages)
-                @foreach ($messages as $message)
-                    <li>{{ $message }}</li>
-                @endforeach
-            @endforeach
+            #foreach (session()->pull('errors') as $messages)
+                #foreach ($messages as $message)
+                    <li>[[ $message ]]</li>
+                #endforeach
+            #endforeach
         </ul>
     </div>
-@enderrors
+#enderrors
 ```
 
-To show validation error message in your blade file, doppar has a very elegent syntax. Showing validation error message specific key wise
+To show validation error message in your Odo file, doppar has a very elegent syntax. Showing validation error message specific key wise
 ```html
-@error('email')
-    <div class="alert alert-danger mt-1 p-1">{{ $message }}</div>
-@enderror
+#error('email')
+    <div class="alert alert-danger mt-1 p-1">[[ $message ]]</div>
+#enderror
 ```
 Doppar will automatically trace the error message and display here.
 
@@ -169,7 +169,7 @@ Instead of generating a redirect response, Doppar will send a JSON response cont
 ## Repopulating Forms
 To retrieve flashed input from the previous request, invoke the old method on an instance of `Phaseolies\Http\Request`. The old method will pull the previously flashed input data from the session:
 ```html
-<input type="text" name="name" value="{{ old('name') }}">
+<input type="text" name="name" value="[[ old('name') ]]">
 ```
 ## Validation Facades
 

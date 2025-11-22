@@ -15,7 +15,7 @@ The `enqueue()` function looks inside your project’s `public/` folder and retu
 ### Basic Usage
 To include a CSS file from the root of the `public/` directory:
 ```html
-<link rel="stylesheet" href="{{ enqueue('style.css') }}">
+<link rel="stylesheet" href="[[ enqueue('style.css') ]]">
 ```
 This will output something like:
 ```html
@@ -24,7 +24,7 @@ This will output something like:
 ###  Using Subfolders
 If your CSS, JS, or other assets are organized inside folders within `public/`, you can specify the relative path:
 ```html
-<link rel="stylesheet" href="{{ enqueue('assets/style.css') }}">
+<link rel="stylesheet" href="[[ enqueue('assets/style.css') ]]">
 ```
 Here, `assets` is simply a folder inside the `public/` directory.
 

@@ -225,13 +225,13 @@ Redirecting to a new URL and flashing data to the session are usually done at th
 return redirect('/dashboard')->with('success', 'You are in dashboard');
 ```
 
-After the user is redirected, you may display the flashed message from the session. For example, using Blade syntax:
+After the user is redirected, you may display the flashed message from the session. For example, using Odo syntax:
 ```html
-@if (session()->has('success'))
+#if (session()->has('success'))
     <div class="alert alert-success">
-        {{ session()->pull('success') }}
+       [[ session()->pull('success') ]]
     </div>
-@endif
+#endif
 ```
 
 ### View Responses
@@ -318,15 +318,15 @@ In Doppar, it's not practical to return entire HTML document strings directly fr
 
 Views help separate your application's logic from its presentation layer, improving maintainability and readability. In Doppar, views are typically stored in the resources/views directory. The templating system in Doppar allows you to create dynamic and reusable UI components efficiently. A basic view file might look like this:
 ```html
-<!-- View stored in resources/views/greeting.blade.php -->
+<!-- View stored in resources/views/greeting.odo.php -->
 <html>
     <body>
-        <h1>Hello, {{ $name }}</h1>
+        <h1>Hello, [[ $name ]]</h1>
     </body>
 </html>
 ```
 
-Since this view is stored at `resources/views/greeting.blade.php`, we may return it using the global view helper like so:
+Since this view is stored at `resources/views/greeting.odo.php`, we may return it using the global view helper like so:
 
 ```php
 Route::get('/', function () {

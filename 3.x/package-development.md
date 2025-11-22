@@ -42,7 +42,7 @@ packages/
         ├── routes/
         │   └── web.php
         ├── views/
-        │   └── (Blade files)
+        │   └── (Odo files)
         ├── database/
         │   └── migrations/
         ├── src/
@@ -138,7 +138,7 @@ public function boot()
 This ensures that when your package is registered, its routes are automatically included and accessible.
 
 ## Views
-When developing a package in Doppar, it's common to include Blade templates that can be used by the host application. To do this effectively, Doppar allows you to register view paths with a custom namespace, enabling clean, modular usage.
+When developing a package in Doppar, it's common to include Odo templates that can be used by the host application. To do this effectively, Doppar allows you to register view paths with a custom namespace, enabling clean, modular usage.
 
 ## Loading Package Views
 You should store your views inside a views/ directory within your package structure. Then, register them using the loadViews() method inside your service provider’s boot() method:

@@ -39,13 +39,13 @@ Route::get('/token', function (Request $request) {
 });
 ```
 
-Anytime you define a "POST" HTML form in your application, you should include a hidden CSRF `_token` field in the form so that the CSRF protection middleware can validate the request. For convenience, you may use the @csrf Blade directive to generate the hidden token input field:
+Anytime you define a "POST" HTML form in your application, you should include a hidden CSRF `_token` field in the form so that the CSRF protection middleware can validate the request. For convenience, you may use the `#csrf` odo directive to generate the hidden token input field:
 ```php
 <form method="POST" action="/profile">
-    @csrf
+    #csrf
 
     <!-- Equivalent to... -->
-    <input type="hidden" name="_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="_token" value="[[ csrf_token() ]]" />
 </form>
 ```
 The `\Phaseolies\Middleware\CsrfTokenMiddleware`, middleware, which is included in the web middleware group by default, will automatically verify that the token in the request input matches the token stored in the session.
@@ -53,7 +53,7 @@ The `\Phaseolies\Middleware\CsrfTokenMiddleware`, middleware, which is included 
 ## X-CSRF-TOKEN
 In addition to checking for the CSRF token as a POST parameter, the `\Phaseolies\Middleware\CsrfTokenMiddleware` middleware, which is included in the web middleware group by default, will also check for the X-CSRF-TOKEN request header. You could, for example, store the token in an HTML meta tag:
 ```php
-<meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="csrf-token" content="[[ csrf_token() ]]">
 ```
 Then, you can instruct a library like jQuery to automatically add the token to all request headers. This provides simple, convenient CSRF protection for your AJAX based applications using legacy JavaScript technology:
 ```javascript

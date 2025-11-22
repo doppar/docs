@@ -299,7 +299,7 @@ $value = old('email');
 This will return the previously entered value for the input field with the key `email`, or null if no old value is found.
 #### Example
 ```html
-<input type="text" name="email" value="{{ old('email') }}">
+<input type="text" name="email" value="[[ old('email') ]]">
 ```
 If the user previously entered `mahedi` and the form was submitted with errors, the input field will be repopulated with `mahedi` after the validation failure.
 
@@ -417,7 +417,7 @@ The `resource_path()` function is a helper that retrieves the application's reso
 $resourcesPath = resource_path();
 
 // Get the full resources path with a specific subdirectory or file
-$fullPath = resource_path('views/layouts/app.blade.php');
+$fullPath = resource_path('views/layouts/app.Odo.php');
 ```
 
 ### config_path()

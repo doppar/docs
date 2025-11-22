@@ -456,22 +456,22 @@ $request->route('dashboard');
 // Returns true if the current route name is 'dashboard', otherwise false.
 ```
 
-## Accessing `route()` in Blade Templates
-In Blade views, you can directly access the current route using Doppar’s global Request alias — no need to import a namespace.
-```blade
+## Accessing `route()` in Odo Templates
+In Odo views, you can directly access the current route using Doppar’s global Request alias — no need to import a namespace.
+```html
 @if(Request::route() === 'dashboard')
-  {{-- Current route is "dashboard" --}}
+  [[-- Current route is "dashboard" --]]
 @else
-  {{-- Not on the "dashboard" route --}}
+  [[-- Not on the "dashboard" route --]]
 @endif
 ```
 ### Alternative: Using `request()` Helper
 The `request()` global helper works the same way:
-```blade
+```html
 @if(request()->route() === 'dashboard')
-  {{-- Current route is "dashboard" --}}
+  [[-- Current route is "dashboard" --]]
 @else
-  {{-- Not on the "dashboard" route --}}
+  [[-- Not on the "dashboard" route --]]
 @endif
 ```
 
@@ -724,9 +724,9 @@ $request->mergeIfMissing([
 If `language` or `theme` were not included in the request, this method injects them with default values.
 
 ### Retrieving Old Input
-Doppar provides a global `old` helper. If you are displaying old input within a Blade template, it is more convenient to use the old helper to repopulate the form. If no old input exists for the given field, null will be returned:
+Doppar provides a global `old` helper. If you are displaying old input within a Odo template, it is more convenient to use the old helper to repopulate the form. If no old input exists for the given field, null will be returned:
 ```html
-<input type="text" name="username" value="{{ old('username') }}">
+<input type="text" name="username" value="[[ old('username') ]]">
 ```
 
 ## Cookies

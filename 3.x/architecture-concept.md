@@ -100,7 +100,7 @@ class Post extends Model
 ```
 
 ## Views
-Views are responsible for presenting data to the user. Doppar uses the Blade templating engine for rendering views with clean, readable syntax.
+Views are responsible for presenting data to the user. Doppar uses its native `odo` templating engine for rendering views with clean, readable syntax.
 
 Views are typically stored in the `resources/views` directory.
 

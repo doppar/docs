@@ -78,11 +78,11 @@ if (auth()->can("edit-settings")) {
 }
 ```
 
-## Authorization with Blade Directives
-Guard provides intuitive Blade directives to conditionally render frontend elements based on user abilities. This allows your views to remain clean and expressive, while staying in sync with your backend access logic.
+## Authorization with Odo Directives
+Guard provides intuitive Odo directives to conditionally render frontend elements based on user abilities. This allows your views to remain clean and expressive, while staying in sync with your backend access logic.
 
 The `@scope` directive checks if the currently authenticated user has the given ability:
-```blade
+```Odo
 @scope('edit-settings')
     // You have edit-settings access
 @elsescope('store-settings')
@@ -93,7 +93,7 @@ The `@scope` directive checks if the currently authenticated user has the given 
 ```
 
 You can pass additional arguments (like a model or context object) to check abilities with more precision:
-```blade
+```Odo
 @scope('edit-settings', $user)
    //
 @endscope
@@ -104,7 +104,7 @@ You can pass additional arguments (like a model or context object) to check abil
 ```
 
 The `@scopenot` directive checks if the user does not have the given ability:
-```blade
+```Odo
 @scopenot('edit-settings')
  //
 @elsescopenot('store-settings')
@@ -165,19 +165,19 @@ class PostController extends Controller
 }
 ```
 
-## Blade View Integration with @scope
-Doppar also introduces the `@scope` directive for Blade, enabling you to wrap parts of your view and conditionally render them only if the user has the required permission.
-```blade
-@forelse ($posts as $item)
-    @scope('update-post', $item)
+## Odo View Integration with `#scope`
+Doppar also introduces the `#scope` directive for Odo, enabling you to wrap parts of your view and conditionally render them only if the user has the required permission.
+```html
+#forelse ($posts as $item)
+    #scope('update-post', $item)
         <tr>
-            <td>{{ $item->id }}</td>
-            <td>{{ $item->user_id }}</td>
-            <th scope="row">{{ $item->title }}</th>
+            <td>[[ $item->id ]]</td>
+            <td>[[ $item->user_id ]]</td>
+            <th scope="row">[[ $item->title ]]</th>
         </tr>
-    @endscope
-@empty
-@endforelse
+    #endscope
+#empty
+#endforelse
 ```
 This ensures that only users authorized to "update-post" a post will see the row, adding a secure and expressive layer to your templates.
 
@@ -304,8 +304,8 @@ public function update(Request $request): RedirectResponse
 }
 ```
 
-You can also conditionally render Blade components using the `@scope` directive, which works seamlessly with registered authorizers:
-```blade
+You can also conditionally render Odo components using the `@scope` directive, which works seamlessly with registered authorizers:
+```Odo
 @scope('update', $post)
  //
 @endscope

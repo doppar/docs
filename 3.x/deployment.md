@@ -110,15 +110,15 @@ You should run `php pool boost` command **after each deployment**, especially wh
 
 - Routes have been modified.  
 - Configuration files (`config/*.php`) have changed.  
-- Blade views have been updated.  
+- Odo views have been updated.  
 - You want to ensure your production environment is using cached, optimized resources.
 
 ### View Cache
-Compiles and caches all Blade views, which reduces the time spent rendering views on every request.
+Compiles and caches all odo views, which reduces the time spent rendering views on every request.
 ```bash
 php pool view:cache
 ```
-This command will precompile all Blade templates and store them in a cache for faster rendering.
+This command will precompile all odo templates and store them in a cache for faster rendering.
 
 ### Route Cache
 Caches the entire route definition to speed up routing by eliminating the need to parse the route files with each request.

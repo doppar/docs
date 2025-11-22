@@ -40,4 +40,4 @@ abort(500, 'Server Error' , ['Header Key' => 'Header Value']);
 This will throw `500` errors with `Server Error` client message including your providing headers.
 
 ## Custom HTTP Error Pages
-If you want to use a custom error page, you need to create your error view file inside the `resources/views/errors` directory. For example, to create a custom 404 error page, you would name the file `404.blade.php`, where `404` represents the HTTP status code. Once created, Doppar will automatically use your custom error page for the corresponding status code.
+If you want to use a custom error page, you need to create your error view file inside the `resources/views/errors` directory. For example, to create a custom 404 error page, you would name the file `404.Odo.php`, where `404` represents the HTTP status code. Once created, Doppar will automatically use your custom error page for the corresponding status code.

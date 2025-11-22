@@ -1916,28 +1916,28 @@ Now call the pagination for views
 ```html
 @foreach ($data['data'] as $user)
     <tr>
-        <td>{{ $user->id }}</td>
-        <td>{{ $user->name }}</td>
-        <td>{{ $user->username }}</td>
-        <td>{{ $user->email }}</td>
+        <td>[[ $user->id ]]</td>
+        <td>[[ $user->name ]]</td>
+        <td>[[ $user->username ]]</td>
+        <td>[[ $user->email ]]</td>
     </tr>
 @endforeach
 
 <!-- "Previous" and "Next" buttons, along with page numbers. -->
-{!! paginator($data)->links() !!}
+[[! paginator($data)->links() !]]
 
 <!-- "Previous" and "Next" buttons, along with page jump options. -->
-{!! paginator($data)->linkWithJumps() !!} // 
+[[! paginator($data)->linkWithJumps() !]]
 ```
 
 ## Customize Default Pagination
-Doppar provides a Bootstrap 5 pagination view by default. However, you can also customize this view to suit your needs. To customize the pagination view, Doppar offers the publish:pagination pool command. Running this command will create two files, `jump.blade.php` and `number.blade.php`, inside the `resources/views/vendor/pagination` folder. These files allow you to tailor the pagination design to match your application's style.
+Doppar provides a Bootstrap 5 pagination view by default. However, you can also customize this view to suit your needs. To customize the pagination view, Doppar offers the publish:pagination pool command. Running this command will create two files, `jump.Odo.php` and `number.Odo.php`, inside the `resources/views/vendor/pagination` folder. These files allow you to tailor the pagination design to match your application's style.
 
 ```bash
 php pool publish:pagination
 ```
 
-Once you modify the `jump.blade.php` and `number.blade.php` files, the changes will immediately reflect in your pagination view. This allows you to fully customize the appearance and behavior of the pagination links to align with your application's design and requirements. Feel free to update these files as needed to create a seamless and visually consistent user experience.
+Once you modify the `jump.Odo.php` and `number.Odo.php` files, the changes will immediately reflect in your pagination view. This allows you to fully customize the appearance and behavior of the pagination links to align with your application's design and requirements. Feel free to update these files as needed to create a seamless and visually consistent user experience.
 
 ## Retrieving a Paginated Subset of Records
 To fetch a specific subset of records from the database—such as a “page” of users—you can use the offset and limit methods on an Entity query.

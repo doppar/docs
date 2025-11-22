@@ -371,8 +371,8 @@ Route::post('payment', function (Request $request) {
 ## CSRF Protection
 Keep in mind that any HTML forms targeting routes using the `POST`, `PUT`, `PATCH`, or `DELETE` methods—defined in the web.php routes file—must include a CSRF token field. Without this token, Doppar will reject the request for security reasons. To learn more, refer to the CSRF protection documentation.
 ```html
-<form method="POST" action="{{ route('profile') }}">
-    @csrf
+<form method="POST" action="[[ route('profile') ]]">
+    #csrf
     ...
 </form>
 ```
@@ -389,21 +389,21 @@ The HTTP methods PUT, PATCH, and DELETE define the intended action on a resource
 | DELETE | Remove resource            | ❌ Usually no  | ✅ Yes      | Delete an item or record |
 
 ## HTTP Verb Spoofing in Forms
-Since HTML forms only support GET and POST methods directly, Doppar provides Blade directives to spoof other HTTP methods like PUT, PATCH, and DELETE.
+Since HTML forms only support GET and POST methods directly, Doppar provides Odo directives to spoof other HTTP methods like PUT, PATCH, and DELETE.
 
 Here’s how you do it in your form:
 ```html
-<form method="POST" action="{{ route('update-profile') }}">
-    @csrf
-    @method('PUT')    {{-- For PUT Request --}}
-    {{-- @method('PATCH')  For PATCH Request --}}
-    {{-- @method('DELETE') For DELETE Request --}}
+<form method="POST" action="[[ route('update-profile') ]]">
+    #csrf
+    @method('PUT')    [[-- For PUT Request --]]
+    [[-- @method('PATCH')  For PATCH Request --]]
+    [[-- @method('DELETE') For DELETE Request --]]
     <button type="submit">Submit</button>
 </form>
 ```
 
 ::: warning
-Always include `@csrf` to protect against CSRF attacks. The `@method` directive tells Doppar to treat the request as the specified HTTP verb.
+Always include `#csrf` to protect against CSRF attacks. The `@method` directive tells Doppar to treat the request as the specified HTTP verb.
 :::
 
 ## Any Route
@@ -464,9 +464,9 @@ Route::get('user/{id}/{name}', [UserController::class, 'profile'])
 
 Now use this naming route any where using `route()` global method.
 ```html
- <form action="{{ route('profile', ['id' => 2, 'name' => 'abc']) }}"
+ <form action="[[ route('profile', ['id' => 2, 'name' => 'abc']) ]]"
     method="post">
-    @csrf
+    #csrf
     <button type="submit" class="btn btn-primary">Submit</button>
 </form>
 ```
@@ -478,7 +478,7 @@ Route::get('user/{id}', [UserController::class, 'profile'])
 ```
 Now call the route
 ```php
-{{ route('profile', $user->id) }}
+[[ route('profile', $user->id) ]]
 ```
 
 > Route names should always be unique.

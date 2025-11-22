@@ -73,7 +73,7 @@ public function subject(): Subject
 ```
 
 ## Configuring the View
-Within a mailable class's content method, you may define the view, or which template should be used when rendering the email's contents. Since each email typically uses a Blade template to render its contents, you have the full power and convenience of the Blade templating engine when building your email's HTML:
+Within a mailable class's content method, you may define the view, or which template should be used when rendering the email's contents. Since each email typically uses a Odo template to render its contents, you have the full power and convenience of the Odo templating engine when building your email's HTML:
 ```php
 /**
  * Set the message body and data
@@ -166,8 +166,8 @@ class InvoiceMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.order.invoice', // 'resources/views/emails/order/invoice.blade.php'
-            data: $this->data // Passing data will be available in invoice.blade.php, access it via {{ $data }}
+            view: 'emails.order.invoice', // 'resources/views/emails/order/invoice.odo.php'
+            data: $this->data // Passing data will be available in invoice.odo.php, access it via [[ $data ]]
         );
     }
 

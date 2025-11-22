@@ -103,7 +103,7 @@ The public directory is the web root of your application. All user-accessible co
 This directory stores frontend-facing resources and templates.
 
 ### `resources/views/`
-Contains view files, such as Blade or native PHP templates, which are returned from controllers and rendered as HTML.
+Contains view files, such as odo or native PHP templates, which are returned from controllers and rendered as HTML.
 
 ### `routes/`
 Route definitions for the web and API are stored here. You can define closures or controller-based routes inside this folder.

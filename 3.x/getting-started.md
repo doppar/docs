@@ -250,40 +250,12 @@ Fully integrated into Doppar’s ecosystem, Entity Builder runs without any thir
 
 With Doppar Entity Builder, you get the freedom of SQL with the clarity, safety, and precision of Doppar.
 
-## JIT Template Compilation
-Doppar brings advanced `Just-in-Time (JIT)` compilation to the Blade template engine — a performance-focused feature that transforms how views are compiled and rendered at runtime.
+## ODO
+Doppar includes ODO, a modern, lightweight, and fully customizable templating engine designed exclusively for the Doppar Framework.
 
-### What is JIT Optimization?
-In Doppar, JIT optimization refers to the process of dynamically analyzing and transforming compiled Blade templates at the moment they're needed — just before rendering. Instead of relying solely on precompiled static views, JIT inspects templates during request execution and applies smart, runtime optimizations to reduce rendering cost and speed up response times.
+ODO is designed to be fully flexible. Every part of its syntax—directives, echo tags, raw output, escaped output, and comment markers—can be customized to match your preferred style or project requirements.
 
-### Why JIT Makes Doppar Exceptional
-JIT is enabled by default `(BLADE_JIT_ENABLED=true)` and you can configure it from `.env` and comes with an adjustable optimization level:
-| Level | Description                       | Features Included                                                                   |
-| ----- | --------------------------------- | ----------------------------------------------------------------------------------- |
-| 0     | Disabled                          | No runtime optimization, standard Blade behavior                                    |
-| 1     | Basic Optimization                | Whitespace cleanup, faster control structures, echo consolidation                   |
-| 2     | Aggressive Optimization (default) | Inlines small templates, simplifies nested loops, lazy-loads components dynamically |
-
-### What JIT Does Under the Hood
-When a view is compiled, Doppar’s JIT engine intelligently refines the resulting PHP code using techniques like:
-
-<ul class="doppar-features">
-  <li><strong>Whitespace Reduction</strong>: Compresses unnecessary spacing to reduce file size and improve parsing speed.</li>
-  <li><strong>Optimized Control Structures</strong>: Transforms verbose `@if`, `@foreach`, and `@else` blocks into efficient native PHP syntax, leading to cleaner and faster execution.</li>
-  <li><strong>Echo Optimization</strong>: Combines adjacent `{{ }}` outputs into single expressions, significantly reducing PHP overhead during rendering.</li>
-  <li><strong>Blade Loop Simplification</strong>: Detects and optimizes common loop constructs (like `@foreach`) for faster iteration and cleaner compiled output, improving rendering efficiency.</li>
-  <li><strong>Inline Small Templates</strong>: Automatically inlines `@include()` directives for small views (under 500 bytes). This eliminates disk I/O for these components, speeding up overall load times.</li>
-  <li><strong>Lazy Component Loading</strong>: Converts Blade components into shared, in-memory objects that render only once per request. This intelligent caching mechanism drastically reduces duplication and improves performance for frequently used components..</li>
-</ul>
-
-### Why It Matters
-Doppar’s JIT system is designed to improve the real-world performance of your Blade templates, especially:
-
-- On high-traffic sites where rendering efficiency matters
-- When using reusable components across pages
-- For developers who want to keep using Blade’s elegance without sacrificing speed
-
-Doppar doesn’t just compile Blade — it understands it, improves it, and runs it faster than ever.
+The syntax configuration lives in the `config/odo.php` file. This file allows you to define how ODO interprets template expressions and which symbols or delimiters it should use during compilation
 
 ## Core Concepts
 Doppar brings together modern PHP practices and elegant simplicity — empowering developers to build with grace and precision.
@@ -298,7 +270,7 @@ Doppar brings together modern PHP practices and elegant simplicity — empowerin
 | **Middleware** | Global, web or route-specific; easily configurable in multiple ways. |
 | **Controllers** | Structured request-response handling with intuitive flow. |
 | **API Presenter** | A clean, structured boilerplate for API responses. |
-| **Views** | JIT-powered Blade templates with custom control capabilities. |
+| **Views** | Odo templates with custom control capabilities. |
 | **Entity ORM** | A core-built, dependency-free Entity ORM for pure performance. |
 | **Security** | CSRF protection, sessions, cookies, and validation out of the box. |
 | **Auth** | Authentication, encryption, and annotation-based rate limiting. |
