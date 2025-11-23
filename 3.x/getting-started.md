@@ -122,6 +122,32 @@ Whether you need basic automation or high-frequency task execution, Doppar gives
 
 Choose the mode that fits your application, or combine both for maximum power.
 
+## A Native Cron Daemon
+Doppar includes a high-performance Cron Daemon, built directly into the framework.No server configuration. No crontab. No Supervisor. No systemd.
+
+Just run:
+```bash
+php doppar cron:daemon start
+```
+And boom, Doppar launches its own background process capable of executing tasks every second. You don’t need to edit `/etc/crontab`. You don’t need to use Supervisor. You don’t need systemd services. Doppar manages everything internally:
+```bash
+php doppar cron:daemon start
+php doppar cron:daemon stop
+php doppar cron:daemon restart
+php doppar cron:daemon status
+```
+This means:
+- No server configuration.
+- No crontab.
+- No Supervisor.
+- No systemd.
+- Zero server setup
+- Zero DevOps complexity
+- Identical behavior in local, staging, and production
+- Massive portability
+
+Your entire scheduling system is now fully framework-native.
+
 ## Doppar Queue Component
 The Doppar queue system is designed to handle background tasks efficiently with reliability and scalability in mind. Its feature set ensures smooth job processing, better performance, and full control over how tasks are executed. See the features of doppar queue.
 
@@ -152,29 +178,27 @@ Doppar AI lets you run powerful AI models locally in PHP, combining Transformers
 use Doppar\AI\Pipeline;
 use Doppar\AI\Enum\TaskEnum;
 
-$messages = [
-    ['role' => 'user', 'content' => 'Resolve 5 * 4 ?'],
-];
-
-$output = Pipeline::execute(
-    task: TaskEnum::TEXT_GENERATION,
-    model: 'HuggingFaceTB/SmolLM2-360M-Instruct',
-    messages : $messages
-);
-
-// "generated_text" => "5 * 4 = 20"
-```
-On first run the model is downloaded automatically and then cached in `storage/app/transformers`, giving you fast, fully self-hosted AI responses.
-
-Another example with sentiment analysis
-```php
-$output = Pipeline::execute(
+$result = Pipeline::execute(
     task: TaskEnum::SENTIMENT_ANALYSIS,
-    data: 'I Love Doppar AI Really',
-    model: 'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
+    data: 'I absolutely love this product! Best purchase ever!'
 );
 
 // Output: [['label' => 'POSITIVE', 'score' => 0.9998]]
+```
+On first run the model is downloaded automatically and then cached in `storage/app/transformers`, giving you fast, fully self-hosted AI responses.
+
+Agent for conversational AI
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\OpenAI;
+
+$response = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'))
+    ->model('gpt-3.5-turbo')
+    ->prompt('Explain quantum computing in simple terms')
+    ->send();
+
+echo $response; // Returns the AI-generated explanation
 ```
 
 ## Doppar Benchmark - High-Concurrency Performance Test
