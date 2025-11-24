@@ -659,6 +659,102 @@ $isPositive = Pipeline::query(
 );
 ```
 
+### Vector Helper for RAG (Retrieval Augmented Generation)
+The `Doppar\AI\Vector\Vector` helper provides utility methods to work with text embeddings and build Retrieval Augmented Generation (RAG) workflows on top of Doppar AI.
+
+It is designed to:
+- Compute similarity between vectors using cosine similarity.
+- Select the most relevant context chunks for a question.
+- Generate embeddings from an `Agent` (currently supported with `OpenAI` only).
+
+#### cosineSimilarity
+Compute the cosine similarity between two numeric vectors. This is used internally to compare a question embedding with your document embeddings.
+
+```php
+use Doppar\AI\Vector\Vector;
+
+$similarity = Vector::cosineSimilarity($vectorA, $vectorB); // float between -1 and 1
+```
+
+#### getContext
+Given a list of precomputed document vectors and a question vector, `getContext` sorts all chunks by similarity and returns a concatenated text of the top matches.
+
+Expected structure of `$docs`:
+
+```php
+[
+    [
+        'vector'  => [/* array of floats */],
+        'content' => 'Markdown or text content here...',
+    ],
+    // ... more chunks
+]
+```
+
+Usage:
+
+```php
+use Doppar\AI\Vector\Vector;
+
+$context = Vector::getContext($docs, $questionVector);
+```
+
+#### embedding
+Generate an embedding vector for a given text using a configured `Agent`. Embeddings are currently supported only for the `OpenAI` agent.
+
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\OpenAI;
+use Doppar\AI\Vector\Vector;
+
+$agent = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'));
+
+$vector = Vector::embedding($agent, 'text-embedding-3-small', 'Some text to embed');
+```
+
+#### End-to-End RAG Example with OpenAI
+The following example shows how to:
+- Load precomputed document embeddings from a local JSON cache (created beforehand, e.g. with `Vector::embedding` on each markdown file).
+- Embed a user question with `Vector::embedding`.
+- Retrieve the most relevant context with `Vector::getContext`.
+- Call a Doppar `Agent` (OpenAI) using this context.
+
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\OpenAI;
+use Doppar\AI\Vector\Vector;
+
+// 1. Create your Doppar AI agent for OpenAI
+$agent = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'));
+
+// 2. Load your precomputed document vectors from local cache
+//    The JSON should contain an array of ['vector' => [...], 'content' => '...'] entries
+$docs = json_decode(file_get_contents(__DIR__ . '/vector_docs_cache.json'), true);
+
+// 3. Define your question
+$question = 'How to create a new OpenAI Doppar AI ?';
+
+// 4. Create an embedding vector for the question
+$questionVector = Vector::embedding($agent, 'text-embedding-3-small', $question);
+
+// 5. Retrieve the most relevant context from your docs
+$context = Vector::getContext($docs, $questionVector);
+
+// 6. Classic Doppar Agent call with retrieved context
+$response = $agent->model('gpt-4o-mini')
+    ->messages([
+        ['role' => 'system', 'content' => 'You are a helpful Doppar assistant based on a context.'],
+        ['role' => 'user', 'content' => "context:\n$context\nQuestion:$question"],
+    ])
+    ->send();
+
+echo $response;
+```
+
+This pattern allows you to build powerful knowledge assistants on top of your own markdown documentation or any text corpus, fully powered by Doppar AI.
+
 ### Quantized vs Non-Quantized Models
 Quantized models are smaller and faster but may have slightly reduced accuracy. For Pipeline tasks, always use quantized models in production:
 ```php
