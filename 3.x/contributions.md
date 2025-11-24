@@ -34,6 +34,8 @@ All Doppar projects are managed via GitHub. Feel free to explore, fork, and cont
 - [Doppar Application](https://github.com/doppar/doppar)
 - [Doppar Framework](https://github.com/doppar/framework)
 - [Doppar Docs](https://github.com/doppar/docs)
+- [Doppar AI](https://github.com/doppar/ai)
+- [Doppar Queue](https://github.com/doppar/queue)
 - [Doppar Flarion](https://github.com/doppar/flarion)
 - [Doppar Orion](https://github.com/doppar/orion)
 - [Doppar Guard](https://github.com/doppar/guard)
