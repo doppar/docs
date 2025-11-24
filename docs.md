@@ -15,7 +15,6 @@ meta:
   - [IDE Support](#ide-support)
   - [What's Next?](#whats-next)
 
-
 ## Installation
 
 Before you can start building with **Doppar**, ensure your local development environment is properly configured. This guide will walk you through installing the necessary dependencies and creating your first Doppar application.
