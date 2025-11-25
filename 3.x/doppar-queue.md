@@ -67,7 +67,7 @@ This creates two tables:
 ## Quick Start
 Doppar makes it easy to create a new queue job using the pool command. For example, to generate a job for sending a welcome email, run:
 ```bash
-php pool make:job SendWelcomeEmail
+php pool make:job SendWelcomeEmailJob
 ```
 
 This will create a ready-to-use job class that you can customize and dispatch to your queue.
@@ -75,7 +75,7 @@ This will create a ready-to-use job class that you can customize and dispatch to
 ### Dispatch the Job
 Once your job class is ready, you can dispatch it to the queue like this:
 ```php
-(new SendWelcomeEmail($user))->dispatch();
+(new SendWelcomeEmailJob($user))->dispatch();
 ```
 
 This sends the job to the queue for asynchronous processing, allowing your application to continue running without waiting for the task to complete.
