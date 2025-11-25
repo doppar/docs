@@ -95,7 +95,7 @@ use App\Models\User;
 #[Queueable]
 class SendWelcomeEmailJob extends Job
 {
-    public function __construct(public User $user){};
+    public function __construct(public User $user){}
 
     /**
      * Execute the job.
