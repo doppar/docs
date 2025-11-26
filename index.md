@@ -98,9 +98,9 @@ class PaymentController extends Controller
 {
     #[Transaction]
     #[Route('payment', methods: ['POST'])]
-    public function payment()
+    public function __invoke()
     {
-      // Automatically wraps the payment method in a DB transaction
+      // Automatically wraps the __invoke method in a DB transaction
     }
 }
 ```
