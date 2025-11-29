@@ -59,7 +59,7 @@ composer -v
 
 After you have installed PHP, Composer, you're ready to create a new Doppar application. Run the following command to create a new Doppar application:
 ```bash
-composer create-project doppar/doppar doppar-app --stability=beta
+composer create-project doppar/doppar doppar-app
 ```
 
 ## Starting the Local Development Server
