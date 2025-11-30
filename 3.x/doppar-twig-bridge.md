@@ -6,27 +6,20 @@ meta:
     content: twig templates views doppar framework
 ---
 
-## Doppar Twig Bridge
+## Twig Bridge
 
 ### Introduction
 
-The **Doppar Twig Bridge** provides a thin integration layer between **Twig** and the **Doppar Framework**.
+The Doppar Twig Bridge is an integration layer that allows applications built on the Doppar Framework to render views using Twig, a powerful and flexible templating engine. The bridge is intentionally minimalistic and non-intrusive so you can adopt Twig progressively without disrupting your existing Odo-based templates.
 
-Its goals are:
-
-- **Keep the existing Doppar view system (Odo) working unchanged.**
-- **Enable Twig only when you explicitly ask for it.**
-- **Require virtually no configuration in your application.**
-
----
+This document provides an in-depth explanation of how the bridge works, how to install it, and how to use it effectively in real-world Doppar applications.
 
 ## Installation
 
-From your Doppar application:
+Installing the Twig Bridge is straightforward. From the root of your Doppar application, run:
 
 ```bash
-composer require doppar/twig-bridge:dev-main
-composer dump-autoload
+composer require doppar/twig-bridge
 ```
 
 ---
@@ -37,7 +30,6 @@ In your application's `config/app.php`, add the Twig bridge service provider to 
 
 ```php
 'providers' => [
-    App\Providers\AppServiceProvider::class,
     Doppar\TwigBridge\TwigServiceProvider::class,
 ],
 ```
@@ -48,7 +40,7 @@ There is no additional configuration file required. Once the provider is registe
 
 ## How it works
 
-### 1. Controller binding
+### Controller binding
 
 The Doppar global `view()` helper resolves the main controller class from the container:
 
@@ -58,7 +50,7 @@ view('some.view', [...]);
 
 The Twig bridge service provider binds a custom controller that extends Doppar's base controller and decides, at render time, whether to use the original Odo engine or Twig.
 
-### 2. When Twig is used
+### When Twig is used
 
 Twig is **only** used when the view name ends with `.twig`.
 
@@ -71,7 +63,7 @@ This allows you to adopt Twig incrementally without breaking existing views.
 
 ## Using Twig in a Doppar app
 
-### 1. Create a Twig view
+### Create a Twig view
 
 Example file: `resources/views/hello.html.twig`
 
@@ -80,7 +72,7 @@ Example file: `resources/views/hello.html.twig`
 {{ dump(name) }}
 ```
 
-### 2. Return a Twig view from a controller
+### Return a Twig view from a controller
 
 In one of your HTTP controllers:
 
@@ -97,3 +89,7 @@ class WelcomeController
     }
 }
 ```
+
+The Doppar Twig Bridge offers a flexible and efficient way to integrate Twig templates into Doppar applications. With minimal setup and complete backward compatibility.
+
+You can adopt Twig incrementally, keep your existing Odo templates untouched, and enjoy the full power of Twig where you choose to use it.
