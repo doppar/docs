@@ -197,6 +197,50 @@ $result = Pipeline::execute(
 // Output: 'Bonjour, comment allez-vous?'
 ```
 
+### Localization & AI-powered translation
+Doppar AI also provides native translation and localization support built around your `/lang/{lang}` folders. You can translate arbitrary content between languages with your preferred AI agent, or automatically generate a brand new locale by translating an entire Doppar translation directory.
+
+Translate any content between two languages using an Agent:
+
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\OpenAI;
+
+$content = 'Welcome to Doppar!';
+
+$translated = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'))
+    ->model('gpt-3.5-turbo')
+    ->translate('en', 'fr', $content);
+
+// e.g. "Bienvenue sur Doppar !"
+```
+
+Automatically translate your Doppar translation folder (`/lang/{lang}`) and create a new locale from a controller or service:
+
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\Gemini;
+
+// This will read all files from /lang/fr and create a new /lang/br folder
+$files = Agent::using(Gemini::class)
+    ->withKey(env('GEMINI_API_KEY'))
+    ->model('gemini-2.0-flash')
+    ->translateLocalization('fr', 'br');
+
+// $files now contains the list of translated files
+```
+
+You can also trigger localization from the CLI using the `ai:translate` command:
+
+```bash
+php pool ai:translate gemini fr br
+
+# This will ask you for your API key
+# ai:translate {agent} {langFrom} {langTo} {model?}
+# Currently, gemini and openai agents are supported
+```
+
 ### Question Answering
 Pipeline component can extract precise answers from a provided block of text. By supplying both a context and a question, the model identifies the most relevant answer based on the information available. Extract answers from a given context based on questions.
 ```php
