@@ -388,6 +388,16 @@ The `#guest` directive checks if a user is NOT authenticated (i.e., a guest). It
 ## Flash Message Directives
 These directives help you show feedback messages like errors, success alerts, or notifications to users.
 
+#### Displaying Flash Messages
+
+```html
+#if (session()->has('success'))
+    <div class="alert alert-success">
+        [[ session()->pull('success') ]]
+    </div>
+#endif
+```
+
 ### #errors
 The `#errors` directive checks if there are any error messages available (usually from form validation). If errors exist, it runs the enclosed code block, letting you display them.
 
