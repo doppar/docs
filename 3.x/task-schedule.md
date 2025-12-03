@@ -109,7 +109,7 @@ The Cron Daemon keeps your schedules running even after you close your terminal.
 
 Use this command to launch the scheduler in the background:
 ```bash
-php doppar cron:daemon start
+php pool cron:daemon start
 ```
 This:
 - Starts a persistent background process
@@ -123,7 +123,7 @@ Once started, the daemon will process your `everySecond()` tasks continuously an
 ### Stop the Daemon
 Gracefully shut down the running daemon:
 ```bash
-php doppar cron:daemon stop
+php pool cron:daemon stop
 ```
 This performs:
 - Clean termination using system signals
@@ -136,7 +136,7 @@ Use this when deploying updates or stopping scheduled tasks temporarily.
 ### Restart the Daemon
 Restart the daemon safely without manually stopping it:
 ```bash
-php doppar cron:daemon restart
+php pool cron:daemon restart
 ```
 A restart will:
 - Stop the running daemon
@@ -148,7 +148,7 @@ Ensure scheduling continues without interruption
 ### Check Daemon Status
 Verify whether the scheduling daemon is running:
 ```bash
-php doppar cron:daemon status
+php pool cron:daemon status
 ```
 
 This displays:
@@ -391,15 +391,15 @@ This runs the scheduler once per minute.
 Doppar includes its own process manager, meaning you don’t need to add anything to the system crontab.
 Just start the daemon using:
 ```bash
-php doppar cron:daemon start
+php pool cron:daemon start
 ```
 
 Available daemon management commands
 ```bash
-php doppar cron:daemon start      # Start background scheduler
-php doppar cron:daemon stop       # Stop scheduler
-php doppar cron:daemon restart    # Restart scheduler
-php doppar cron:daemon status     # Check scheduler status
+php pool cron:daemon start      # Start background scheduler
+php pool cron:daemon stop       # Stop scheduler
+php pool cron:daemon restart    # Restart scheduler
+php pool cron:daemon status     # Check scheduler status
 ```
 
 This approach replaces the need for OS-level cron entirely and gives you a reliable, self-contained scheduling engine similar to Supervisor or systemd — but built directly into Doppar.
