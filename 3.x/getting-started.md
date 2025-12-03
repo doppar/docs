@@ -127,14 +127,14 @@ Doppar includes a high-performance Cron Daemon, built directly into the framewor
 
 Just run:
 ```bash
-php doppar cron:daemon start
+php pool cron:daemon start
 ```
 And boom, Doppar launches its own background process capable of executing tasks every second. You don’t need to edit `/etc/crontab`. You don’t need to use Supervisor. You don’t need systemd services. Doppar manages everything internally:
 ```bash
-php doppar cron:daemon start
-php doppar cron:daemon stop
-php doppar cron:daemon restart
-php doppar cron:daemon status
+php pool cron:daemon start
+php pool cron:daemon stop
+php pool cron:daemon restart
+php pool cron:daemon status
 ```
 This means:
 - No server configuration.
