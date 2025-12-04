@@ -64,6 +64,11 @@ After configuring your environment, you can start the WebSocket server using the
 php pool websocket:start
 ```
 
+You may combine SSL with custom host/port:
+```bash
+php pool websocket:start --host=0.0.0.0 --port=8443 --ssl
+```
+
 ## Interact with Broadcasting
 Doppar includes a `make:event` command that allows developers to quickly generate new broadcast event classes.
 ```bash
@@ -224,7 +229,6 @@ airbender.on('new-notification', (data) => {
     console.log('Received a notification:', data.title, '-', data.message);
 });
 ```
-
 
 ### Custom Event Names
 Airbend allows you to customize the event name that will be broadcast to the client. You can define a custom event name by implementing the `broadcastAs()` method in your event class:
@@ -570,4 +574,11 @@ roomChannel.listen('client-typing', (data) => {
 });
 ```
 
+### Listen to All Events on a Channel
+You can listen to every event on a channel using the special `*` event name. This is extremely useful for debugging or when you want to log all incoming events.
+```javascript
+roomChannel.listen('*', (event, data) => {
+    console.log('Event received:', event, data);
+});
+```
 
