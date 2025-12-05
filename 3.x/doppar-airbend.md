@@ -11,8 +11,6 @@ meta:
 ### Introduction
 Doppar Airbend is a high-performance, real-time broadcasting component of the Doppar PHP Framework, engineered to deliver seamless WebSocket-based event broadcasting, robust channel authorization, and comprehensive performance monitoring. Designed for modern, scalable web applications, Airbend allows developers to build interactive and collaborative features—such as live notifications, chat systems, dashboards, and multiplayer experiences—directly within the Doppar ecosystem.
 
-The component integrates tightly with a Redis backend, enabling reliable `pub/sub` messaging for distributed systems, while supporting both private and presence channels to facilitate secure and stateful real-time interactions. Its architecture emphasizes efficiency, fault tolerance, and developer productivity, providing a unified API that abstracts the complexities of WebSocket server management, channel authorization, and event broadcasting.
-
 Airbend is highly configurable, offering schema-driven validation and caching mechanisms for robust configuration management. It also includes a comprehensive metrics and monitoring suite, allowing teams to track connection states, message flows, memory usage, and performance statistics in real time. With built-in CLI commands, PHP attributes for declarative event broadcasting, and a developer-friendly facade interface, Doppar Airbend empowers developers to implement real-time features with minimal overhead while maintaining full control over the broadcasting pipeline.
 
 ### System Requirements
@@ -72,16 +70,16 @@ php pool websocket:start --host=0.0.0.0 --port=8443 --ssl
 ## Interact with Broadcasting
 Doppar includes a `make:event` command that allows developers to quickly generate new broadcast event classes.
 ```bash
-php pool make:event OrderShipped
+php pool make:event OrderShippedEvent
 ```
 
-Here’s an example of how you could broadcast the `OrderShipped` event from a controller using both the `Broadcast` facade and the `broadcast()` helper function:
+Here’s an example of how you could broadcast the `OrderShippedEvent` event from a controller using both the `Broadcast` facade and the `broadcast()` helper function:
 ```php
 <?php
 
 namespace App\Http\Controllers;
 
-use App\Events\OrderShipped;
+use App\Events\OrderShippedEvent;
 use App\Models\Order;
 use Doppar\Airbend\Support\Facades\Broadcast;
 use Phaseolies\Http\Request;
@@ -95,15 +93,15 @@ class OrderController extends Controller
         // Your order shipping logic here
 
         // Broadcast using the Broadcast facade
-        Broadcast::event(new OrderShipped($order));
+        Broadcast::event(new OrderShippedEvent($order));
 
         // OR broadcast using the helper function
-        broadcast(new OrderShipped($order));
+        broadcast(new OrderShippedEvent($order));
     }
 }
 ```
 
-The `OrderShipped` event broadcasts order shipment information, including order ID, customer name, tracking number, and shipped time, on the orders channel using Doppar Airbend’s real-time broadcasting system.
+The `OrderShippedEvent` event broadcasts order shipment information, including order ID, customer name, tracking number, and shipped time, on the orders channel using Doppar Airbend’s real-time broadcasting system.
 ```php
 <?php
 
@@ -111,7 +109,7 @@ namespace App\Events;
 
 use Doppar\Airbend\Broadcasting\Events\BaseBroadcastEvent;
 
-class OrderShipped extends BaseBroadcastEvent
+class OrderShippedEvent extends BaseBroadcastEvent
 {
     public function __construct(
         public $order
@@ -153,7 +151,7 @@ With Airbender, you can easily:
 Airbender abstracts the complexities of managing WebSocket connections, channel subscriptions, and event handling, allowing you to focus on building interactive, responsive applications.
 
 ## Public Channels
-Once your first broadcasting event is fired, you can catch it on the client side using the Doppar `Airbender`. The following example demonstrates how to connect to the WebSocket server, subscribe to a channel, and listen for the `OrderShipped` event in real time:
+Once your first broadcasting event is fired, you can catch it on the client side using the Doppar `Airbender`. The following example demonstrates how to connect to the WebSocket server, subscribe to a channel, and listen for the `OrderShippedEvent` event in real time:
 ```html
 <!DOCTYPE html>
 <html>
@@ -172,15 +170,15 @@ Once your first broadcasting event is fired, you can catch it on the client side
         // Subscribe to the 'orders' channel
         const channel = airbender.channel('orders');
 
-        // Listen for the 'OrderShipped' event
-        channel.listen('OrderShipped', (data) => {
+        // Listen for the 'OrderShippedEvent' event
+        channel.listen('OrderShippedEvent', (data) => {
             console.log('Received order shipped data:', data);
         });
     </script>
 </body>
 </html>
 ```
-This setup ensures that every time the `OrderShipped` event is broadcasted from your server, the client will receive the event payload instantly and log the order details to the console.
+This setup ensures that every time the `OrderShippedEvent` event is broadcasted from your server, the client will receive the event payload instantly and log the order details to the console.
 
 You can also configure additional connection options like automatic reconnection and encryption:
 ```js
@@ -199,7 +197,7 @@ You can listen for connection status and errors using the on method on your Dopp
 ```javascript
 // Connection events
 airbender.on('connected', () => {
-    console.log('Socket ID:', airbender.getSocketId());
+    //
 });
 
 airbender.on('disconnected', () => {
@@ -218,15 +216,15 @@ airbender.on('ready', (socketId) => {
 ### Listening for Custom Client Events
 You can also define and trigger your own global events like this way:
 ```javascript
+// Add a custom event listener
+airbender.on('new-notification', (data) => {
+    console.log('Received a notification:', data.title, '-', data.message);
+});
+
 // Trigger the custom event manually
 airbender.trigger('new-notification', {
     title: 'Order Shipped',
     message: 'Order #1234 has been shipped!'
-});
-
-// Add a custom event listener
-airbender.on('new-notification', (data) => {
-    console.log('Received a notification:', data.title, '-', data.message);
 });
 ```
 
@@ -257,7 +255,7 @@ Airbend also supports PHP attributes, allowing you to declaratively define your 
 use Doppar\Airbend\Support\Attributes\Broadcast;
 
 #[Broadcast(channels: 'orders', as: 'order.shipped')]
-class OrderShipped extends BaseBroadcastEvent
+class OrderShippedEvent extends BaseBroadcastEvent
 {
     public function __construct(
         public $order
@@ -282,7 +280,7 @@ You may configure `toOthers` directly inside the Broadcast attribute:
 use Doppar\Airbend\Support\Attributes\Broadcast;
 
 #[Broadcast(channels: 'orders', as: 'order.shipped', toOthers: true)]
-class OrderShipped extends BaseBroadcastEvent
+class OrderShippedEvent extends BaseBroadcastEvent
 {
     public function __construct(
         public $order
@@ -295,7 +293,7 @@ This declaratively tells Airbend to broadcast the event only to other clients on
 ### Using the Class Property
 Alternatively, you can control this behavior by defining the `$toOthers` property inside your event class:
 ```php
-class OrderShipped extends BaseBroadcastEvent
+class OrderShippedEvent extends BaseBroadcastEvent
 {
     /**
      * Broadcast only to others
@@ -317,7 +315,7 @@ Airbend allows you to conditionally determine whether an event should be broadca
 
 To enable conditional broadcasting, simply override the `shouldBroadcast()` method in your event class:
 ```php
-class OrderShipped extends BaseBroadcastEvent
+class OrderShippedEvent extends BaseBroadcastEvent
 {
     public function shouldBroadcast(): bool
     {
@@ -336,7 +334,7 @@ You can retrieve the current client’s socket ID from the request header `X-Soc
 ```php
 $socketId = $request->header('X-Socket-ID');
 
-Broadcast::except($socketId)->event(new OrderShipped($order));
+Broadcast::except($socketId)->event(new OrderShippedEvent($order));
 ```
 With this approach:
 - All subscribed clients except the one with the provided socket ID will receive the event.
@@ -698,7 +696,7 @@ $summary = MetricsCollector::getSummary();
 
 While the metrics collector automatically tracks most events, you can manually record custom metrics if needed:
 
-#### Record Connection Events
+Record Connection Events
 
 ```php
 // Record a successful connection
@@ -711,7 +709,7 @@ MetricsCollector::recordConnection('disconnect');
 MetricsCollector::recordConnection('failed');
 ```
 
-#### Record Message Events
+Record Message Events
 
 ```php
 // Record sent messages (count defaults to 1)
@@ -725,7 +723,7 @@ MetricsCollector::recordMessage('received');
 MetricsCollector::recordMessage('failed');
 ```
 
-#### Record Channel Events
+Record Channel Events
 
 ```php
 // Record a subscription
@@ -739,7 +737,7 @@ MetricsCollector::recordChannel('broadcast');
 MetricsCollector::recordChannel('broadcast', 3); // Record 3 broadcasts
 ```
 
-#### Record Errors
+Record Errors
 
 ```php
 // Record connection errors
@@ -804,68 +802,3 @@ The metrics collector automatically integrates with Redis when available, provid
 - **Atomic Operations**: Counter increments are performed atomically to ensure accuracy in concurrent environments
 
 If Redis is unavailable, the metrics collector will continue to function using in-memory storage only. Metrics will be lost on server restart if Redis is not configured.
-
-### Usage Example
-
-Here's a complete example of how to use the metrics collector in your application:
-
-```php
-<?php
-
-namespace App\Http\Controllers;
-
-use App\Events\OrderShipped;
-use Doppar\Airbend\Monitoring\MetricsCollector;
-use Doppar\Airbend\Support\Facades\Broadcast;
-use Phaseolies\Http\Request;
-
-class DashboardController extends Controller
-{
-    /**
-     * Display broadcasting metrics dashboard
-     */
-    public function metrics(Request $request)
-    {
-        // Get all metrics
-        $metrics = MetricsCollector::getMetrics();
-        
-        // Get performance statistics
-        $performance = MetricsCollector::getPerformanceStats();
-        
-        // Get summary for quick overview
-        $summary = MetricsCollector::getSummary();
-        
-        return view('dashboard.metrics', [
-            'metrics' => $metrics,
-            'performance' => $performance,
-            'summary' => $summary,
-        ]);
-    }
-    
-    /**
-     * Get real-time metrics via API
-     */
-    public function apiMetrics(Request $request)
-    {
-        return response()->json([
-            'metrics' => MetricsCollector::getMetrics(),
-            'performance' => MetricsCollector::getPerformanceStats(),
-            'summary' => MetricsCollector::getSummary(),
-        ]);
-    }
-}
-```
-
-### Automatic Logging
-
-The WebSocket server automatically logs comprehensive statistics every 5 minutes, including all metrics and performance data. These logs can be found in your application's log files and include:
-
-- Connection statistics
-- Message flow statistics
-- Channel activity
-- Error counts
-- Performance metrics (response times, memory usage)
-- Handler-specific statistics
-
-This automatic logging helps you monitor server health over time without additional configuration.
-
