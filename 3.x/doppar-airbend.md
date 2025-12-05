@@ -582,3 +582,290 @@ roomChannel.listen('*', (event, data) => {
 });
 ```
 
+## Metrics Collector
+
+Doppar Airbend includes a comprehensive metrics collection system that automatically tracks connection states, message flows, channel activity, performance metrics, and error rates. The `MetricsCollector` provides real-time insights into your WebSocket server's health and performance, making it easier to monitor, debug, and optimize your broadcasting infrastructure.
+
+The metrics collector operates as a singleton instance, ensuring consistent metric tracking across your application. It integrates seamlessly with Redis for persistent storage, allowing metrics to be shared across multiple server instances in distributed deployments.
+
+### Available Metrics
+
+The metrics collector tracks the following categories of data:
+
+#### Connection Metrics
+- **Total Connections**: Cumulative count of all connections since server start
+- **Active Connections**: Current number of connected clients
+- **Failed Connections**: Number of connection attempts that failed
+
+#### Message Metrics
+- **Sent Messages**: Total number of messages sent to clients
+- **Received Messages**: Total number of messages received from clients
+- **Failed Messages**: Number of messages that failed to send
+
+#### Channel Metrics
+- **Subscriptions**: Total number of channel subscriptions
+- **Unsubscriptions**: Total number of channel unsubscriptions
+- **Broadcasts**: Total number of events broadcasted to channels
+
+#### Performance Metrics
+- **Memory Usage**: Tracks current and peak memory consumption (last 100 records)
+- **Response Times**: Tracks operation response times for various operations (last 100 records)
+
+#### Error Metrics
+- **Connection Errors**: Number of connection-related errors
+- **Broadcast Errors**: Number of broadcast operation failures
+- **Authentication Errors**: Number of authentication failures
+
+### Accessing Metrics
+
+You can retrieve metrics using the `MetricsCollector` class. The collector automatically tracks all relevant events throughout the WebSocket server lifecycle.
+
+#### Get All Metrics
+
+To retrieve all collected metrics:
+
+```php
+use Doppar\Airbend\Monitoring\MetricsCollector;
+
+$metrics = MetricsCollector::getMetrics();
+
+// Returns an array with:
+// - connections: ['total' => int, 'active' => int, 'failed' => int]
+// - messages: ['sent' => int, 'received' => int, 'failed' => int]
+// - channels: ['subscriptions' => int, 'unsubscriptions' => int, 'broadcasts' => int]
+// - performance: ['memory_usage' => array, 'response_times' => array]
+// - errors: ['connection_errors' => int, 'broadcast_errors' => int, 'authentication_errors' => int]
+```
+
+#### Get Specific Metric Category
+
+To retrieve metrics for a specific category:
+
+```php
+$connectionMetrics = MetricsCollector::getMetricCategory('connections');
+// Returns: ['total' => int, 'active' => int, 'failed' => int]
+
+$messageMetrics = MetricsCollector::getMetricCategory('messages');
+// Returns: ['sent' => int, 'received' => int, 'failed' => int]
+
+$channelMetrics = MetricsCollector::getMetricCategory('channels');
+// Returns: ['subscriptions' => int, 'unsubscriptions' => int, 'broadcasts' => int]
+```
+
+### Performance Statistics
+
+The metrics collector provides detailed performance statistics, including response time analysis and memory usage tracking.
+
+#### Get Performance Stats
+
+```php
+$performanceStats = MetricsCollector::getPerformanceStats();
+
+// Returns:
+// [
+//     'response_times' => [
+//         'count' => int,        // Number of recorded response times
+//         'avg' => float,        // Average response time in seconds
+//         'min' => float,        // Minimum response time in seconds
+//         'max' => float,        // Maximum response time in seconds
+//     ],
+//     'memory' => [
+//         'current_mb' => float,  // Current memory usage in MB
+//         'peak_mb' => float,    // Peak memory usage in MB
+//         'recent_mb' => float,  // Most recent recorded memory usage in MB
+//     ]
+// ]
+```
+
+#### Get Metrics Summary
+
+For quick overviews and logging, you can retrieve a concise summary:
+
+```php
+$summary = MetricsCollector::getSummary();
+
+// Returns:
+// [
+//     'connections' => int,              // Active connections
+//     'total_messages' => int,           // Total sent + received messages
+//     'error_rate' => float,             // Error rate percentage
+//     'avg_response_time_ms' => float,  // Average response time in milliseconds
+//     'memory_usage_mb' => float,        // Current memory usage in MB
+// ]
+```
+
+### Manual Metric Recording
+
+While the metrics collector automatically tracks most events, you can manually record custom metrics if needed:
+
+#### Record Connection Events
+
+```php
+// Record a successful connection
+MetricsCollector::recordConnection('connect');
+
+// Record a disconnection
+MetricsCollector::recordConnection('disconnect');
+
+// Record a failed connection attempt
+MetricsCollector::recordConnection('failed');
+```
+
+#### Record Message Events
+
+```php
+// Record sent messages (count defaults to 1)
+MetricsCollector::recordMessage('sent');
+MetricsCollector::recordMessage('sent', 5); // Record 5 messages
+
+// Record received messages
+MetricsCollector::recordMessage('received');
+
+// Record failed messages
+MetricsCollector::recordMessage('failed');
+```
+
+#### Record Channel Events
+
+```php
+// Record a subscription
+MetricsCollector::recordChannel('subscription');
+
+// Record an unsubscription
+MetricsCollector::recordChannel('unsubscription');
+
+// Record a broadcast
+MetricsCollector::recordChannel('broadcast');
+MetricsCollector::recordChannel('broadcast', 3); // Record 3 broadcasts
+```
+
+#### Record Errors
+
+```php
+// Record connection errors
+MetricsCollector::recordError('connection');
+
+// Record broadcast errors
+MetricsCollector::recordError('broadcast');
+
+// Record authentication errors
+MetricsCollector::recordError('authentication');
+```
+
+### Performance Timing
+
+The metrics collector can track the duration of operations for performance analysis:
+
+```php
+// Start timing an operation
+MetricsCollector::startTiming();
+
+// Perform your operation
+// ... your code here ...
+
+// End timing and record (returns elapsed time in seconds)
+$elapsed = MetricsCollector::endTiming('operation_name');
+```
+
+The timing data is automatically included in performance statistics and can be retrieved via `getPerformanceStats()`.
+
+### Memory Usage Tracking
+
+Memory usage is automatically tracked when you call `getMetrics()`, but you can also manually record memory snapshots:
+
+```php
+MetricsCollector::recordMemoryUsage();
+```
+
+This records the current memory usage, peak memory usage, and timestamp. The collector maintains the last 100 memory usage records.
+
+### Resetting Metrics
+
+To reset all collected metrics (useful for testing or periodic resets):
+
+```php
+MetricsCollector::reset();
+```
+
+This will:
+- Reset all counters to zero
+- Clear performance timing records
+- Clear memory usage history
+- Clear all Redis-stored metrics
+
+**Note**: Use this carefully in production, as it will permanently delete all historical metrics data.
+
+### Redis Integration
+
+The metrics collector automatically integrates with Redis when available, providing:
+
+- **Persistent Storage**: Metrics are stored in Redis with a 1-hour TTL, allowing metrics to persist across server restarts
+- **Distributed Metrics**: In multi-server deployments, metrics are aggregated across all instances
+- **Atomic Operations**: Counter increments are performed atomically to ensure accuracy in concurrent environments
+
+If Redis is unavailable, the metrics collector will continue to function using in-memory storage only. Metrics will be lost on server restart if Redis is not configured.
+
+### Usage Example
+
+Here's a complete example of how to use the metrics collector in your application:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Events\OrderShipped;
+use Doppar\Airbend\Monitoring\MetricsCollector;
+use Doppar\Airbend\Support\Facades\Broadcast;
+use Phaseolies\Http\Request;
+
+class DashboardController extends Controller
+{
+    /**
+     * Display broadcasting metrics dashboard
+     */
+    public function metrics(Request $request)
+    {
+        // Get all metrics
+        $metrics = MetricsCollector::getMetrics();
+        
+        // Get performance statistics
+        $performance = MetricsCollector::getPerformanceStats();
+        
+        // Get summary for quick overview
+        $summary = MetricsCollector::getSummary();
+        
+        return view('dashboard.metrics', [
+            'metrics' => $metrics,
+            'performance' => $performance,
+            'summary' => $summary,
+        ]);
+    }
+    
+    /**
+     * Get real-time metrics via API
+     */
+    public function apiMetrics(Request $request)
+    {
+        return response()->json([
+            'metrics' => MetricsCollector::getMetrics(),
+            'performance' => MetricsCollector::getPerformanceStats(),
+            'summary' => MetricsCollector::getSummary(),
+        ]);
+    }
+}
+```
+
+### Automatic Logging
+
+The WebSocket server automatically logs comprehensive statistics every 5 minutes, including all metrics and performance data. These logs can be found in your application's log files and include:
+
+- Connection statistics
+- Message flow statistics
+- Channel activity
+- Error counts
+- Performance metrics (response times, memory usage)
+- Handler-specific statistics
+
+This automatic logging helps you monitor server health over time without additional configuration.
+
