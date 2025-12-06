@@ -38,7 +38,7 @@ Doppar supports multiple notification channels out of the box:
 ## Installation
 You may install Doppar Notifier via the composer require command:
 ```bash
-composer require doppar/notification
+composer require doppar/notifier
 ```
 
 ### Register Provider
