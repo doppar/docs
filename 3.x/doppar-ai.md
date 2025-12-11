@@ -238,7 +238,7 @@ php pool ai:translate gemini fr br
 
 # This will ask you for your API key
 # ai:translate {agent} {langFrom} {langTo} {model?}
-# Currently, gemini and openai agents are supported
+# Currently, gemini, claude and openai agents are supported
 ```
 
 ### Question Answering
@@ -476,6 +476,7 @@ The Agent component provides a fluent interface for interacting with large langu
 | ------------ | -------------------------------------- | ----------------------------------- |
 | OpenAI       | `Doppar\AI\AgentFactory\Agent\OpenAI`        | OpenAI API key                |
 | Google Gemini| `Doppar\AI\AgentFactory\Agent\Gemini`        | Google AI API key             |
+| Claude Anthropic| `Doppar\AI\AgentFactory\Agent\Claude`        | Claude Anthropic AI API key             |
 | Self-hosted  | `Doppar\AI\AgentFactory\Agent\SelfHost`      | LM Studio or compatible host  |
 
 ### Quick Start with OpenAI
@@ -517,6 +518,19 @@ $response = Agent::using(Gemini::class)
     ->send();
 
 echo $response;
+```
+### Using Claude Anthropic
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\Claude;
+
+$response = Agent::using(Claude::class)
+    ->withKey(env('CLAUDE_API_KEY'))
+    ->model('claude-sonnet-4-5-20250929')
+    ->prompt('Hello this is my prompt!')
+    ->temperature(0.7)
+    ->maxTokens(500)
+    ->send();
 ```
 
 ### Self-Hosted Models
