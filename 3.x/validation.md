@@ -26,20 +26,6 @@ Here’s what we’ll cover:
 
 By the end of this example, you'll have a practical understanding of Doppar's validation workflow and how to integrate it into your own applications effectively.
 
-## Defining the Routes
-First, let's assume we have the following routes defined in our `routes/web.php` file:
-```php
-<?php
-
-use Phaseolies\Support\Facades\Route;
-use App\Http\Controllers\RegisterController;
-
-Route::get('register', [RegisterController::class, 'index']);
-Route::post('register', [RegisterController::class, 'store']);
-```
-
-The `GET` route will display a form for the user to create a new new user, while the POST route will store the new user in the database.
-
 ## Creating the Controller
 Now let's take a look at a simple controller that handles incoming requests to these routes. We'll leave the store method empty for now:
 ```php
@@ -47,7 +33,7 @@ Now let's take a look at a simple controller that handles incoming requests to t
 
 namespace App\Http\Controllers;
 
-use Phaseolies\Http\RedirectResponse;
+use Phaseolies\Utilities\Attributes\Route;
 use Phaseolies\Http\Request;
 
 class RegisterController extends Controller
@@ -55,6 +41,7 @@ class RegisterController extends Controller
     /**
      * Show the form to create a new user
      */
+    #[Route(uri: 'register')]
     public function index()
     {
         return view('auth.register');
@@ -63,11 +50,10 @@ class RegisterController extends Controller
     /**
      * Store a new user.
      */
-    public function store(Request $request): RedirectResponse
+    #[Route(uri: 'register', methods:['POST'])]
+    public function store(Request $request)
     {
         // Validate and store the user
-
-        return back();
     }
 }
 ```
@@ -81,20 +67,16 @@ For traditional HTTP requests, Doppar will redirect the user back to the previou
 
 Let’s take a closer look at how to use the validate() method in the store method:
 ```php
-/**
- * Store a new blog post.
- */
-public function store(Request $request): RedirectResponse
+#[Route(uri: 'register', methods:['POST'])]
+public function store(Request $request)
 {
-    $validated = $request->sanitize([
+    $sanitized = $request->sanitize([
         'name' => 'required|min:2|max:20',
         'email' => 'required|email|unique:users|min:2|max:50',
         'password' => 'required|min:2|max:20',
     ]);
 
     // The requested data is valid...
-    // Create the user
-    return redirect('/dashboard');
 }
 ```
 
