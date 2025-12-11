@@ -428,7 +428,7 @@ public function channels($notifiable): array
 ```
 
 ## Reading Notifications
-You can easily retrieve, inspect, and update the read status of user notifications. Laravel provides convenient methods for accessing unread, read, or all notifications, as well as marking them accordingly.
+You can easily retrieve, inspect, and update the read status of user notifications. Doppar notifier provides convenient methods for accessing unread, read, or all notifications, as well as marking them accordingly.
 ### Retrieve User Notifications
 ```php
 // Get unread notifications

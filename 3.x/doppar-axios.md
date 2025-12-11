@@ -135,7 +135,7 @@ Below is a complete example that demonstrates how to build a base client and reu
 // Create a base configured client
 $client = Axios::withBaseUrl('https://jsonplaceholder.typicode.com')
     ->withHeaders(['Accept' => 'application/json'])
-    ->withBearerToken('Bearer ' . $token)
+    ->withBearerToken($token)
     ->timeout(10.0);
 
 // Reuse with different endpoints
