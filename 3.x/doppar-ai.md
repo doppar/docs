@@ -476,7 +476,7 @@ The Agent component provides a fluent interface for interacting with large langu
 | ------------ | -------------------------------------- | ----------------------------------- |
 | OpenAI       | `Doppar\AI\AgentFactory\Agent\OpenAI`        | OpenAI API key                |
 | Google Gemini| `Doppar\AI\AgentFactory\Agent\Gemini`        | Google AI API key             |
-| Claude Anthropic| `Doppar\AI\AgentFactory\Agent\Claude`        | Claude Anthropic AI API key             |
+| Claude Anthropic| `Doppar\AI\AgentFactory\Agent\Claude`     | Claude Anthropic AI API key   |
 | Self-hosted  | `Doppar\AI\AgentFactory\Agent\SelfHost`      | LM Studio or compatible host  |
 
 ### Quick Start with OpenAI
