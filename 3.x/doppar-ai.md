@@ -476,7 +476,7 @@ The Agent component provides a fluent interface for interacting with large langu
 | ------------ | -------------------------------------- | ----------------------------------- |
 | OpenAI       | `Doppar\AI\AgentFactory\Agent\OpenAI`        | OpenAI API key                |
 | Google Gemini| `Doppar\AI\AgentFactory\Agent\Gemini`        | Google AI API key             |
-| Claude Anthropic| `Doppar\AI\AgentFactory\Agent\Claude`        | Claude Anthropic AI API key             |
+| Claude Anthropic| `Doppar\AI\AgentFactory\Agent\Claude`     | Claude Anthropic AI API key   |
 | Self-hosted  | `Doppar\AI\AgentFactory\Agent\SelfHost`      | LM Studio or compatible host  |
 
 ### Quick Start with OpenAI
@@ -505,6 +505,7 @@ $response = Agent::make(OpenAI::class, env('OPEN_AI_API_KEY'))
 
 ### Using Google Gemini
 Let's see how to interact with Google Gemini models through the Agent component. By setting your API key, choosing a model, and configuring parameters like temperature and max tokens, you can generate detailed and context-aware responses for questions, explanations, or content generation.
+
 ```php
 use Doppar\AI\Agent;
 use Doppar\AI\AgentFactory\Agent\Gemini;
@@ -520,6 +521,8 @@ $response = Agent::using(Gemini::class)
 echo $response;
 ```
 ### Using Claude Anthropic
+Let's see how to interact with Claude models through the Agent component. By setting your API key, choosing a model, and configuring parameters like temperature and max tokens, you can generate detailed and context-aware responses for questions, explanations, or content generation.
+
 ```php
 use Doppar\AI\Agent;
 use Doppar\AI\AgentFactory\Agent\Claude;
