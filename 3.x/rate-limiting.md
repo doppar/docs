@@ -83,3 +83,27 @@ class PostController extends Controller
 ```
 
 In the example above, the `show` method is limited to `10 requests` per minute per client. If a client exceeds this limit, Doppar automatically responds with a `429` Too Many Requests status code.
+
+## Global Throttle
+In addition to route and annotation-based rate limiting, Doppar provides a global throttle helper that allows you to manually control request limits anywhere in your application. This is especially useful for rate limiting custom logic, API calls, background jobs, or service-level operations where middleware is not applicable.
+
+### Basic Usage
+The global `throttle()` helper lets you check whether a specific action has exceeded its allowed number of attempts within a given time window.
+
+Example: Limiting password reset attempts per user.
+```php
+$userId = auth()->id();
+$key = 'password-reset:' . $userId;
+
+if (throttle()->tooManyAttempts($key, 3)) {
+    $seconds = throttle()->availableIn($key);
+
+    return response()->json([
+        'message' => "Too many password reset attempts. Try again in {$seconds} seconds."
+    ], 429);
+}
+
+// Record the attempt (3 attempts per 10 minutes)
+throttle()->hit($key, 600);
+```
+The throttle key should uniquely identify the action you want to limit.

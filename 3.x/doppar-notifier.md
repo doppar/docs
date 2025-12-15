@@ -40,12 +40,14 @@ You may install Doppar Notifier via the composer require command:
 ```bash
 composer require doppar/notifier
 ```
+> 🚩 The Doppar Notifier depends on the Doppar Queue. Please ensure that the Doppar Queue is properly set up in your application
 
 ### Register Provider
 Next, register the Notifier service provider so that Doppar can initialize it properly. Open your `config/app.php` file and add the `NotifierServiceProvider` to the providers array:
 ```php
 'providers' => [
     // Other service providers...
+    \Doppar\Queue\QueueServiceProvider::class,
     \Doppar\Notifier\NotifierServiceProvider::class,
 ],
 ```
