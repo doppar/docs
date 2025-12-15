@@ -47,7 +47,7 @@ This is useful when you're not chaining off a redirect or doing session manipula
 
 ## Displaying Flash Messages
 In your Odo template, simply check if a flash key exists using `session()->has()`, and then display it using `session()->pull()`:
-```Odo
+```html
 #if (session()->has('success'))
     <div class="alert alert-success">
         [[ session()->pull('success') ]]

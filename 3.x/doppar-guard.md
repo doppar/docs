@@ -81,37 +81,37 @@ if (auth()->can("edit-settings")) {
 ## Authorization with Odo Directives
 Guard provides intuitive Odo directives to conditionally render frontend elements based on user abilities. This allows your views to remain clean and expressive, while staying in sync with your backend access logic.
 
-The `@scope` directive checks if the currently authenticated user has the given ability:
-```Odo
-@scope('edit-settings')
+The `#scope` directive checks if the currently authenticated user has the given ability:
+```html
+#scope('edit-settings')
     // You have edit-settings access
-@elsescope('store-settings')
+#elsescope('store-settings')
     // You have store-settings access
-@else
+#else
     // You have default access
-@endscope
+#endscope
 ```
 
 You can pass additional arguments (like a model or context object) to check abilities with more precision:
-```Odo
-@scope('edit-settings', $user)
+```html
+#scope('edit-settings', $user)
    //
-@endscope
+#endscope
 
-@scopenot('edit-settings', $user)
+#scopenot('edit-settings', $user)
    //
-@endscopenot
+#endscopenot
 ```
 
-The `@scopenot` directive checks if the user does not have the given ability:
-```Odo
-@scopenot('edit-settings')
+The `#scopenot` directive checks if the user does not have the given ability:
+```html
+#scopenot('edit-settings')
  //
-@elsescopenot('store-settings')
+#elsescopenot('store-settings')
  //
-@else
+#else
  //
-@endscopenot
+#endscopenot
 ```
 
 ## Defining Permissions
@@ -304,11 +304,11 @@ public function update(Request $request): RedirectResponse
 }
 ```
 
-You can also conditionally render Odo components using the `@scope` directive, which works seamlessly with registered authorizers:
-```Odo
-@scope('update', $post)
+You can also conditionally render Odo components using the `#scope` directive, which works seamlessly with registered authorizers:
+```html
+#scope('update', $post)
  //
-@endscope
+#endscope
 ```
 
 
