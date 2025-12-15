@@ -7,6 +7,7 @@ meta:
 ---
 
 ## Asset Bundling
+...
 In Doppar, managing front-end assets like CSS and JavaScript is straightforward thanks to the `enqueue()` function. This helper simplifies referencing your static files—such as stylesheets, scripts, or images—by generating the correct path from the `public/` directory.
 
 ### How It Works
