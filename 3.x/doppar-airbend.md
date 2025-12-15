@@ -23,8 +23,11 @@ Required PHP extensions:
 
 ### Supported Drivers
 Doppar Airbend supports multiple broadcast drivers that determine how events are delivered across your application. Each driver handles message distribution differently, allowing you to choose the one that fits your environment.
+
+- `Workerman:` Uses a built-in Workerman WebSocket server for handling real-time communication
+- `Redis:` The redis driver uses redis connection to deliver events to the Airbend WebSocket server.
 - `Null:` The null driver disables broadcasting. Events will be dispatched inside your application but will not be transmitted to the WebSocket server or any subscribers.
-- `Redis:` The redis driver uses Redis Pub/Sub to deliver events to the Airbend WebSocket server.
+
 
 ### Installation
 You may install Doppar Airbend via the composer require command:
@@ -48,13 +51,31 @@ php pool vendor:publish --provider="Doppar\Airbend\AirbendServiceProvider"
 
 This will publish `config/airbend.php` and `routes/channels.php` file and `Doppar Airbender` clinet. Update it as per your broadcasting events.
 
-### Update Environment
+## Update Environment
 Update your `.env` file to configure Doppar Airbend WebSocket broadcasting:
 
+### Redis Driver
+The Redis driver is recommended when you already have Redis in your infrastructure or are running a horizontally scaled application.
 ```bash
 BROADCAST_DRIVER=redis
 WEBSOCKET_APP_SECRET=random_secured_string
 ```
+
+`BROADCAST_DRIVER` Sets the broadcasting driver to Redis and `WEBSOCKET_APP_SECRET` Shared secret used to authenticate broadcast requests between the app and WebSocket layer.
+
+### Workerman Driver
+The Workerman driver runs a dedicated WebSocket server using the Workerman PHP library. This is useful for lightweight or self-contained deployments.
+
+Add the following variables to your `.env` file:
+```bash
+BROADCAST_DRIVER=workerman
+WEBSOCKET_INTERNAL_PORT=6002
+WEBSOCKET_APP_SECRET=custom_app_secret
+```
+
+Here `WEBSOCKET_INTERNAL_PORT` Internal port used by the Workerman WebSocket server.
+
+> Switching drivers only requires updating the `.env` file and restarting your application
 
 ## Starting the Server
 After configuring your environment, you can start the WebSocket server using the following command:
