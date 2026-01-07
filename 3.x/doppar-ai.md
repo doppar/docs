@@ -468,6 +468,24 @@ $result = Pipeline::execute(
 );
 ```
 
+### Automatic Speech Recognition (ASR)
+Use Automatic Speech Recognition to convert spoken audio into text. This task processes an audio file and returns the transcribed speech as plain text.
+
+```php
+$output = Pipeline::execute(
+    task: TaskEnum::AUTOMATIC_SPEECH_RECOGNITION,
+    audioPath: public_path('assets/speech-94649.mp3')
+);
+
+dd($output);
+```
+
+Output
+```php
+["text" => "You are just a line of code."]
+```
+This task is useful for transcribing voice recordings, interviews, podcasts, or any audio content where extracting text is required. The returned text value contains the model’s best transcription of the provided audio
+
 ## Agent Usage
 The Agent component provides a fluent interface for interacting with large language models. It supports OpenAI, Google Gemini, and self-hosted models.
 
