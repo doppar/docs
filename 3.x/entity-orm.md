@@ -750,10 +750,10 @@ Here’s how you can query a specific value inside a JSON column using JSON_EXTR
 User::query()
     ->whereRaw("JSON_EXTRACT(attributes, '$.theme') = ?", ['dark'])
     ->get();
-    
-// ⚠️ Important Notes:
-// - This uses raw SQL with JSON_EXTRACT, which is MySQL/MariaDB specific
 ```
+
+> This uses raw SQL with JSON_EXTRACT, which is MySQL/MariaDB specific
+
 For safer, chainable, and reusable alternatives, consider whereJson() if your use case fits.
 
 ### selectRaw or DB::sql() for JSON Extraction
@@ -771,6 +771,76 @@ User::query()
 ```
 This will give you a new column `theme_preference` in your result set, showing each user's selected theme.
 
+### repair()
+The `repair()` method allows you to fix, normalize, or clean up data at scale using a callback function. It retrieves records, applies custom repair logic to each entity, and optionally persists only the records that were actually modified.
+
+This method is especially useful for data quality enforcement, legacy cleanup, and normalization tasks without writing repetitive loops.
+
+See the example
+```php
+User::query()
+    ->where('role', 'admin')
+    ->repair(function ($user) {
+        $user->email = strtolower($user->email);
+        $user->name  = ucwords($user->name);
+    }, true); // true = save changes
+```
+Behavior:
+- Retrieves all admin users
+- Normalizes email casing and name formatting
+- Persists only records whose attributes changed
+- Skips unnecessary database writes
+
+Another example without changing database
+```php
+User::query()
+    ->repair(function ($user) {
+        $user->phone = preg_replace('/[^0-9]/', '', $user->phone);
+    });
+```
+
+This will not save changes to the database.
+
+### groupByCallback()
+The `groupByCallback()` method executes the query and groups the resulting records using a user-defined callback. Instead of grouping by a database column, each record is passed to the callback, and the returned value is used as the group key.
+
+This approach is ideal when grouping logic depends on computed values, ranges, or domain-specific rules that cannot be expressed directly at the SQL level.
+
+```php
+$groups = User::query()
+    ->groupByCallback(function ($user) {
+        if ($user->age < 18) return 'minor';
+        if ($user->age < 65) return 'adult';
+        return 'senior';
+    });
+```
+Result structure:
+```php
+[
+    'minor'  => Collection,
+    'adult'  => Collection,
+    'senior' => Collection,
+]
+```
+
+> Grouping is performed after records are retrieved from the database
+
+### partition()
+The `partition()` method executes the query and splits the resulting records into two collections based on a boolean callback. Each record is passed to the callback: records that return true are placed in the first collection, while the rest are placed in the second.
+
+This method is useful when you need to separate records into matched vs. unmatched groups without running multiple queries.
+
+See the example
+```php
+[$admin, $editor] = User::query()
+    ->partition(fn ($user) => $user->role === 'admin');
+
+return $admin;
+```
+
+Result:
+- `$admin` → users where the callback returned true
+- `$editor` → users where the callback returned false
 ## Querying Date Columns
 ### whereDate()
 The `whereDate()` method filters records by matching only the date part (`ignoring time`) of a column against a given value. It supports custom comparison operators.
