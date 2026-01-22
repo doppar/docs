@@ -12,32 +12,6 @@ Doppar provides a convenient and fluent Collection class built on top of the pow
 
 In Doppar, the Collection class enhances `Ramsey\Collection\Collection` with additional utility methods and integrations tailored for Doppar's ecosystem, including Entity model support and developer-friendly features like memory usage tracking and deep flattening. To make it easy to work with collections, Doppar provides the global `collect()` helper function:
 
-Jump directly to a method:
-
-- [count()](#count)
-- [isEmpty()](#isempty)
-- [isNotEmpty()](#isnotempty)
-- [all()](#all)
-- [first()](#first)
-- [pluck()](#pluck)
-- [groupBy()](#groupby)
-- [toArray()](#toarray)
-- [map()](#map)
-  - [map() with Property Shortcut](#map-with-property-shortcut)
-- [Advanced Grouping & Keying](#advanced-grouping-keying)
-  - [mapAsGroup() / groupBy()](#mapasgroup)
-  - [mapAsKey() / keyBy()](#mapaskey-keyby)
-  - [mapToGroups()](#maptogroups)
-  - [mapWithKeys()](#mapwithkeys)
-- [filter()](#filter)
-- [each()](#each)
-- [push()](#push)
-- [values()](#values)
-- [unique()](#unique)
-- [flatten()](#flatten)
-- [pluck() with flatten() and unique()](#pluck-with-flatten-and-unique)
-- [withMemoryUsage()](#withmemoryusage)
-
 ## Collection Usage
 Collections are designed to offer a clean and expressive API to work with arrays or data objects in Doppar. Below are some common methods and how to use them effectively with the `collect()` helper.
 
@@ -206,6 +180,161 @@ $grouped = $users->groupBy('role');
     ]
 }
 ```
+
+## `sortBy()`
+The `sortBy()` method sorts the collection by a given key or callback. It returns a new collection with the items ordered in ascending order by default.
+```php
+$users = collect([
+    ['name' => 'Charlie', 'age' => 30],
+    ['name' => 'Alice', 'age' => 25],
+    ['name' => 'Bob', 'age' => 28],
+]);
+
+$sorted = $users->sortBy('age');
+
+return $sorted->all();
+```
+
+Using a callback
+```php
+$sorted = $users->sortBy(fn($user) => strlen($user['name']));
+```
+
+The `sortByDesc()` method sorts the collection in descending order by the given key or callback
+```php
+$sorted = $users->sortByDesc('age');
+```
+This method behaves exactly like `sortBy()`, but reverses the order.
+
+## `chunk()`
+The `chunk()` method breaks the collection into multiple smaller collections of a given size. It returns a new collection, where each item is an array representing a chunk.
+```php
+$numbers = collect([1, 2, 3, 4, 5, 6]);
+
+$chunks = $numbers->chunk(2);
+
+return $chunks->all();
+```
+
+Output
+```php
+[
+    [1, 2],
+    [3, 4],
+    [5, 6]
+]
+```
+
+## `partition()`
+The `partition()` method splits the collection into two collections based on a condition.
+
+It returns an array containing:
+- Items that passed the condition
+- Items that failed the condition
+
+```php
+[$active, $inactive] = $users->partition(fn($user) => $user['active']);
+```
+
+Output
+```php
+$active->all();   // Users where active === true
+$inactive->all(); // Users where active === false
+```
+
+## `sole()`
+The `sole()` method returns exactly one item from the collection.
+```php
+$user = $users->sole(fn($user) => $user['email'] === 'john@example.com');
+```
+This method is ideal when you expect exactly one result and want to fail loudly otherwise.
+
+## `sum()`
+The `sum()` method returns the total of the collection’s values.
+```php
+collect([10, 20, 30])->sum(); // 60
+```
+
+Using a key
+```php
+$users->sum('salary');
+```
+
+Using a callback
+```php
+$users->sum(fn($user) => $user['salary'] * 0.1);
+```
+
+## `avg()`
+The `avg()` method returns the average (mean) value of the collection.
+```php
+$users->avg('salary');
+```
+
+## `min()`
+The `min()` method returns the minimum value in the collection.
+```php
+$users->min('age');
+```
+
+You may also pass a callback:
+```php
+$users->min(fn($user) => $user['salary']);
+```
+
+## `max()`
+The `max()` method returns the maximum value in the collection.
+```php
+$users->max('age');
+```
+> `max()` supports keys and callbacks just like `min()`.
+
+
+## `intersect()`
+The `intersect()` method returns a new collection containing items that exist in both collections.
+```php
+$common = collect([1, 2, 3])->intersect([2, 3, 4]);
+
+return $common->all(); // [2, 3]
+```
+
+## `diff()`
+The `diff()` method returns items that exist in the current collection but not in the given items.
+```php
+$diff = collect([1, 2, 3])->diff([2, 4]);
+
+return $diff->all(); // [1, 3]
+```
+
+## `duplicates()`
+The `duplicates()` method returns a new collection containing only duplicate items.
+```php
+$users = collect([
+    ['email' => 'a@test.com'],
+    ['email' => 'b@test.com'],
+    ['email' => 'a@test.com'],
+]);
+
+$duplicates = $users->duplicates('email');
+
+return $duplicates->all();
+```
+
+Output
+```php
+[
+    { "email": "a@test.com" }
+]
+```
+
+## `pipe()`
+The `pipe()` method passes the collection into a callback and returns the callback’s result.
+```php
+$result = $users->pipe(function ($collection) {
+    return $collection->filter(fn($u) => $u['active'])->count();
+});
+```
+This is useful for extracting complex logic into reusable pipelines.
 
 ## `toArray()`
 The `toArray()` method converts the entire collection into a plain PHP array, recursively calling `toArray()` on any items that are instances of Model.
