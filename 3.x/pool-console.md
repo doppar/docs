@@ -26,7 +26,8 @@ php pool make:command InvoiceProcessCommand
 ```
 Once your command has been generated, be sure to set meaningful values for the `name` and `description` properties within the class. These values help identify and describe your command when it appears in the list view. The `name` property also serves to define how the command should be invoked, including any expected input parameters.
 
-The handle method is where the core logic of your command should reside. This method is executed when your command is run, and it's the ideal place to implement the functionality specific to your scheduling task.
+The `handle` method is where the core logic of your command should reside. This method is executed when your command is run, and it's the ideal place to implement the functionality specific to your scheduling task.
+
 > Let's take a look at an example command. Note that we are able to request any dependencies we need via the command's contructor method
 
 ```php
@@ -34,7 +35,6 @@ The handle method is where the core logic of your command should reside. This me
 
 namespace App\Schedule\Commands;
 
-use App\Services\InvoiceService;
 use Phaseolies\Console\Schedule\Command;
 
 class InvoiceProcessCommand extends Command
@@ -54,28 +54,78 @@ class InvoiceProcessCommand extends Command
     protected $description = 'Command description';
 
     /**
-     * @param InvoiceService $invoiceService
-     */
-    public function __construct(private InvoiceService $invoiceService)
-    {
-        parent::__construct();
-    }
-
-    /**
      * Execute the console command.
      *
      * @return int
      */
     protected function handle(): int
     {
-        $this->invoiceService->processPendingInvoices();
-
-        return 0;
+        return Command::SUCCESS
     }
 }
 ```
 
-To promote better code reuse and maintainability, it's recommended to keep your console commands minimal by offloading the core logic to dedicated application services. In the example provided, instead of embedding the full processing logic inside the command, we delegate the actual work—such as handling pending invoices—to the injected `InvoiceService` class. This approach helps keep your command focused on orchestration, while your domain logic remains testable and reusable across different parts of the application.
+This is how doppar provides a structured way to define a console command. Each command is represented by a PHP class and must define a mandatory command name.
+
+## Dependency Injection
+Doppar supports dependency injection in console commands, allowing services and other classes to be automatically resolved from the service container. Dependencies can be injected via the `constructor` or directly into the `handle()` method.
+
+### Constructor Injection
+You may inject dependencies through the command constructor. This is useful when the dependency is required throughout the lifecycle of the command.
+```php
+use App\Services\InvoiceService;
+use Phaseolies\Console\Schedule\Command;
+
+class InvoiceProcessCommand extends Command
+{
+    /**
+     * Create a new command instance.
+     *
+     * @param InvoiceService $invoiceService
+     */
+    public function __construct(
+        private InvoiceService $invoiceService
+    ) {
+        parent::__construct();
+    }
+
+   /**
+     * Execute the console command
+     *
+     * @return int
+     */
+    protected function handle(): int
+    {
+        $this->invoiceService->process();
+    }
+}
+```
+
+Dependencies are resolved automatically by the container.
+
+> Always call `parent::__construct()` when overriding the constructor.
+
+### Method Injection (Handle Injection)
+Doppar also allows dependencies to be injected directly into the `handle()` method. This is useful for command-specific dependencies that are only needed during execution.
+```php
+use App\Models\User;
+use App\Repositories\PaymentRepository;
+use App\Http\Controllers\ProductController;
+
+protected function handle(
+    User $user,
+    PaymentRepository $paymentRepository,
+    ProductController $productController
+): int {
+    // All dependencies are automatically resolved
+}
+```
+
+To promote better code reuse and maintainability, it's recommended to keep your console commands minimal by offloading the core logic to dedicated application services. In the example provided, instead of embedding the full processing logic inside the command, we delegate the actual work—such as handling pending invoices—to the injected `InvoiceService` class.
+
+This approach helps keep your command focused on orchestration, while your domain logic remains testable and reusable across different parts of the application.
+
+> You can freely combine both approaches in the same command:
 
 ## Exit Codes
 In Doppar, if your command's handle method completes without returning a value, it will automatically exit with a code of `0`, signaling that the operation was `successful`. However, you can explicitly control the exit status by returning an integer from the handle method. For example, returning 1 typically indicates that something went wrong during execution:
