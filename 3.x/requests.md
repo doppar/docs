@@ -459,20 +459,20 @@ $request->route('dashboard');
 ## Accessing `route()` in Odo Templates
 In Odo views, you can directly access the current route using Doppar’s global Request alias — no need to import a namespace.
 ```html
-@if(Request::route() === 'dashboard')
+#if(Request::route() === 'dashboard')
   [[-- Current route is "dashboard" --]]
-@else
+#else
   [[-- Not on the "dashboard" route --]]
-@endif
+#endif
 ```
 ### Alternative: Using `request()` Helper
 The `request()` global helper works the same way:
 ```html
-@if(request()->route() === 'dashboard')
+#if(request()->route() === 'dashboard')
   [[-- Current route is "dashboard" --]]
-@else
+#else
   [[-- Not on the "dashboard" route --]]
-@endif
+#endif
 ```
 
 ## Interacting with Form Request data
