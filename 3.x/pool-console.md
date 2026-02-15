@@ -127,6 +127,27 @@ This approach helps keep your command focused on orchestration, while your domai
 
 > You can freely combine both approaches in the same command:
 
+## Binding Services to Abstraction
+Doppar console commands support PHP 8 attribute-based binding using the `#[Bind]` attribute. This allows you to bind an abstraction (interface) to a concrete implementation directly within the `handle()` method.
+
+This approach keeps your commands explicit, reduces container boilerplate, and provides the same developer experience available in Doppar HTTP controllers.
+
+Apply the `#[Bind]` attribute to a parameter in your command’s `handle()` method to specify which concrete class should be resolved for an interface.
+```php
+use App\Repositories\PaymentRepository;
+use App\Repositories\PaymentRepositoryInterface;
+
+protected function handle(
+    #[Bind(PaymentRepository::class)] PaymentRepositoryInterface $paymentRepository
+): int {
+    // All dependencies are automatically resolved
+}
+```
+
+Use #`[Bind]` when you need explicit, localized interface resolution. or widely shared bindings, continue using your application's global container configuration.
+
+> The `#[Bind]` attribute is not supported for constructor injection. Use it only for handle method injection.
+
 ## Exit Codes
 In Doppar, if your command's handle method completes without returning a value, it will automatically exit with a code of `0`, signaling that the operation was `successful`. However, you can explicitly control the exit status by returning an integer from the handle method. For example, returning 1 typically indicates that something went wrong during execution:
 
