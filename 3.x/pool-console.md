@@ -58,7 +58,7 @@ class InvoiceProcessCommand extends Command
      *
      * @return int
      */
-    protected function handle(): int
+    public function handle(): int
     {
         return Command::SUCCESS
     }
@@ -94,7 +94,7 @@ class InvoiceProcessCommand extends Command
      *
      * @return int
      */
-    protected function handle(): int
+    public function handle(): int
     {
         $this->invoiceService->process();
     }
@@ -112,7 +112,7 @@ use App\Models\User;
 use App\Repositories\PaymentRepository;
 use App\Http\Controllers\ProductController;
 
-protected function handle(
+public function handle(
     User $user,
     PaymentRepository $paymentRepository,
     ProductController $productController
@@ -137,7 +137,7 @@ Apply the `#[Bind]` attribute to a parameter in your command’s `handle()` meth
 use App\Repositories\PaymentRepository;
 use App\Repositories\PaymentRepositoryInterface;
 
-protected function handle(
+public function handle(
     #[Bind(PaymentRepository::class)] PaymentRepositoryInterface $paymentRepository
 ): int {
     // All dependencies are automatically resolved
