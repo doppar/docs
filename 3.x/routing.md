@@ -241,6 +241,118 @@ public function home(): Response
 ```
 This approach eliminates the need to manually specify middleware for simple throttling needs.
 
+## Domain-Restricted Routing
+Doppar's routing system supports domain-based route matching, allowing you to restrict specific routes to particular hostnames or subdomains. This is particularly useful for multi-tenant applications, API versioning across subdomains, or separating admin panels from public-facing websites.
+
+Domain routing works seamlessly with both file-based and attribute-based route definitions, and supports exact domain matching, port-qualified hosts, wildcard subdomains with automatic parameter injection, and universal wildcards.
+
+### Basic Domain Restriction
+You can restrict a route to respond only when the incoming request matches a specific domain using the `domain()` method in file-based routes or the domain parameter in attribute-based routes.
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Phaseolies\Utilities\Attributes\Route;
+
+class ApiController extends Controller
+{
+    #[Route(
+        uri: 'status',
+        methods: ['GET'],
+        domain: 'api.example.com',
+        name: 'api.status'
+    )]
+    public function status(): array
+    {
+        return ['status' => 'ok', 'version' => '1.0'];
+    }
+}
+```
+In this examples, the `status` route will only be accessible when the request is made to `api.example.com`. Requests to `example.com` or any other host will return a 404 error.
+
+### Wildcard Subdomain Routing
+One of the most powerful features of domain routing is the ability to capture subdomain segments as route parameters. This enables true multi-tenant applications where each tenant gets their own subdomain.
+
+Use curly braces `{parameter}` in the domain pattern to capture the subdomain segment. The captured value is automatically injected into your controller method just like a regular route parameter.
+```php
+#[Route(
+    uri: '/dashboard',
+    methods: ['GET'],
+    domain: '{tenant}.app.com',
+    name: 'tenant.dashboard'
+)]
+public function dashboard(string $tenant): array
+{
+    // $tenant is automatically injected with the subdomain value
+    // e.g., 'acme' from acme.app.com
+
+    $workspace = Workspace::where('slug', $tenant)->first();
+
+    return [
+        'workspace' => $workspace->name,
+        'tenant'    => $tenant,
+    ];
+}
+```
+Notes:
+- The wildcard parameter name `(e.g., {tenant})` becomes a route parameter accessible in your controller.
+- You can combine wildcard subdomains with regular route parameters
+- The bare domain `(e.g., app.com without a subdomain)` will not match a wildcard pattern like `{tenant}.app.com`
+
+### Universal Wildcard Domain
+Use the `*` wildcard to create a route that matches any host. This is useful for catch-all routes in grouped configurations or when you want to explicitly allow a route to work across all domains.
+```php
+#[Route(
+    uri: '/health',
+    methods: ['GET'],
+    domain: '*'
+)]
+public function check(): array
+{
+    return ['status' => 'healthy'];
+}
+```
+This route will respond to requests from any hostname: `example.com`, `api.example.com`, `localhost`, etc.
+
+### Same Path, Different Domains
+You can define multiple routes with the same URI path but different domain restrictions. Doppar's router will dispatch the request to the correct handler based on the incoming host header.
+```php
+class MarketingController extends Controller
+{
+    #[Route(uri: '/', domain: 'example.com', name: 'marketing.home')]
+    public function home()
+    {
+        return view('welcome');
+    }
+}
+
+class ApiController extends Controller
+{
+    #[Route(uri: '/', domain: 'api.example.com', name: 'api.health')]
+    public function health(): array
+    {
+        return ['status' => 'ok'];
+    }
+}
+
+class AdminController extends Controller
+{
+    #[Route(
+        uri: '/',
+        domain: 'admin.example.com',
+        name: 'admin.dashboard',
+        middleware: ['auth', 'admin']
+    )]
+    public function dashboard()
+    {
+        return view('admin.dashboard');
+    }
+}
+```
+
+Each controller's root route `(/)` is completely isolated by domain — no conflicts, no cross-contamination.
+
 ## Route Model Binding
 Doppar introduces a powerful and expressive way to automatically resolve route parameters into model instances using PHP attributes. This feature allows you to specify how a model should be retrieved — by its ID, by a specific column, or with exception-handling behavior — directly in your controller method signature.
 
@@ -492,6 +604,43 @@ $url = route('profile');
 // Generating Redirects...
 return redirect()->route('profile');
 ```
+
+## File-Based Domain Restriction
+You can restrict a route to respond only when the incoming request matches a specific domain using the `domain()` method in file-based routes 
+```php
+use Phaseolies\Support\Facades\Route;
+use App\Http\Controllers\ApiController;
+
+Route::get('/status', [ApiController::class, 'status'])
+    ->domain('api.example.com')
+    ->name('api.status');
+```
+Only responds to requests on `api.example.com`.
+
+### Wildcard Subdomain Routing
+One of the most powerful features of domain routing is the ability to capture subdomain segments as route parameters. This enables true multi-tenant applications where each tenant gets their own subdomain.
+
+Use curly braces `{parameter}` in the domain pattern to capture the subdomain segment. The captured value is automatically injected into your controller method just like a regular route parameter.
+```php
+Route::get('/dashboard', [TenantController::class, 'dashboard'])
+    ->domain('{tenant}.app.com')
+    ->name('tenant.dashboard');
+```
+
+Matches any subdomain: `acme.app.com`, `globex.app.com`, etc.
+
+Notes:
+- The wildcard parameter name `(e.g., {tenant})` becomes a route parameter accessible in your controller
+- You can combine wildcard subdomains with regular route parameters
+- The bare domain `(e.g., app.com without a subdomain)` will not match a wildcard pattern like `{tenant}.app.com`
+
+### Universal Wildcard Domain
+Use the `*` wildcard to create a route that matches any host. This is useful for catch-all routes in grouped configurations or when you want to explicitly allow a route to work across all domains.
+```php
+Route::get('/health', [HealthController::class, 'check'])
+    ->domain('*');
+```
+This route will respond to requests from any hostname: `example.com`, `api.example.com`, `localhost`, etc.
 
 ## Defining Bundle Routes
 The bundle method allows you to register a complete set of CRUD routes for a controller.
