@@ -162,6 +162,23 @@ User::random(10)->get();
 ```
 This will return 10 random users from the users table.
 
+### sample()
+The `sample()` method retrieves a random subset of records from a model using reservoir sampling, which is memory-efficient and works well even with large datasets.
+
+This method is useful when you need a random sample of records without loading the entire dataset into memory.
+
+See the example
+```php
+$sample = User::sample(10);
+
+foreach ($sample as $user) {
+    echo $user->name . PHP_EOL;
+}
+```
+Uses reservoir sampling to ensure each record has an equal chance of being included
+
+> Efficient for large datasets
+
 ### toSql()
 The toSql() method in Entity is a useful tool when you want to inspect the raw SQL query that would be executed for a given Entity query. Instead of retrieving the results from the database, toSql() returns the SQL statement as a string, allowing you to debug or log the query before it's run. This is especially helpful during development when you need to understand how your query builder chain is being translated into SQL.
 
@@ -750,10 +767,10 @@ Here’s how you can query a specific value inside a JSON column using JSON_EXTR
 User::query()
     ->whereRaw("JSON_EXTRACT(attributes, '$.theme') = ?", ['dark'])
     ->get();
-    
-// ⚠️ Important Notes:
-// - This uses raw SQL with JSON_EXTRACT, which is MySQL/MariaDB specific
 ```
+
+> This uses raw SQL with JSON_EXTRACT, which is MySQL/MariaDB specific
+
 For safer, chainable, and reusable alternatives, consider whereJson() if your use case fits.
 
 ### selectRaw or DB::sql() for JSON Extraction
@@ -770,6 +787,180 @@ User::query()
     ->get();
 ```
 This will give you a new column `theme_preference` in your result set, showing each user's selected theme.
+
+### repair()
+The `repair()` method allows you to fix, normalize, or clean up data at scale using a callback function. It retrieves records, applies custom repair logic to each entity, and optionally persists only the records that were actually modified.
+
+This method is especially useful for data quality enforcement, legacy cleanup, and normalization tasks without writing repetitive loops.
+
+See the example
+```php
+User::query()
+    ->where('role', 'admin')
+    ->repair(function ($user) {
+        $user->email = strtolower($user->email);
+        $user->name  = ucwords($user->name);
+    }, true); // true = save changes
+```
+Behavior:
+- Retrieves all admin users
+- Normalizes email casing and name formatting
+- Persists only records whose attributes changed
+- Skips unnecessary database writes
+
+Another example without changing database
+```php
+User::query()
+    ->repair(function ($user) {
+        $user->phone = preg_replace('/[^0-9]/', '', $user->phone);
+    });
+```
+
+This will not save changes to the database.
+
+### groupByCallback()
+The `groupByCallback()` method executes the query and groups the resulting records using a user-defined callback. Instead of grouping by a database column, each record is passed to the callback, and the returned value is used as the group key.
+
+This approach is ideal when grouping logic depends on computed values, ranges, or domain-specific rules that cannot be expressed directly at the SQL level.
+
+```php
+$groups = User::query()
+    ->groupByCallback(function ($user) {
+        if ($user->age < 18) return 'minor';
+        if ($user->age < 65) return 'adult';
+        return 'senior';
+    });
+```
+Result structure:
+```php
+[
+    'minor'  => Collection,
+    'adult'  => Collection,
+    'senior' => Collection,
+]
+```
+
+> Grouping is performed after records are retrieved from the database
+
+### partition()
+The `partition()` method executes the query and splits the resulting records into two collections based on a boolean callback. Each record is passed to the callback: records that return true are placed in the first collection, while the rest are placed in the second.
+
+This method is useful when you need to separate records into matched vs. unmatched groups without running multiple queries.
+
+See the example
+```php
+[$admin, $editor] = User::query()
+    ->partition(fn ($user) => $user->role === 'admin');
+
+return $admin;
+```
+
+Result:
+- `$admin` → users where the callback returned true
+- `$editor` → users where the callback returned false
+
+### pipeline()
+The `pipeline()` method executes the query and then passes the resulting collection through a series of transformation callbacks. Each callback receives the collection returned by the previous step and must return a collection.
+
+This method is useful when you want to apply multiple collection transformations in a clear, sequential way without chaining long method calls.
+
+See the example
+```php
+Order::query()
+    ->where('status', 'completed')
+    ->pipeline([
+        fn ($orders) => $orders->filter(fn ($o) => $o->total > 100),
+        fn ($orders) => $orders->take(10),
+    ]);
+```
+
+Result:
+- Only completed orders are retrieved
+- Orders with total <= 100 are removed
+- The collection is limited to 10 records
+
+Each transformer is applied in order, and the output of one becomes the input of the next.
+
+### validate()
+The `validate()` method executes the query and validates each resulting record against a set of rules. It separates records into valid and invalid collections based on whether they pass all validation checks.
+
+See the example
+```php
+['valid' => $valid, 'invalid' => $invalid] = User::validate([
+    'email' => fn ($v) => filter_var($v, FILTER_VALIDATE_EMAIL),
+    'name'  => 'required',
+]);
+
+return $invalid;
+```
+
+Result:
+- `$valid` → users that passed all validation rules
+- `$invalid` → users that failed one or more rules
+
+Each invalid user contains a validation_errors array keyed by field name
+
+### tap()
+The `tap()` method executes the query and passes the resulting collection to a callback without modifying it. The original collection is then returned unchanged.
+
+This method is useful for performing side effects—such as logging, debugging, or metrics—while keeping the query flow clean and readable.
+
+See the example
+```php
+User::query()
+    ->where('status', 1)
+    ->tap(function ($collection) {
+        info("Found {$collection->count()} active users");
+    });
+```
+
+### parallel()
+The `parallel()` method executes multiple query variations concurrently and returns their results as an associative array. Each query is defined by a callback that receives a cloned query builder instance, allowing independent constraints without affecting the others.
+
+This method is useful when you need to fetch multiple related datasets from the same base query without running them sequentially.
+
+See the example
+```php
+User::parallel([
+    'admins' => fn ($q) => $q->where('role', 'admin'),
+    'users'  => fn ($q) => $q->where('role', 'editor'),
+]);
+```
+
+Result:
+- `$results['admins']` → users with the admin role
+- `$results['users']` → users with the editor role
+
+Each query runs independently from the same base model
+
+Each callback receives a cloned query builder, ensuring query isolation.
+
+### withAge()
+The `withAge()` method executes the query and augments each resulting record with an age property representing the time elapsed since a given timestamp column.
+
+The age can be calculated in different units such as `seconds`, `minutes`, `hours`, or `days`. The original records remain unchanged except for the added metadata.
+
+This method is useful when you need to reason about record freshness, durations, or time-based thresholds without computing them manually.
+
+See the example
+```php
+$tickets = Ticket::query()
+    ->where('status', 'open')
+    ->withAge('created_at', 'hours');
+
+foreach ($tickets as $ticket) {
+    if ($ticket->age > 24) {
+        echo "Ticket #{$ticket->id} is {$ticket->age} hours old";
+    }
+}
+```
+
+Result:
+- Each ticket includes an age property calculated from created_at
+- The age is expressed in the specified unit (hours)
+- An additional age_unit property indicates the unit used
+
+> Supported units: seconds, minutes, hours, days, weeks, months and years
 
 ## Querying Date Columns
 ### whereDate()

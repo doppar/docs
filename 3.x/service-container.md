@@ -280,9 +280,35 @@ $this->app->when(fn() => config('cache.enabled'))
 
 In this example, the NotificationService will be registered as a singleton only if the random condition returns `true`. This provides dynamic control over how and when services are introduced into the container.
 
+## Binding Instances
+You can bind an existing instance directly into the container using the instance method. This is useful when you have a pre-configured object that you want to share throughout your application:
+```php
+use App\Services\ApiClient;
+
+$apiClient = new ApiClient([
+    'base_url' => 'https://api.example.com',
+    'timeout' => 30
+]);
+
+$this->app->instance(ApiClient::class, $apiClient);
+```
+
+Once bound, every resolution of `ApiClient` will return the exact same instance:
+```php
+$client1 = app(ApiClient::class);
+$client2 = app(ApiClient::class);
+
+// $client1 === $client2 (same instance)
+```
+The `share` method is an alias for instance:
+```php
+$this->app->share(ApiClient::class, $apiClient);
+```
+
 ## Create Instance Using Container
 Doppar provides a powerful global `app()` helper function that gives you access to the Dependency Injection Container. You can use it to create and resolve class instances with zero boilerplate.
 
+### Automatic Resolution
 Doppar supports automatic resolution of class dependencies. Just pass the class name to `app()`:
 ```php
 // Creates an instance of SMSService
@@ -290,6 +316,18 @@ $object = app(SMSService::class);
 $object->sendSms();
 ```
 This will resolve and instantiate the class.
+
+### The make Method
+The `make` method is an alias for resolving classes from the container:
+```php
+$service = $this->app->make(SMSService::class);
+```
+
+### Resolving with Parameters
+You can pass constructor parameters when resolving:
+```php
+$service = app(SMSService::class, ['apiKey' => 'your-key-here']);
+```
 
 ## Binding and Resolving Custom Keys
 You can bind any service or class instance to a custom key using the bind() method, then resolve it via app():
@@ -304,3 +342,112 @@ app('sms')->sendSms();
 > If you call `app()` without any arguments, it returns the Application container instance itself. This allows for advanced usage like container inspection, rebinding, and more.
 
 This is the power of Doppar's container: clean, expressive, and ready for modern PHP applications.
+
+## Advanced Container Features
+You can extend an existing binding to wrap or modify its resolution:
+```php
+$this->app->extend(UserRepositoryInterface::class, function ($repository, $app) {
+    return new CachedUserRepository($repository, $app->make('cache'));
+});
+```
+
+This is useful for decorating services or adding middleware-like functionality to existing bindings.
+
+### Aliasing
+Create an alias for a binding to make it accessible through multiple keys:
+```php
+$this->app->bind(NotificationService::class, fn() => new EmailNotificationService());
+$this->app->alias(NotificationService::class, 'notifications');
+
+// Both work
+$service1 = app(NotificationService::class);
+$service2 = app('notifications'); // Same instance
+```
+
+## Calling Methods with Dependency Injection
+The `call` method allows you to invoke any callable with automatic dependency injection:
+```php
+$result = $this->app->call(function (Request $request, UserRepository $users) {
+    return $users->find($request->input('id'));
+});
+```
+
+This also works with class methods:
+```php
+$this->app->call([UserController::class, 'show'], ['id' => 1]);
+```
+
+## Resolving Method Dependencies
+You can resolve dependencies for a specific method without calling it:
+```php
+$dependencies = $this->app->resolveMethodDependencies(
+    UserController::class,
+    'update',
+    ['id' => 1]
+);
+```
+
+## Checking Container State
+Check if a binding exists
+```php
+if ($this->app->has(UserRepositoryInterface::class)) {
+    // Binding exists
+}
+```
+
+Check if an binding is resolved
+```php
+if ($this->app->hasInstance(CacheService::class)) {
+    // Instance has been resolved
+}
+```
+
+Check if a binding is a singleton
+```php
+if ($this->app->isSingleton(UserRepositoryInterface::class)) {
+    // This binding is registered as a singleton
+}
+```
+
+Check if currently resolving
+```php
+if ($this->app->isResolving(SomeService::class)) {
+    // This service is currently being resolved
+}
+```
+
+Check if resolved
+```php
+if ($this->app->resolved(UserRepositoryInterface::class)) {
+    // This service has been resolved at least once
+}
+```
+
+## Service Provider Registration
+You can dynamically register service providers:
+```php
+$this->app->register(CacheServiceProvider::class);
+
+// Or pass an instance
+$provider = new CacheServiceProvider();
+$this->app->register($provider);
+```
+
+The container will automatically call the provider's `register()` and `boot()` methods with dependency injection support.
+
+## Container Instance
+The container itself is a singleton. You can access it globally:
+```php
+$container = Container::getInstance();
+```
+
+Or set a custom instance:
+```php
+$customContainer = new Container();
+Container::setInstance($customContainer);
+```
+
+Or forget the instance:
+```php
+Container::forgetInstance();
+```

@@ -238,7 +238,7 @@ php pool ai:translate gemini fr br
 
 # This will ask you for your API key
 # ai:translate {agent} {langFrom} {langTo} {model?}
-# Currently, gemini and openai agents are supported
+# Currently, gemini, claude and openai agents are supported
 ```
 
 ### Question Answering
@@ -468,6 +468,24 @@ $result = Pipeline::execute(
 );
 ```
 
+### Automatic Speech Recognition (ASR)
+Use Automatic Speech Recognition to convert spoken audio into text. This task processes an audio file and returns the transcribed speech as plain text.
+
+```php
+$output = Pipeline::execute(
+    task: TaskEnum::AUTOMATIC_SPEECH_RECOGNITION,
+    audioPath: public_path('assets/speech-94649.mp3')
+);
+
+dd($output);
+```
+
+Output
+```php
+["text" => "You are just a line of code."]
+```
+This task is useful for transcribing voice recordings, interviews, podcasts, or any audio content where extracting text is required. The returned text value contains the model’s best transcription of the provided audio
+
 ## Agent Usage
 The Agent component provides a fluent interface for interacting with large language models. It supports OpenAI, Google Gemini, and self-hosted models.
 
@@ -476,6 +494,7 @@ The Agent component provides a fluent interface for interacting with large langu
 | ------------ | -------------------------------------- | ----------------------------------- |
 | OpenAI       | `Doppar\AI\AgentFactory\Agent\OpenAI`        | OpenAI API key                |
 | Google Gemini| `Doppar\AI\AgentFactory\Agent\Gemini`        | Google AI API key             |
+| Claude Anthropic| `Doppar\AI\AgentFactory\Agent\Claude`     | Claude Anthropic AI API key   |
 | Self-hosted  | `Doppar\AI\AgentFactory\Agent\SelfHost`      | LM Studio or compatible host  |
 
 ### Quick Start with OpenAI
@@ -504,6 +523,7 @@ $response = Agent::make(OpenAI::class, env('OPEN_AI_API_KEY'))
 
 ### Using Google Gemini
 Let's see how to interact with Google Gemini models through the Agent component. By setting your API key, choosing a model, and configuring parameters like temperature and max tokens, you can generate detailed and context-aware responses for questions, explanations, or content generation.
+
 ```php
 use Doppar\AI\Agent;
 use Doppar\AI\AgentFactory\Agent\Gemini;
@@ -517,6 +537,21 @@ $response = Agent::using(Gemini::class)
     ->send();
 
 echo $response;
+```
+### Using Claude Anthropic
+Let's see how to interact with Claude models through the Agent component. By setting your API key, choosing a model, and configuring parameters like temperature and max tokens, you can generate detailed and context-aware responses for questions, explanations, or content generation.
+
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\Claude;
+
+$response = Agent::using(Claude::class)
+    ->withKey(env('CLAUDE_API_KEY'))
+    ->model('claude-sonnet-4-5-20250929')
+    ->prompt('Hello this is my prompt!')
+    ->temperature(0.7)
+    ->maxTokens(500)
+    ->send();
 ```
 
 ### Self-Hosted Models
