@@ -26,7 +26,7 @@ The component leverages the Transformers.php library to run machine learning mod
 Doppar AI is designed to be versatile, easy to use, and powerful. It brings modern AI capabilities directly to your PHP applications without the complexity of traditional machine learning implementations.
 
 - **15+ Transformer Tasks** - Sentiment analysis, text generation, translation, QA, and more
-- **Multiple LLM Support** - OpenAI, Google Gemini, and self-hosted models
+- **Multiple LLM Support** - OpenAI, Google Gemini, Anthropic Claude, OpenRouter and self-hosted models
 - **Local Model Execution** - Run models on your server without external API calls
 - **Fluent Agent API** - Build conversational AI with ease
 - **Image Processing** - Classification, object detection, captioning
@@ -487,7 +487,7 @@ Output
 This task is useful for transcribing voice recordings, interviews, podcasts, or any audio content where extracting text is required. The returned text value contains the model’s best transcription of the provided audio
 
 ## Agent Usage
-The Agent component provides a fluent interface for interacting with large language models. It supports OpenAI, Google Gemini, and self-hosted models.
+The Agent component provides a fluent interface for interacting with large language models. It supports OpenAI, Google Gemini, Claude, OpenRouter and self-hosted models.
 
 ### Supported Agents
 | Agent        | Class                                  | Requirements                        |
@@ -495,6 +495,7 @@ The Agent component provides a fluent interface for interacting with large langu
 | OpenAI       | `Doppar\AI\AgentFactory\Agent\OpenAI`        | OpenAI API key                |
 | Google Gemini| `Doppar\AI\AgentFactory\Agent\Gemini`        | Google AI API key             |
 | Claude Anthropic| `Doppar\AI\AgentFactory\Agent\Claude`     | Claude Anthropic AI API key   |
+| OpenRouter| `Doppar\AI\AgentFactory\Agent\OpenRouter`     | OpenRouter AI API key   |
 | Self-hosted  | `Doppar\AI\AgentFactory\Agent\SelfHost`      | LM Studio or compatible host  |
 
 ### Quick Start with OpenAI
@@ -522,7 +523,6 @@ $response = Agent::make(OpenAI::class, env('OPEN_AI_API_KEY'))
 ```
 
 ### Using Google Gemini
-Let's see how to interact with Google Gemini models through the Agent component. By setting your API key, choosing a model, and configuring parameters like temperature and max tokens, you can generate detailed and context-aware responses for questions, explanations, or content generation.
 
 ```php
 use Doppar\AI\Agent;
@@ -539,7 +539,6 @@ $response = Agent::using(Gemini::class)
 echo $response;
 ```
 ### Using Claude Anthropic
-Let's see how to interact with Claude models through the Agent component. By setting your API key, choosing a model, and configuring parameters like temperature and max tokens, you can generate detailed and context-aware responses for questions, explanations, or content generation.
 
 ```php
 use Doppar\AI\Agent;
@@ -549,6 +548,20 @@ $response = Agent::using(Claude::class)
     ->withKey(env('CLAUDE_API_KEY'))
     ->model('claude-sonnet-4-5-20250929')
     ->prompt('Hello this is my prompt!')
+    ->temperature(0.7)
+    ->maxTokens(500)
+    ->send();
+```
+### Using OpenRouter
+
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\OpenRouter;
+
+$response = Agent::using(OpenRouter::class)
+    ->withKey(env('OPENROUTER_API_KEY'))
+    ->model('openrouter/free')
+    ->prompt('I am using OpenRouter!')
     ->temperature(0.7)
     ->maxTokens(500)
     ->send();
