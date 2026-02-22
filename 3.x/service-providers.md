@@ -30,10 +30,10 @@ Doppar provides `make:provider` pool command to create a new service provider.
 php pool make:provider MyOwnServiceProvider
 ```
 
-## The Register Method
+### The Register Method
 As mentioned previously, within the register method, you should only bind things into the service container. You should never attempt to register other services. Otherwise, you may accidentally use a service that is provided by a service provider which has not loaded yet.
 
-Let's take a look at a basic service provider. Within any of your service provider methods, you always have access to the $app property which provides access to the service container:
+Let's take a look at a basic service provider. Within any of your service provider methods, you always have access to the `$app` property which provides access to the service container:
 ```php
 <?php
 
@@ -49,14 +49,12 @@ class MyOwnServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(Connection::class, function (Application $app) {
-            return new Connection('test');
-        });
+        //
     }
 }
 ```
 
-## The Boot Method
+### The Boot Method
 This boot method is called after all other service providers have been registered, meaning you have access to all other services that have been registered by the framework:
 ```php
 <?php
@@ -72,7 +70,7 @@ class MyOwnServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register services
+        //
     }
 }
 ```

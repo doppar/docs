@@ -17,7 +17,7 @@ There are several convenient ways to flash data to the session during a redirect
 ```php
 return redirect('/register')->withSuccess('your message');
 ```
-Or using the generic with() method
+Or using the generic `with()` method
 ```php
 return redirect('/register')->with('success', 'your message');
 ```

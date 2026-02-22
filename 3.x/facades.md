@@ -58,7 +58,7 @@ return view('profile');
 ## How Facades Work
 In a Doppar application, a facade is a class that provides access to an object from the container. The machinery that makes this work is in the Facade class. Doppar's facades, and any custom facades you create, will extend the base `Phaseolies\Support\Facades\BaseFacade` class.
 
-The Facade base class makes use of the __callStatic() magic-method to defer calls from your facade to an object resolved from the container. In the example below, a call is made to the Doppar cache system. By glancing at this code, one might assume that the static get method is being called on the Cache class:
+The Facade base class makes use of the `__callStatic()` magic-method to defer calls from your facade to an object resolved from the container. In the example below, a call is made to the Doppar cache system. By glancing at this code, one might assume that the static get method is being called on the Cache class:
 ```php
 <?php
 
@@ -69,7 +69,7 @@ use Phaseolies\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function getAppName()
+    public function index()
     {
         return Hash::make('plainText');
     }

@@ -32,17 +32,20 @@ If you spot minor issues like incorrect DocBlocks, PHPStan violations, or IDE wa
 All Doppar projects are managed via GitHub. Feel free to explore, fork, and contribute:
 
 - [Doppar Application](https://github.com/doppar/doppar)
-- [Doppar Framework](https://github.com/doppar/framework)
-- [Doppar Docs](https://github.com/doppar/docs)
-- [Doppar AI](https://github.com/doppar/ai)
-- [Doppar Queue](https://github.com/doppar/queue)
-- [Doppar Flarion](https://github.com/doppar/flarion)
-- [Doppar Orion](https://github.com/doppar/orion)
-- [Doppar Guard](https://github.com/doppar/guard)
-- [Doppar Axios](https://github.com/doppar/axios)
-- [Doppar OAuthic](https://github.com/doppar/oauthic)
-- [Doppar Bloom](https://github.com/doppar/bloom)
-- [Doppar Insight](https://github.com/doppar/insight)
+- [Framework](https://github.com/doppar/framework)
+- [Docs](https://github.com/doppar/docs)
+- [AI](https://github.com/doppar/ai)
+- [Queue](https://github.com/doppar/queue)
+- [Airbend](https://github.com/doppar/airbend)
+- [Flarion](https://github.com/doppar/flarion)
+- [Notifier](https://github.com/doppar/notifier)
+- [Orion](https://github.com/doppar/orion)
+- [Guard](https://github.com/doppar/guard)
+- [Axios](https://github.com/doppar/axios)
+- [OAuthic](https://github.com/doppar/oauthic)
+- [Bloom](https://github.com/doppar/bloom)
+- [Insight](https://github.com/doppar/insight)
+- [Twig Bridge](https://github.com/doppar/twig-bridge)
 ## Which Branch?
 When contributing to Doppar, please make sure you are targeting the correct branch for your changes:
 

@@ -14,18 +14,22 @@ Deploying a Doppar application is straightforward and optimized for both develop
 ## Server Requirements
 The Doppar framework has a few essential system requirements. Before installing or deploying Doppar, make sure your web server environment meets the minimum PHP version and required extensions:
 
-#### Minimum PHP Version
-PHP 8.3
-#### Required PHP Extensions
-- BCMath
-- Ctype
-- Fileinfo
-- JSON
-- Mbstring
-- OpenSSL
-- PDO
-- Tokenizer
-- XML
+### Minimum PHP Version
+PHP >= 8.3
+### Required PHP Extensions
+- Ctype PHP Extension
+- cURL PHP Extension
+- DOM PHP Extension
+- Fileinfo PHP Extension
+- Filter PHP Extension
+- Hash PHP Extension
+- Mbstring PHP Extension
+- OpenSSL PHP Extension
+- PCRE PHP Extension
+- PDO PHP Extension
+- Session PHP Extension
+- Tokenizer PHP Extension
+- XML PHP Extension
 
 > ⚠️ Your server must be configured to meet all of the above requirements for Doppar to run properly.
 

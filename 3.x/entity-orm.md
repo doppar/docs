@@ -60,7 +60,7 @@ Post::where('title', 'Sincere Littel')
     ->first();
 ```
 
-## Query Debugging
+#### Query Debugging
 You can inspect queries before execution by chaining debugging methods before `get()`:
 ```php
 User::limit(10)->debug();
@@ -276,7 +276,7 @@ Post::omit(['deleted_at', 'archived_at'])->get();
 ```
 If the query initially selects all columns using *, `omit()` will first resolve the actual column names via the model's table schema and then exclude the specified ones.
 
-## selectRaw()
+### selectRaw()
 The selectRaw() method in Doppar's query builder provides a powerful way to include raw SQL expressions in your queries. It's especially useful when you need to perform calculations, use SQL functions, or include complex expressions that go beyond Entity's default capabilities.
 
 ### Basic Usage

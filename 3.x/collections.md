@@ -15,7 +15,7 @@ In Doppar, the Collection class enhances `Ramsey\Collection\Collection` with add
 ## Collection Usage
 Collections are designed to offer a clean and expressive API to work with arrays or data objects in Doppar. Below are some common methods and how to use them effectively with the `collect()` helper.
 
-## `count()`
+### `count()`
 The `count()` method returns the total number of items in the collection. This is especially useful when you need to quickly determine the size of a dataset, such as the number of records returned from a query or the number of items in a transformed list.
 ```php
 $users = collect([
@@ -34,7 +34,7 @@ This method internally uses PHP’s native count() function on the collection's 
 echo count($users); // Output: 3
 ```
 
-## `isEmpty()`
+### `isEmpty()`
 The `isEmpty()` method determines whether the collection contains no items. It returns true if the collection has zero elements and `false` otherwise. This is particularly useful when you need to check for the absence of data before performing operations like iteration or filtering.
 ```php
 $users = collect([]);
@@ -44,7 +44,7 @@ if ($users->isEmpty()) {
 }
 ```
 
-## `isNotEmpty()`
+### `isNotEmpty()`
 The `isNotEmpty()` method is the inverse of `isEmpty()`. It returns true if the collection contains at least one item, and `false` if the collection is empty. This is useful for conditionally performing operations only when the collection has data.
 ```php
 $users = collect([
@@ -56,7 +56,7 @@ if ($users->isNotEmpty()) {
 }
 ```
 
-## `all()`
+### `all()`
 The `all()` method returns all items in the collection as a plain PHP array. This is useful when you need to access the raw underlying data for purposes like debugging, JSON serialization, or interacting with code that expects native arrays.
 ```php
 $products = collect([
@@ -67,7 +67,7 @@ $products = collect([
 $allProducts = $products->all();
 ```
 
-##### Output
+#### Output
 ```json
 [
     {
@@ -85,7 +85,7 @@ Unlike the `toArray()` method, `all()` does not perform any transformation or ca
 
 >  Use `all()` when you want untouched items, and use `toArray()` when working with Entity models or objects that implement `toArray()`
 
-## `first()`
+### `first()`
 The `first()` method retrieves the first item in the collection. If the collection is empty, it returns null. This is helpful when you're only interested in the first element of a dataset—such as the first result of a query, the first matched item, or the initial record in a transformed list.
 ```php
 $tasks = collect([
@@ -96,7 +96,7 @@ $tasks = collect([
 $firstTask = $tasks->first();
 ```
 
-##### Output
+#### Output
 ```json
 {
     "id": 1,
@@ -106,7 +106,7 @@ $firstTask = $tasks->first();
 
 If the collection is empty, `first()` will safely return `null`:
 
-## `pluck()`
+### `pluck()`
 The `pluck()` method retrieves all values for a given key from the collection items. It is very useful when you need a simple array of values from a specific field across all items.
 ```php
 $users = collect([
@@ -138,7 +138,7 @@ print_r($namesById);
 
 Internally, pluck() iterates over each item, retrieving the value for the given key (and optionally using another key as the resulting array’s keys), making it concise and readable.
 
-## `groupBy()`
+### `groupBy()`
 The `groupBy()` method groups the collection’s items by the value of a specified key.
 
 It returns an associative array, where each key corresponds to a unique value from the given property, and each value is an array of items that share that same property value.
@@ -154,7 +154,7 @@ $users = collect([
 $grouped = $users->groupBy('role');
 ```
 
-##### Output
+#### Output
 ```json
 {
 "admin":
@@ -181,7 +181,7 @@ $grouped = $users->groupBy('role');
 }
 ```
 
-## `sortBy()`
+### `sortBy()`
 The `sortBy()` method sorts the collection by a given key or callback. It returns a new collection with the items ordered in ascending order by default.
 ```php
 $users = collect([
@@ -206,7 +206,7 @@ $sorted = $users->sortByDesc('age');
 ```
 This method behaves exactly like `sortBy()`, but reverses the order.
 
-## `chunk()`
+### `chunk()`
 The `chunk()` method breaks the collection into multiple smaller collections of a given size. It returns a new collection, where each item is an array representing a chunk.
 ```php
 $numbers = collect([1, 2, 3, 4, 5, 6]);
@@ -225,7 +225,7 @@ Output
 ]
 ```
 
-## `partition()`
+### `partition()`
 The `partition()` method splits the collection into two collections based on a condition.
 
 It returns an array containing:
@@ -242,14 +242,14 @@ $active->all();   // Users where active === true
 $inactive->all(); // Users where active === false
 ```
 
-## `sole()`
+### `sole()`
 The `sole()` method returns exactly one item from the collection.
 ```php
 $user = $users->sole(fn($user) => $user['email'] === 'john@example.com');
 ```
 This method is ideal when you expect exactly one result and want to fail loudly otherwise.
 
-## `sum()`
+### `sum()`
 The `sum()` method returns the total of the collection’s values.
 ```php
 collect([10, 20, 30])->sum(); // 60
@@ -265,13 +265,13 @@ Using a callback
 $users->sum(fn($user) => $user['salary'] * 0.1);
 ```
 
-## `avg()`
+### `avg()`
 The `avg()` method returns the average (mean) value of the collection.
 ```php
 $users->avg('salary');
 ```
 
-## `min()`
+### `min()`
 The `min()` method returns the minimum value in the collection.
 ```php
 $users->min('age');
@@ -282,7 +282,7 @@ You may also pass a callback:
 $users->min(fn($user) => $user['salary']);
 ```
 
-## `max()`
+### `max()`
 The `max()` method returns the maximum value in the collection.
 ```php
 $users->max('age');
@@ -290,7 +290,7 @@ $users->max('age');
 > `max()` supports keys and callbacks just like `min()`.
 
 
-## `intersect()`
+### `intersect()`
 The `intersect()` method returns a new collection containing items that exist in both collections.
 ```php
 $common = collect([1, 2, 3])->intersect([2, 3, 4]);
@@ -298,7 +298,7 @@ $common = collect([1, 2, 3])->intersect([2, 3, 4]);
 return $common->all(); // [2, 3]
 ```
 
-## `diff()`
+### `diff()`
 The `diff()` method returns items that exist in the current collection but not in the given items.
 ```php
 $diff = collect([1, 2, 3])->diff([2, 4]);
@@ -306,7 +306,7 @@ $diff = collect([1, 2, 3])->diff([2, 4]);
 return $diff->all(); // [1, 3]
 ```
 
-## `duplicates()`
+### `duplicates()`
 The `duplicates()` method returns a new collection containing only duplicate items.
 ```php
 $users = collect([
@@ -327,7 +327,7 @@ Output
 ]
 ```
 
-## `pipe()`
+### `pipe()`
 The `pipe()` method passes the collection into a callback and returns the callback’s result.
 ```php
 $result = $users->pipe(function ($collection) {
@@ -336,7 +336,7 @@ $result = $users->pipe(function ($collection) {
 ```
 This is useful for extracting complex logic into reusable pipelines.
 
-## `toArray()`
+### `toArray()`
 The `toArray()` method converts the entire collection into a plain PHP array, recursively calling `toArray()` on any items that are instances of Model.
 ```php
 User::all()->toArray();
@@ -344,7 +344,7 @@ User::all()->toArray();
 
 If an item is not an instance of `Model`, it will be returned as-is in the output array.
 
-## `map()`
+### `map()`
 The `map()` method applies a callback function to each item in the collection and returns a new collection containing the transformed items. This is ideal when you want to transform or reshape data—for example, formatting output, changing values, or extracting specific fields.
 ```php
 $users = collect([
@@ -360,7 +360,7 @@ $uppercased = $users->map(fn($user) => [
 return $uppercased;
 ```
 
-##### Output
+#### Output
 ```json
 [
     {
@@ -408,7 +408,7 @@ In this section, we’ll explore practical examples that demonstrate how to leve
 
 By mastering advanced grouping and keying, you can make your collection handling both powerful and readable, keeping your code organized and scalable.
 
-## `mapAsGroup()`
+### `mapAsGroup()`
 The `mapAsGroup()` method allows you to group items in the collection by a specific key or a callback.
 This is useful when you want to categorize data — for example, grouping employees by their department, status, or role.
 
@@ -525,15 +525,17 @@ $groupedBySalary = $collection->mapAsGroup(
 
 The `mapAsGroup()` method is the underlying implementation for `groupBy()`. This means that any use of `mapAsGroup()` can be replaced with `groupBy()`, which is the preferred, developer-friendly method to group collection items.
 
+Using `mapAsGroup()`
 ```php
-// Using mapAsGroup()
 $grouped = $collection->mapAsGroup('department');
+```
 
-// Equivalent using groupBy()
+Equivalent using `groupBy()`
+```php
 $grouped = $collection->groupBy('department');
 ```
 
-## `mapAsKey() / keyBy()`
+### `mapAsKey() / keyBy()`
 The `mapAsKey()` method allows you to transform a collection into an associative array where the keys are derived from a property or callback.
 The `keyBy()` method is the user-friendly alias for `mapAsKey()` — both work identically.
 
@@ -542,8 +544,10 @@ You can also pass an optional callback to transform the value for each key.
 Usages Example
 ```php
 $keyedById = $collection->mapAsKey("id");
+```
 
-// Equivalent using keyBy()
+Equivalent using `keyBy()`
+```php
 $keyed = $collection->keyBy("id");
 ```
 
@@ -584,7 +588,7 @@ $keyedWithMap = $collection->keyBy(
 );
 ```
 
-## `mapToGroups()`
+### `mapToGroups()`
 The `mapToGroups()` method allows you to group items into multiple categories simultaneously. Unlike `groupBy()`, which groups by a single key, `mapToGroups()` lets each item belong to multiple groups at once — making it perfect for scenarios where your data needs to be classified in more than one way.
 
 See the basic example of group employees by department and active status
@@ -618,7 +622,7 @@ Output
 
 `mapToGroups()` is ideal for tagging or categorizing data along multiple dimensions without needing to run multiple grouping operations separatel.
 
-## `mapWithKeys()`
+### `mapWithKeys()`
 The `mapWithKeys()` method transforms a collection into an associative array using a callback that returns custom key-value pairs.
 Unlike `keyBy()`, which produces a single key per item, `mapWithKeys()` allows each item to generate multiple keys — giving you fine-grained control over the resulting array structure.
 

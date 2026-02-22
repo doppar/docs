@@ -15,7 +15,7 @@ Whether you're working with configuration data, nested API responses, or transfo
 ## Lens Usage
 Lens are designed to offer a clean and expressive API to work with arrays or data objects in Doppar. Below are some common methods and how to use them effectively with the collect() helper.
 
-## `grab()`
+### `grab()`
 The `grab` method allows you to retrieve a value from an array using "dot" notation. This means you can easily access nested array values by specifying keys separated by dots.
 
 If the specified key does not exist, it returns a default value.
@@ -45,7 +45,7 @@ $country = Lens::grab($data, 'user.profile.country', 'Unknown');
 $all = Lens::grab($data, null); // Returns the whole $data array
 ```
 
-## `put()`
+### `put()`
 The put method sets a value in an array using "dot" notation. This lets you easily assign values deep inside nested arrays by specifying keys separated by dots. The array is modified by reference.
 
 If intermediate keys don’t exist or aren’t arrays, they will be created as empty arrays automatically.
@@ -89,7 +89,7 @@ Lens::put($data, 'settings.theme.color', 'dark');
 ];
 ```
 
-## `got()`
+### `got()`
 The got method checks if one or more keys exist in an array using "dot" notation. It returns true only if all specified keys exist in the array (including nested keys).
 
 You can pass a single key as a string or multiple keys as an array.
@@ -120,7 +120,7 @@ Lens::got($data, ['user.name', 'user.profile.country']);
 // false
 ```
 
-## `some()`
+### `some()`
 The `some` method checks if at least one of the given keys exists in an array using "dot" notation. It returns true if any one of the specified keys is found; otherwise, it returns false.
 
 You can pass a single key as a string or multiple keys as an array.
@@ -146,7 +146,7 @@ $hasOne = Lens::some($data, ['user.email', 'user.name']);
 $hasNone = Lens::some($data, ['user.email', 'user.address']); // false
 ```
 
-## `zap()`
+### `zap()`
 The `zap` method removes one or more items from an array using "dot" notation. It modifies the array by reference, so the original array is updated directly.
 
 You can remove deeply nested keys, and pass either a single key or an array of keys.
@@ -186,7 +186,7 @@ Lens::zap($data, ['user.email', 'settings.notifications']);
 ];
 ```
 
-## `pick()`
+### `pick()`
 The `pick` method extracts values from an array of arrays or objects using "dot" notation. It's similar to `array_column()` but more powerful—it supports nested keys and optional custom keys for the result.
 
 You can:
@@ -208,7 +208,7 @@ $namesById = Lens::pick($users, 'profile.name', 'id');
 // Result: [1 => 'Alice', 2 => 'Bob', 3 => 'Charlie']
 ```
 
-## `flat()`
+### `flat()`
 The `flat` method flattens a multi-dimensional array into a single-level array. You can control the depth of flattening—by default, it flattens all levels recursively.
 
 If an item is not an array or the max depth has been reached, it is added as-is.
@@ -230,7 +230,7 @@ $flatOnce = Lens::flat($data, 1);
 
 This method is helpful when dealing with deeply nested arrays where you want to reduce complexity or extract values into a simple list.
 
-## `head()`
+### `head()`
 The `head` method returns the first element of an array, with optional support for filtering through a callback. If no match is found, it returns a default value (which is null by default).
 
 Features:
@@ -253,7 +253,7 @@ $none = Lens::head($numbers, fn($n) => $n > 100, 'Not found');
 // Result: 'Not found'
 ```
 
-## `tail()`
+### `tail()`
 The `tail` method returns the last element of an array, optionally filtered through a callback. If no match is found, it returns a default value (which is null by default).
 
 Features:
@@ -278,7 +278,7 @@ $missing = Lens::tail($items, fn($v) => $v === 'x', 'Not found');
 ```
 This method is handy when you're looking for the last matching value in an array or simply want the last item safely.
 
-## `squash()`
+### `squash()`
 The `squash` method performs a shallow flatten on a multi-dimensional array. It only removes one level of nesting, unlike `flat()` which can flatten deeply.
 
 Only values that are arrays will be merged into the result; non-array values are ignored.
@@ -298,7 +298,7 @@ $flat = Lens::squash($data);
 
 This is useful when you just want to collapse an array of arrays by one level without affecting deeper structures.
 
-## `keep()`
+### `keep()`
 The `keep` method returns a new array containing only the specified keys from the original array. It filters out everything else, preserving only the keys you want.
 
 If a key doesn't exist in the source array, it's simply skipped.
@@ -321,7 +321,7 @@ $partial = Lens::keep($data, ['name', 'nonexistent']);
 
 This method is useful for whitelisting specific keys in a payload, config, or input array.
 
-## `drop()`
+### `drop()`
 The `drop` method removes the specified keys from an array and returns the filtered result. It is essentially the inverse of `keep()`.
 
 If a key doesn't exist in the array, it’s ignored silently.
@@ -343,7 +343,7 @@ $partial = Lens::drop($data, ['nonexistent']);
 ```
 This is helpful when you want to blacklist certain keys from being included in the final output.
 
-## `assoc()`
+### `assoc()`
 The `assoc` method checks if an array is associative, meaning it has non-sequential or string keys. It returns true if the array is associative, and false if it's a standard, numerically indexed (sequential) array.
 
 An empty array is considered not associative.
@@ -369,7 +369,7 @@ $isAssoc4 = Lens::assoc($data4);
 // Result: false
 ```
 
-## `whr()`
+### `whr()`
 The `whr` method filters an array using a custom callback, returning only the items for which the callback returns true. It’s similar to array_filter(), but the callback receives both the value and the key, and all matching keys are preserved in the result.
 ```php
 $data = [
@@ -390,7 +390,7 @@ $startsWithB = Lens::whr($data, fn($v, $k) => $k === 'b');
 
 This method is great when you need fine-grained control over filtering, including conditions based on keys.
 
-## `wrap()`
+### `wrap()`
 The `wrap` method ensures the given value is an array. If the value is already an array, it returns it as-is. If the value is null, it returns an empty array. Otherwise, it wraps the value inside a new array.
 ```php
 Lens::wrap(5);        // Returns [5]
@@ -400,7 +400,7 @@ Lens::wrap('hello');  // Returns ['hello']
 ```
 Use this method to normalize inputs, especially when you want to treat single values and arrays uniformly.
 
-## `dot()`
+### `dot()`
 The `dot` method flattens a multi-dimensional associative array into a single-level array using dot notation for nested keys.
 
 - It recursively traverses the array.
@@ -430,7 +430,7 @@ Result:
 ]
 ```
 
-## `undot()`
+### `undot()`
 The undot method converts a flattened array using dot notation back into a nested associative array.
 
 - It iterates over each dot-notated key in the flat array.
@@ -461,7 +461,7 @@ Result:
 ```
 Use this method to restore nested arrays from flat representations, such as those used in configuration files or database storage.
 
-## `rand()`
+### `rand()`
 The `rand` method returns a new array with the values shuffled in random order.
 ```php
 $items = [1, 2, 3, 4, 5];

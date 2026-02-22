@@ -8,7 +8,7 @@ meta:
 
 ## Controllers
 ### Introduction
-Rather than defining all request-handling logic as closures in route files, you can use controller classes to organize related functionality. Controllers centralize request handling, making your code more structured and maintainable. For example, a UserController can manage user-related actions like displaying, creating, updating, and deleting users. By default, controllers are stored in the app/Http/Controllers directory.
+Rather than defining all request-handling logic as closures in route files, you can use controller classes to organize related functionality. Controllers centralize request handling, making your code more structured and maintainable. For example, a UserController can manage user-related actions like displaying, creating, updating, and deleting users. By default, controllers are stored in the `app/Http/Controllers` directory.
 
 ## Create Controller
 To quickly generate a new controller, you may run the `make:controller` Pool command. By default, all of the controllers for your application are stored in the `app/Http/Controllers` directory
@@ -41,7 +41,7 @@ class UserController extends Controller
 }
 ```
 
-## Single Action Controller
+### Single Action Controller
 Doppar also support invokable controllers. You can call it single action controller also. To create a single action controller, need to pass the `--invokable` option before create a controller.
 ```bash
 php pool make:controller ProductController --invokable
@@ -73,7 +73,7 @@ When using an invokable controller, the route definition looks like this if you 
 Route::get('products', ProductController::class);
 ```
 
-## Bundle Controller
+### Bundle Controller
 Doppar also supports bundle controllers. These are controllers that contain all the standard CRUD (Create, Read, Update, Delete) methods in a single class.
 
 To create a bundle controller, use the `--bundle` option when generating the controller:
@@ -172,7 +172,7 @@ class ProductController extends Controller
 }
 ```
 
-## API Bundle Controller
+### API Bundle Controller
 Doppar also supports api bundle controllers. These are controllers that contain all the standard CRUD (Create, Read, Update, Delete) methods in a single class.
 
 To create a api bundle controller, use the `--api` option when generating the controller:
@@ -181,7 +181,7 @@ php pool make:controller ProductController --api
 ```
 This command will generate a controller in the `app/Http/Controllers/API` directory with all the typical bundle methods pre-defined except `create` and `edit` method.
 
-## Complete Controller
+### Complete Controller
 Doppar also allows you to generate a complete controller using the `--complete` or shorthand `-c` option with your `make:controller` command.
 
 This option creates a controller preconfigured with:

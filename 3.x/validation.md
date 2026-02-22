@@ -140,7 +140,7 @@ To show validation error message in your Odo file, doppar has a very elegent syn
 ```
 Doppar will automatically trace the error message and display here.
 
-## Customizing the Error Messages
+### Customizing the Error Messages
 Doppar's built-in validation rules each have an error message that is located in your application's `lang/en/validation.php` file. You can customize error message from this file as you want.
 
 ## XHR Requests and Validation

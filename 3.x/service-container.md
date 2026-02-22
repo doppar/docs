@@ -107,7 +107,7 @@ public function store(
 ```
 The second argument `(true)` marks the binding as singleton, meaning Doppar will reuse the same instance for all subsequent resolutions during the request.
 
-## Bind Attribute in Contructor
+### Bind Attribute in Contructor
 In Doppar, you can automatically inject dependencies into your controllers or services using attribute-based binding you already know that. You can also specify which concrete class should be injected for a given interface, directly in the constructor by this following way.
 
 ```php
@@ -254,7 +254,7 @@ app()->bind(NotificationService::class, function (Application $app) {
 });
 ```
 
-## Binding A Singleton
+### Binding A Singleton
 The singleton method registers a class or interface with the container, ensuring it is instantiated only once. After the initial resolution, the same instance of the object is returned each time it is requested from the container.
 ```php
 use Phaseolies\Application;
@@ -280,7 +280,7 @@ $this->app->when(fn() => config('cache.enabled'))
 
 In this example, the NotificationService will be registered as a singleton only if the random condition returns `true`. This provides dynamic control over how and when services are introduced into the container.
 
-## Binding Instances
+### Binding Instances
 You can bind an existing instance directly into the container using the instance method. This is useful when you have a pre-configured object that you want to share throughout your application:
 ```php
 use App\Services\ApiClient;
@@ -329,8 +329,8 @@ You can pass constructor parameters when resolving:
 $service = app(SMSService::class, ['apiKey' => 'your-key-here']);
 ```
 
-## Binding and Resolving Custom Keys
-You can bind any service or class instance to a custom key using the bind() method, then resolve it via app():
+### Binding and Resolving Custom Keys
+You can bind any service or class instance to a custom key using the `bind()` method, then resolve it via `app()`:
 ```php
 // Bind 'sms' to an instance of SMSService
 $this->app->bind('sms', fn() => new SMSService());
@@ -364,7 +364,7 @@ $service1 = app(NotificationService::class);
 $service2 = app('notifications'); // Same instance
 ```
 
-## Calling Methods with Dependency Injection
+### Calling Methods with Dependency Injection
 The `call` method allows you to invoke any callable with automatic dependency injection:
 ```php
 $result = $this->app->call(function (Request $request, UserRepository $users) {
@@ -377,7 +377,7 @@ This also works with class methods:
 $this->app->call([UserController::class, 'show'], ['id' => 1]);
 ```
 
-## Resolving Method Dependencies
+### Resolving Method Dependencies
 You can resolve dependencies for a specific method without calling it:
 ```php
 $dependencies = $this->app->resolveMethodDependencies(
@@ -387,7 +387,7 @@ $dependencies = $this->app->resolveMethodDependencies(
 );
 ```
 
-## Checking Container State
+### Checking Container State
 Check if a binding exists
 ```php
 if ($this->app->has(UserRepositoryInterface::class)) {
@@ -423,7 +423,7 @@ if ($this->app->resolved(UserRepositoryInterface::class)) {
 }
 ```
 
-## Service Provider Registration
+### Service Provider Registration
 You can dynamically register service providers:
 ```php
 $this->app->register(CacheServiceProvider::class);
@@ -435,7 +435,7 @@ $this->app->register($provider);
 
 The container will automatically call the provider's `register()` and `boot()` methods with dependency injection support.
 
-## Container Instance
+### Container Instance
 The container itself is a singleton. You can access it globally:
 ```php
 $container = Container::getInstance();
@@ -444,6 +444,7 @@ $container = Container::getInstance();
 Or set a custom instance:
 ```php
 $customContainer = new Container();
+
 Container::setInstance($customContainer);
 ```
 

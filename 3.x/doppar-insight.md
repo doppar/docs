@@ -8,7 +8,7 @@ meta:
 
 ## Insight
 ### Introduction
-Doppar Insight Profiler created by [rrr63](https://github.com/rrr63) is an advanced debugging and performance monitoring tool designed to give developers deep visibility into their application's inner workings. It provides detailed insights into every request, including HTTP methods, routes, response times, memory usage, and framework versions — all within a clean, intuitive dashboard.
+Doppar Insight Profiler is an advanced debugging and performance monitoring tool designed to give developers deep visibility into their application's inner workings. It provides detailed insights into every request, including HTTP methods, routes, response times, memory usage, and framework versions — all within a clean, intuitive dashboard.
 
 With Doppar Insight, developers can easily analyze performance metrics, trace database queries, inspect cache operations, monitor authentication flows, and review request-response lifecycles in real time. This makes it easier to identify performance bottlenecks, optimize resource usage, and ensure smooth application execution.
 
