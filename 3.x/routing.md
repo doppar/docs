@@ -10,8 +10,6 @@ meta:
 ### Introduction
 Doppar’s routing system, available through the `Phaseolies\Support\Facades\Route` namespace and using `Phaseolies\Utilities\Attributes\Route` attributes, provides a clean, expressive way to define your application’s URL structure and map it to the appropriate controller actions or closures.
 
-It now supports two routing approaches: defining routes traditionally within files like `web.php`, or using `attribute-based` route declarations placed directly above controller methods. This flexibility allows developers to choose the style that best fits their project’s structure and development workflow.
-
 Doppar’s routing engine offers features such as route prefix grouping, named routes, throttling, middleware assignment, and RESTful resource routing. Whether you’re building a lightweight API or a complex web application, Doppar’s routing system ensures your code remains consistent, maintainable, and scalable.
 
 ## Supported HTTP Methods
@@ -138,7 +136,7 @@ public function store(Request $request)
 
 In this example, the store method will respond to both `POST` and `PATCH` requests sent to the `/post/store` endpoint. This flexibility makes it easy to manage different request types for the same route, supporting both resource creation and partial updates within a single controller action.
 
-## Route Prefix with `#[Mapper]`
+### Route Prefix with `#[Mapper]`
 Doppar supports controller-level route prefixes and middleware via the `#[Mapper]` attribute. This feature allows developers to declare common URI segments and middleware for all routes within a controller, reducing repetition and improving readability.
 
 Basic usage example:
@@ -160,7 +158,7 @@ class UserController extends Controller
 }
 ```
 
-## Attribute Routing with Middleware
+### Attribute Routing with Middleware
 Doppar’s attribute-based routing also supports middleware assignment directly within the route definition. This allows you to apply one or more middleware layers to a specific controller method without configuring them separately in a route file.
 
 By specifying the middleware parameter inside the Route attribute, you can easily protect routes, apply request filters, or run any preprocessing logic before the controller action executes. Middleware are executed in the order they are listed, ensuring full control over the request lifecycle.
@@ -187,7 +185,7 @@ However, passing `middleware: [Authenticate::class]` will not work, as attribute
 
 If you need to use class-based middleware, apply them through the dedicated `#[Middleware(...)]` attribute instead.
 
-## Passing Parameters to Middleware in Attribute Routing
+### Passing Parameters
 When using attribute-based routing in Doppar, you can enhance your routes by passing parameters directly to middleware. This feature allows attributes and middleware to work seamlessly together, giving you expressive, method-level control over your route behavior.
 
 By defining middleware and their parameters right within the route attribute, your controller logic stays clean, self-contained, and easy to understand — with all route configurations centralized in one place.
@@ -209,7 +207,7 @@ In this example, the `response.break` middleware receives the parameter `admin`,
 
 > 💡 Learn more about passing parameters to middleware [middleware-parameters](middleware.html#middleware-parameters)
 
-## Routing with Rate Limit
+### Routing with Rate Limit
 Though rate limiting can be implemented using middleware, it can now be defined directly within the route attributes.
 
 See the example of rate limiting using middleware
@@ -371,7 +369,7 @@ public function show(#[Model] ?User $user)
 
 In this example, the `{user}` route parameter is automatically resolved to a User model instance by matching the `id` column. If the user is not found, the `$user` variable will be null (no exception is thrown)
 
-## Explicit Model Binding
+### Explicit Model Binding
 The `#[Model('email')]` attribute clearly expresses that binding should occur based on the `email` column rather than the default `id`.
 
 ```php
@@ -385,7 +383,7 @@ public function show(#[Model('email')] ?User $user)
 
 In this example, the `{user}` route parameter is automatically resolved to a User model instance by matching the `email` column. If the user is not found, the $user variable will be null (no exception is thrown)
 
-## Model Binding with Exception Handling
+### Exception Handling
 This example demonstrates how Doppar can automatically enforce strict model resolution for route parameters. By setting `exception: true` in the `#[Model]` attribute, the framework will attempt to fetch the User model by the specified column (email in this case).
 
 If a matching user is not found, a `NotFoundHttpException` is thrown immediately, preventing null values from being passed to the controller. This ensures that your route always receives a valid model instance or fails fast, making your controller logic simpler and safer.

@@ -328,7 +328,7 @@ Axios::to('https://example.com/api')
     ->json();
 ```
 
-## with Basic Authentication
+### with Basic Authentication
 Many APIs use Basic Authentication for secure access. With Doppar Axios, you can easily attach basic auth credentials using the `withBasicAuth()` method.
 
 Under the hood, this sets Symfony's `auth_basic` option, which handles encoding the credentials into the correct Authorization: Basic ... header automatically.
@@ -344,7 +344,7 @@ $response = Axios::to('https://example.com/posts')
 return $response->json();
 ```
 
-## with Bearer Authentication
+### with Bearer Authentication
 Many modern APIs use Bearer Token Authentication (often in OAuth 2.0 flows). Doppar Axios provides a simple way to attach a bearer token to your request using the `withBearerToken()` method.
 
 Internally, this sets the Authorization: `Bearer <token>` header using Symfony’s `auth_bearer` configuration option—ensuring secure and standards-compliant behavior.

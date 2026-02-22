@@ -8,7 +8,7 @@ meta:
 
 ## Mail
 ### Introduction
-Doppar provides a robust and flexible mailing system that enables your application to send emails using various drivers. The `config/mail.php` configuration file manages all mail-related settings, including the default mailer, SMTP credentials, and global “from” addresses.
+Doppar provides a robust and flexible mailing system using `PHPMailer` that enables your application to send emails using various drivers. The `config/mail.php` configuration file manages all mail-related settings, including the default mailer, SMTP credentials, and global “from” addresses.
 
 This file allows you to define how your application handles outgoing email by setting up one or more mailers, each with its own configuration. By default, Doppar uses the smtp mailer, but you can customize or extend this based on your requirements.
 
@@ -19,7 +19,7 @@ You can specify:
 
 This configuration supports environment-based customization via .env variables, making it easy to adapt for local development, staging, or production environments.
 
-Doppar provides a convenient way to setup your mail configuration. Doppar currently support only smtp driver for mail configuration. Need to update .env's mail configuration before starting with mail features. Doppar usage PHPMailer tp send mail.
+Doppar provides a convenient way to setup your mail configuration. Doppar currently support only smtp driver for mail configuration. Need to update .env's mail configuration before starting with mail features. Doppar usage `PHPMailer` tp send mail.
 
 ## Mail Configuration
 To enable email sending in your Doppar application, you need to configure the mail settings in your `.env` file. Here's a typical setup using an SMTP mailer:
@@ -48,7 +48,7 @@ When building Doppar applications, each type of email sent by your application i
 php pool make:mail InvoicMail
 ```
 
-## Configuring the Sender
+### Configuring the Sender
 You specify a global "from" address in your `config/mail.php` configuration file. This address will be used to send mail.
 ```php
 'from' => [
@@ -57,7 +57,7 @@ You specify a global "from" address in your `config/mail.php` configuration file
 ],
 ```
 
-## Configuring the Subject
+### Configuring the Subject
 By time to time, every Mail has a subject. Doppar allows you to define a Mail subject in a very convenient way. To define Mail subject, just need to update the subject method from your mailable class.
 ```php
 /**
@@ -72,7 +72,7 @@ public function subject(): Subject
 }
 ```
 
-## Configuring the View
+### Configuring the View
 Within a mailable class's content method, you may define the view, or which template should be used when rendering the email's contents. Since each email typically uses a Odo template to render its contents, you have the full power and convenience of the Odo templating engine when building your email's HTML:
 ```php
 /**
@@ -108,7 +108,7 @@ public function content(): Content
 }
 ```
 
-## Complete Example of Sending Mail
+## Example of Sending Mail
 Doppar provides to and send method primaritly to send a basic mail. You can use `Phaseolies\Support\Facades\Mail` call to handle mail functionalities.
 ```php
 <?php
@@ -132,14 +132,18 @@ class OrderController extends Controller
         ];
 
         Mail::to($user)->send(new InvoiceMail($data));
-
-        // or you can send mail by passing only mail address
-        Mail::to('recipient@example.com')->send(new InvoiceMail($data));
-
-        // also by passing name as the second argument
-        Mail::to('recipient@example.com', 'recipient_name')->send(new InvoiceMail($data));
     }
 }
+```
+
+Or you can send mail by passing only mail address
+```php
+Mail::to('recipient@example.com')->send(new InvoiceMail($data));
+```
+
+Also by passing name as the second argument
+```php
+Mail::to('recipient@example.com', 'recipient_name')->send(new InvoiceMail($data));
 ```
 
 Now update your `InvoiceMail` mailable class like
@@ -186,14 +190,16 @@ public function attachment(): array
 {
     return [
         storage_path('invoice.pdf') => [
-            'as' => 'rename_invoice.pdf', // The file will be sent using this name
-            'mime' => 'application/pdf',  // file mime types
+            'as' => 'rename_invoice.pdf',
+            'mime' => 'application/pdf',
         ]
     ];
 }
 ```
 
-## Multiple Attachments with Mime Types
+The file will be sent using the name `rename_invoice.pdf` and mime type `application/pdf`.
+
+### Multiple Attachments
 You can also send mail with multiple attachment. Just pass your file arrays in the attachment method like
 ```php
 public function attachment(): array
@@ -226,7 +232,7 @@ public function attachment(): array
 }
 ```
 
-## Sending Mail with CC and BCC
+### with CC and BCC
 You are not limited to just specifying the "to" recipients when sending a message. You are free to set "to", "cc", and "bcc" recipients by chaining their respective methods together:
 ```php
 use Phaseolies\Support\Mail\Mail;

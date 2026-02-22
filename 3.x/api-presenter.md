@@ -120,7 +120,7 @@ Output
 }
 ```
 
-## Excluding Fields from Output
+### Excluding Fields from Output
 You can exclude specific fields from a Presenter’s output using the `except()` method.
 This is useful when you want to reuse the same Presenter but omit certain attributes for a particular response.
 ```php
@@ -150,7 +150,7 @@ Output
 ```
 Using `only()` helps keep responses lightweight when you don’t need all available fields.
 
-## Presenter with Relationships
+### Presenter with Relationships
 A Presenter can also include related data from your models. This allows you to expose nested resources (such as related models or collections) directly within your API response, without additional transformation logic in your controllers.
 ```php
 $user = User::query()
@@ -177,7 +177,7 @@ protected function toArray(): array
 
 > You don’t need to explicitly call `->embed(['posts', 'otp'])` in your query. Even without it, related data is available in your Presenter, and you can access it directly, for example: `$this->posts`. But we recommend, always use eager loading.
 
-## Conditional Attributes in Presenter
+### Conditional Attributes in Presenter
 Presenters provide helper methods to include or exclude attributes conditionally in the output array. The most commonly used methods are `when`, `mergeWhen`, and `unless`.
 `when`
 The when method allows you to include an attribute only if a given condition is true.
@@ -207,7 +207,7 @@ The unless method is the inverse of when. It includes an attribute only if the c
 ```
 In this example, `guest_mode` will not be included because the condition is true
 
-## Nested or Embedded Presenters
+### Nested or Embedded Presenters
 In many applications, your models have relationships with other models, such as a User having many Posts or an Order having a related Product. Instead of manually formatting each related resource, you can use nested presenters to wrap related models or collections inside your main presenter
 
 You can embed one presenter inside another to include related resources:
@@ -234,7 +234,7 @@ UserPresenter::make(User::find(1));
 ## Presenter Bundle
 Presenter bundle wraps a collection of resources, applying a Presenter to each and optionally handling pagination. The bundle in Doppar is designed to wrap a collection of models and apply a presenter to each item. This allows you to transform collections of data consistently, with support for pagination, selective fields, lazy serialization, and preserving keys.
 
-## Basic Usage of Bundle
+### Basic Usage of Bundle
 A PresenterBundle allows you to transform an entire collection of models using a specified presenter. When you instantiate a bundle, each item in the collection is automatically wrapped with the presenter class you provide, ensuring consistent formatting and transformation across the dataset.
 
 You can wrap a collection of models and specify a presenter class:
@@ -259,7 +259,7 @@ UserPresenter::bundle(User::all())->except(['user_id', 'name']);
 ```
 In this example, the `user_id` and `name` fields will be removed from every user in the bundle. This is useful for hiding sensitive data or simplifying responses for certain API endpoints.
 
-## Including Only Specific Fields
+### Including Only Specific Fields
 The `only()` method allows you to include a limited set of fields for every resource in the bundle. This is especially useful when you want to reduce payload size or return only relevant data to clients.
 ```php
 UserPresenter::bundle(User::all())

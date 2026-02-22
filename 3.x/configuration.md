@@ -18,33 +18,40 @@ Doppar stores the compiled configuration cache in the following path `storage/fr
 You can access configuration values from anywhere in your application using either the Config facade or the global `config()` helper function. Configuration keys are accessed using "dot" syntax, where the first part is the file name (without the .php extension) and the second part is the option key.
 
 You can also specify a default value that will be returned if the requested configuration option does not exist.
+
+Access a config value using the facade
 ```php
 <?php
 
 use Phaseolies\Support\Facades\Config;
 
-// Access a config value using the facade
 $value = Config::get('app.name');
+```
 
-// Access the same config value using the global helper
+Access the same config value using the global helper
+```php
 $value = config('app.name');
+```
 
-// Provide a default if the key doesn't exist
+Provide a default if the key doesn't exist
+```php
 $value = config('app.name', 'Doppar');
 ```
 
 ## Set Configuration Values
 During runtime, you may also set configuration values dynamically using the Config facade or the global `config()` helper function. This can be useful in situations where you need to override or define configuration values on the fly—such as in testing, bootstrapping, or service providers.
 
+Set a configuration value using the facade
 ```php
 <?php
 
 use Phaseolies\Support\Facades\Config;
 
-// Set a configuration value using the facade
 Config::set('app.timezone', 'UTC');
+```
 
-// Set a configuration value using the global helper
+Set a configuration value using the global helper
+```php
 config(['app.timezone' => 'UTC']);
 ```
 
