@@ -284,6 +284,7 @@ public function dashboard(string $tenant): array
 {
     // $tenant is automatically injected with the subdomain value
     // e.g., 'acme' from acme.app.com
+    // $request->tenant also available
 
     $workspace = Workspace::where('slug', $tenant)->first();
 
