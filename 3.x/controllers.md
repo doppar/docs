@@ -10,6 +10,40 @@ meta:
 ### Introduction
 Rather than defining all request-handling logic as closures in route files, you can use controller classes to organize related functionality. Controllers centralize request handling, making your code more structured and maintainable. For example, a UserController can manage user-related actions like displaying, creating, updating, and deleting users. By default, controllers are stored in the `app/Http/Controllers` directory.
 
+## Controller Auto-Discovery
+Doppar provides automatic controller detection across your application and modules, without any additional configuration or `composer.json` changes. This allows you to organize controllers anywhere in your project, including custom folders, and still have them fully registered in the routing system.
+
+A class is considered a controller if it satisfies any of the following conditions:
+
+- **Class Name Convention:** The class name ends with Controller.
+- **Route Attribute:** The class has at least one public method annotated with the `#[Route]` attribute.
+- **Inheritance:** The class extends the base `\App\Http\Controllers\Controller` class.
+
+This means controllers in your app, modules, or even custom folders (like Services) are automatically included.
+
+Example of auto-discovered controllers:
+```
+your_app/
+├── app/
+│   └── Http/
+│       └── Controllers/
+│           └── HomeController.php ✅ Included (follows convention)
+├── modules/
+│   └── Blog/
+│       └── Controllers/
+│           └── PostController.php ✅ Included (follows convention)
+└── app/
+    └── Services/
+        └── Test.php ✅ Included (has #[Route] attribute)
+```
+
+This improvement ensures full flexibility:
+- Controllers can reside in the main app, any module, or custom folders.
+- No extra configuration is needed—Doppar detects them automatically.
+- Supports traditional controllers, attribute-based routing, and inheritance from the base controller.
+
+With this system, you can build modular, scalable applications where Doppar handles all controller resolution seamlessly.
+
 ## Create Controller
 To quickly generate a new controller, you may run the `make:controller` Pool command. By default, all of the controllers for your application are stored in the `app/Http/Controllers` directory
 
