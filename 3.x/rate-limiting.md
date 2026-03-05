@@ -52,6 +52,34 @@ For example:
 - `throttle:5,1 – 5` requests per minute
 - `throttle:100,60 – 100` requests per hour
 
+## Throttle Attribute
+Doppar provides a modern, type-safe `#[Throttle]` attribute for applying rate limits directly to controller methods. This approach offers better IDE support, autocomplete, and a cleaner syntax compared to middleware or route parameters.
+
+### Basic Usage
+Apply the `#[Throttle]` attribute to any controller method to enforce rate limiting:
+```php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Phaseolies\Utilities\Attributes\Throttle;
+use Phaseolies\Utilities\Attributes\Route;
+
+class SearchController extends Controller
+{
+    #[Route('/api/search', methods: ['GET'])]
+    #[Throttle(maxAttempts: 10, decayMinutes: 1)]
+    public function search(Request $request)
+    {
+        //
+    }
+}
+```
+In this example, the search endpoint is limited to `10` requests per minute per IP address. If a client exceeds this limit, Doppar responds with a `429 Too Many Requests` status code.
+
+> By default, rate limits are applied per IP address:
+
 ## Annotation-Based
 In addition to applying rate limits via middleware, Doppar also supports annotation-based rate limiting. This allows you to define rate limits directly within your controller methods, keeping the configuration close to the logic it applies to.
 
@@ -84,6 +112,8 @@ class PostController extends Controller
 
 In the example above, the `show` method is limited to `10 requests` per minute per client. If a client exceeds this limit, Doppar automatically responds with a `429` Too Many Requests status code.
 
+> All rate limiting methods (middleware, route parameters, annotations, and attributes) continue to work. Choose the one that best fits your coding style and project requirements.
+
 ## Global Throttle
 In addition to route and annotation-based rate limiting, Doppar provides a global throttle helper that allows you to manually control request limits anywhere in your application. This is especially useful for rate limiting custom logic, API calls, background jobs, or service-level operations where middleware is not applicable.
 
@@ -107,3 +137,14 @@ if (throttle()->tooManyAttempts($key, 3)) {
 throttle()->hit($key, 600);
 ```
 The throttle key should uniquely identify the action you want to limit.
+
+## Response Headers
+When a rate limit is enforced, Doppar automatically includes helpful headers in the response:
+```php
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1709654321
+Retry-After: 42
+```
+
+These headers help API clients implement proper backoff strategies.
