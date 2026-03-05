@@ -19,6 +19,8 @@ The component leverages the Transformers.php library to run machine learning mod
  - [Quick Start](#quick-start)
  - [Pipeline Tasks](#pipeline-tasks)
  - [Agent Usage](#agent-usage)
+ - [Streaming Responses](#streaming-responses)
+ - [Agent Persistence](#agent-persistence)
  - [Advanced Usage](#advanced-usage)
  - [Rate Limiting for Agents](#rate-limiting-for-agents)
 
@@ -688,6 +690,278 @@ $agent = Agent::make(OpenAI::class, env('OPENAI_API_KEY'))
 $response1 = $agent->prompt('First question')->send();
 $response2 = $agent->prompt('Second question')->send();
 ```
+
+## Streaming Responses
+For real-time, token-by-token output from large language models, Doppar AI supports streaming responses. Instead of waiting for the full response to be generated, streaming lets you display content progressively as it arrives — ideal for chat interfaces, long-form generation, and interactive applications.
+
+Streaming is supported for all cloud-based agents: `OpenAI`, `Gemini`, `Claude`, `OpenRouter`, and `SelfHost`.
+
+- Streaming with `withStreaming()`
+- Streaming with `stream()`
+- Streaming with System Messages
+- Streaming with Parameters
+
+### Streaming with `withStreaming()`
+The `withStreaming()` method enables streaming mode on the agent before calling `send()`. The returned value is a `Generator` that you iterate over to receive each chunk as it arrives.
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\OpenAI;
+
+$stream = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'))
+    ->model('gpt-4')
+    ->prompt('Write a short story about a robot learning to paint.')
+    ->withStreaming()
+    ->send();
+
+foreach ($stream as $chunk) {
+    echo $chunk;
+    flush();
+}
+```
+
+### Streaming with `stream()`
+Alternatively, you can call `stream()` directly instead of `withStreaming()->send()`. Both approaches are equivalent and return a `Generator`.
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\OpenRouter;
+
+$stream = Agent::using(OpenRouter::class)
+    ->withKey(env('OPENROUTER_API_KEY'))
+    ->model('openrouter/free')
+    ->prompt('What is the capital of France?')
+    ->stream();
+
+foreach ($stream as $chunk) {
+    echo $chunk;
+    flush();
+}
+```
+
+### Streaming with System Messages
+You can combine streaming with system instructions, multi-turn messages, and all other fluent methods just as you would in a standard non-streaming request.
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\Claude;
+
+$stream = Agent::using(Claude::class)
+    ->withKey(env('CLAUDE_API_KEY'))
+    ->model('claude-sonnet-4-5-20250929')
+    ->system('You are a concise technical writer. Always use code examples.')
+    ->prompt('Explain the difference between interfaces and abstract classes in PHP.')
+    ->stream();
+
+foreach ($stream as $chunk) {
+    echo $chunk;
+    flush();
+}
+```
+
+### Streaming with Parameters
+Temperature, max tokens, and any other parameters work seamlessly with streaming.
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\AgentFactory\Agent\Gemini;
+
+$stream = Agent::using(Gemini::class)
+    ->withKey(env('GEMINI_API_KEY'))
+    ->model('gemini-2.0-flash')
+    ->temperature(0.8)
+    ->maxTokens(800)
+    ->prompt('Generate a detailed marketing plan for a SaaS product.')
+    ->withStreaming()
+    ->send();
+
+foreach ($stream as $chunk) {
+    echo $chunk;
+    flush();
+}
+```
+
+> **Note** When streaming, the response is a Generator and cannot be used as a plain string. Do not pass a streamed response to `store()` directly — resolve the full text first by concatenating chunks, then store it.
+
+## Agent Persistence
+Doppar AI includes a message persistence system that allows you to save and restore conversation history across requests. This enables stateful, multi-turn conversations where context is preserved between separate HTTP requests or CLI executions.
+
+The persistence system is built around two components: a `StoreInterface` contract for defining custom storage backends, and a `CacheStore` implementation as the first ready-to-use integration.
+
+### StoreInterface
+`StoreInterface` defines the contract that all storage backends must implement. You can create your own implementation backed by a `database`, `Redis`, `sessions`, or any other storage mechanism.
+```php
+namespace Doppar\AI\Store;
+
+interface StoreInterface
+{
+    public function store(string $key, mixed $data): bool;
+    public function load(string $key): mixed;
+    public function has(string $key): bool;
+    public function delete(string $key): bool;
+    public function clear(): bool;
+}
+```
+
+| **Method**         | **Description**                             |
+| ------------------ | ------------------------------------------- |
+| `store(key, data)` | Persist message history under the given key |
+| `load(key)`        | Retrieve message history by key             |
+| `has(key)`         | Check whether a key exists in the store     |
+| `delete(key)`      | Remove a specific key from the store        |
+| `clear()`          | Wipe all entries from the store             |
+
+### CacheStore
+`CacheStore` is the built-in file-based implementation of `StoreInterface`. It serializes message arrays to disk using PHP's native serialization, with MD5-based filenames to avoid collisions. It is intended as a reference implementation — in production, you will typically replace this with a database or Redis-backed store suited to your application.
+```php
+use Doppar\AI\Store\CacheStore;
+
+// Default path: ./doppar_ai_store
+$store = new CacheStore();
+
+// Custom path
+$store = new CacheStore('./storage/doppar_ai_store');
+```
+The store directory is created automatically if it does not exist.
+
+#### Saving Conversations
+Use `withStore()` to attach a store instance to your agent, then call `store()` after receiving a response to persist the full conversation history including the assistant's reply.
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\Store\CacheStore;
+use Doppar\AI\AgentFactory\Agent\OpenAI;
+
+$store = new CacheStore('./storage/doppar_ai_store');
+
+$agent = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'))
+    ->model('gpt-4')
+    ->withStore($store)
+    ->system('You are a helpful assistant.')
+    ->prompt('What is dependency injection?');
+
+$response = $agent->send();
+
+// Persist the conversation including the assistant response
+$agent->store('conversation-user-42', $response);
+
+echo $response;
+```
+When `store()` is called with a response string, it automatically appends the assistant's message to the history before saving, so the full exchange is preserved.
+
+#### Loading and Continuing Conversations
+Use `loadMessages()` to restore a previously saved conversation, then continue from where it left off.
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\Store\CacheStore;
+use Doppar\AI\AgentFactory\Agent\OpenAI;
+
+$store = new CacheStore('./storage/doppar_ai_store');
+
+$agent = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'))
+    ->model('gpt-4')
+    ->withStore($store);
+
+// Restore full history and continue the conversation
+$response = $agent->loadMessages('conversation-user-42')
+    ->prompt('Can you give me a concrete PHP example of that?')
+    ->send();
+
+// Save the updated history
+$agent->store('conversation-user-42', $response);
+
+echo $response;
+```
+The model receives the full prior context and responds as if the conversation has been continuous.
+
+#### Full Multi-Turn Example
+This example shows a complete stateful conversation across three separate turns, as might happen across multiple HTTP requests in a web application.
+
+```php
+use Doppar\AI\Agent;
+use Doppar\AI\Store\CacheStore;
+use Doppar\AI\AgentFactory\Agent\OpenAI;
+
+$store = new CacheStore('./storage/doppar_ai_store');
+$conversationKey = 'chat-' . auth()->id();
+
+$agent = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'))
+    ->model('gpt-4')
+    ->withStore($store)
+    ->system('You are a senior PHP developer who gives concise, practical advice.');
+
+// Turn 1 — first request
+$response = $agent->prompt('What is the repository pattern?')->send();
+$agent->store($conversationKey, $response);
+echo $response;
+
+// Turn 2 — second request (e.g. next HTTP request)
+$response = $agent->loadMessages($conversationKey)
+    ->prompt('Show me a simple implementation in PHP.')
+    ->send();
+$agent->store($conversationKey, $response);
+echo $response;
+
+// Turn 3 — third request
+$response = $agent->loadMessages($conversationKey)
+    ->prompt('How would I test this with PHPUnit?')
+    ->send();
+$agent->store($conversationKey, $response);
+
+echo $response;
+```
+
+### Custom Store Implementations
+`CacheStore` is a starting point. In production you will want persistence backed by your database, Redis, or user sessions. Implement `StoreInterface` to plug in any backend.
+
+Database-backed example:
+```php
+use Doppar\AI\Store\StoreInterface;
+
+class DatabaseStore implements StoreInterface
+{
+    public function store(string $key, mixed $data): bool
+    {
+        // store
+    }
+
+    public function load(string $key): mixed
+    {
+        // load
+    }
+
+    public function has(string $key): bool
+    {
+        // has
+    }
+
+    public function delete(string $key): bool
+    {
+        // delete
+    }
+
+    public function clear(): bool
+    {
+        // clear
+    }
+}
+```
+
+Then use it exactly the same way as `CacheStore:`
+```php
+$store = new DatabaseStore();
+
+$agent = Agent::using(OpenAI::class)
+    ->withKey(env('OPENAI_API_KEY'))
+    ->model('gpt-4')
+    ->withStore($store)
+    ->loadMessages('conversation-user-42')
+    ->prompt('Continue our discussion about SOLID principles.')
+    ->send();
+
+$agent->store('conversation-user-42', $response);
+```
+
+Use a consistent, user-scoped key such as `'chat-' . auth()->id()` to isolate conversations per user and avoid history collisions in multi-user applications.
 
 ## Advanced Usage
 ### Query Helper
