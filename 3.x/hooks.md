@@ -917,7 +917,7 @@ class Post extends Model
     #[Hook('after_updated', when: 'contentChanged')]
     public function triggerSearchReindex(): void
     {
-        dispatch(new ReindexPostJob($this->id));
+        (new ReindexPostJob($this->id))->dispatch();
     }
 
     public function contentChanged(): bool

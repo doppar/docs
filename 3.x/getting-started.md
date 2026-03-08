@@ -8,15 +8,22 @@ meta:
 
 ## Why Doppar?
 
-As developers, we constantly seek harmony in our craft — the balance between elegance and performance. Often, we find one at the cost of the other: elegant syntax that slows us down, or high performance wrapped in complexity.
+Most PHP frameworks make you negotiate. You get expressiveness, but you pay in performance. You get speed, but you inherit complexity. Doppar ends that negotiation.
 
-Doppar brings both worlds together. It offers aristocratic elegance in syntax and uncompromising performance under the hood — a framework designed for developers who value both beauty and speed.
+Every layer of the framework — from routing to data access — is engineered for both beauty and throughput simultaneously. Repeated executions are memoized intelligently. Dependencies are minimal by design. The result is a framework that reads like prose and runs like a machine.
 
-Doppar is engineered for speed — every repeated execution is intelligently memoized, ensuring results are delivered instantly without unnecessary reprocessing. With minimal reliance on third-party libraries and most features built directly into the core, you get lightning-fast performance right out of the box. No unnecessary bloat—just clean, efficient execution
+Entity ORM and Entity Builder are built entirely from Doppar's core — no external dependencies, no third-party overhead. Complex relationships, expressive queries, and high-performance data access, all native.
 
-Doppar `Entity ORM` and `Entity Builder` Built entirely from core with zero external dependencies, Doppar delivers a powerful and expressive `Entity ORM` and `Entity Builder` system. Manage complex relationships with ease—no third-party packages required.
+Write code you're proud of. Ship software that holds up. Whether you're a seasoned PHP developer or just diving in, Doppar makes it easy to build powerful applications quickly and cleanly.
 
-Whether you're a seasoned PHP developer or just diving in, Doppar makes it easy to build powerful applications quickly and cleanly.
+## What Makes Doppar Different
+Building a framework is easy. Building one that makes you genuinely rethink how PHP should feel — that's harder.
+
+Every feature in Doppar exists because we ran into a wall with existing solutions. A dependency injection system that buried bindings in service providers far from where they were used. A task scheduler that still needed crontab, Supervisor, or systemd to actually run. An ORM that secretly pulled in a dozen packages just to function. A request object that did one thing — carry data — when it could do so much more.
+
+Doppar was built to fix those walls. Not with workarounds, but with first-principles rethinking of what each feature should actually do. The result is a set of capabilities that don't exist anywhere else in the PHP ecosystem — not as plugins, not as packages, and not as optional add-ons. They're native, opinionated, and designed to work together.
+
+What follows are the features that set Doppar apart.
 
 ## Ultra-Clean Syntax - Unmatched Clarity
 Doppar is built around one core principle — clarity without compromise. Every class, method, and directive is designed to be instantly understandable and beautifully expressive. Doppar turns complex backend logic into readable, fluent, and elegant code that feels natural to write and effortless to maintain.
@@ -52,7 +59,7 @@ public function store(
 
 Localize your dependencies exactly where they are used. Doppar intelligently resolves classes without manual setup. It turns dependency management into an elegant, explicit part of your codebase. Doppar’s container is more than a dependency injector — it’s a clarity engine.
 
-## Unmatched Request Object
+## A Request Pipeline That Thinks
 Doppar introduces a next-generation Request Object that goes far beyond simple input retrieval.
 With fluent pipelines, inline validation, and declarative transformations, the Doppar Request turns raw input handling into a clean, expressive, and composable workflow.
 
@@ -61,13 +68,15 @@ Instead of juggling multiple validation layers or helper functions, Doppar lets 
 $data = $request
     ->pipeInputs([
         'title' => fn($v) => ucfirst(trim($v)),
-        'tags' => fn($v) => is_string($v) ? explode(',', $v) : $v
+        'tags'  => fn($v) => is_string($v) ? explode(',', $v) : $v,
     ])
     ->contextual(fn($data) => [
-        'slug' => Str::slug($data['title'])
+        'slug' => Str::slug($data['title']),
     ])
     ->ensure('slug', fn($slug) => strlen($slug) > 0)
-    ->only('title','slug');
+    ->cleanse()
+    ->nullifyBlanks()
+    ->only('title', 'slug', 'tags');
 
 Post::create($data);
 ```
@@ -75,44 +84,20 @@ Post::create($data);
 This design makes Doppar’s Request object not just a data carrier — but a powerful input processing engine.
 It gives you the clarity of functional pipelines with the simplicity of modern PHP
 
-## Dual-Mode Engine For Task Scheduling
+## Dual-Mode Task Scheduling
 Doppar provides a powerful dual-mode scheduling engine that lets you run tasks the way your application needs — either through traditional cron or a real-time daemon loop. This flexibility makes Doppar suitable for everything from standard automation to high-frequency, second-based operations.
 
-### Standard Mode
-In standard mode, Doppar works just like a typical scheduler: your system cron triggers the scheduler every minute, and Doppar runs all due tasks.
-
-- Perfect for everyday jobs
-- Low resource usage
-- Simple server setup
-- Ideal for minute-level or hourly tasks
-
-Run it with:
+`Standard Mode` — triggered by a single cron entry, runs due tasks every minute. Perfect for lightweight automation, low-resource usage, and everyday jobs.
 ```bash
 php pool cron:run
 ```
 
-### Daemon Mode (Real-Time Execution)
-Daemon mode activates Doppar’s continuous scheduling engine. Instead of waiting for cron, Doppar runs in a loop, checking tasks many times per second.
-
-- Supports second-based scheduling
-- Real-time execution
-- Great for monitoring loops, automation pipelines, IoT, bots, and fast tasks
-- No supervisor or systemd required — Doppar manages itself
-
-Start the daemon:
+`Daemon Mode` — a continuous, real-time scheduling loop. Runs tasks at second-level granularity. No cron entry required. Perfect for monitoring pipelines, bots, IoT automation, and high-frequency tasks.
 ```bash
 php pool cron:run --daemon
 ```
 
-While the daemon runs, Doppar automatically:
-
-- Handles task timing
-- Manages background jobs
-- Prevents overlapping
-- Tracks PIDs
-- Logs every action
-- Recovers safely after errors
-- Responds to SIGTERM/SIGINT for graceful shutdowns
+No other PHP framework offers second-level scheduling without external process managers.
 
 ### One Scheduler, Two Execution Styles
 Whether you need basic automation or high-frequency task execution, Doppar gives you both — fully integrated into one cohesive scheduling system.
@@ -136,40 +121,101 @@ php pool cron:daemon stop
 php pool cron:daemon restart
 php pool cron:daemon status
 ```
-This means:
-- No server configuration.
-- No crontab.
-- No Supervisor.
-- No systemd.
-- Zero server setup
-- Zero DevOps complexity
-- Identical behavior in local, staging, and production
-- Massive portability
+No crontab. No Supervisor. No systemd. Doppar launches its own managed background process, capable of executing tasks every second, handling PID tracking, overlap prevention, logging, error recovery, and graceful SIGTERM/SIGINT shutdown — all internally.
 
-Your entire scheduling system is now fully framework-native.
+This means your scheduling behavior is identical in local, staging, and production, without touching a single server config file. Your entire scheduling system lives in your codebase, version-controlled, portable, and fully framework-native.
 
 ## Doppar Queue Component
-The Doppar queue system is designed to handle background tasks efficiently with reliability and scalability in mind. Its feature set ensures smooth job processing, better performance, and full control over how tasks are executed. See the features of doppar queue.
+Doppar's queue system goes beyond dispatching individual jobs. With `Drain::conduct()`, you can compose multi-step job pipelines with chained execution, error isolation, and completion callbacks:
+```php
+Drain::conduct([
+    new DownloadFileJob($url),
+    new ProcessFileJob($path),
+    new UploadResultJob($file),
+])
+->then(fn() => Log::info('Pipeline complete'))
+->catch(fn($job, $ex, $index) => Log::error("Step {$index} failed: ", [
+    'job' => $job,
+    'exception' => $ex,
+    'index' => $index,
+]))
+->dispatch();
+```
 
-- **Multiple Queue Support** - Organize jobs by priority and type
-- **Automatic Retry Logic** - Configurable retry attempts with delays
-- **Failed Job Tracking** - Store and analyze failed jobs
-- **Delayed Execution** - Schedule jobs for future execution
-- **Graceful Shutdown** - Handle SIGTERM and SIGINT signals
-- **Memory Management** - Automatic worker restart on memory limits
-- **Job Serialization** - Safely serialize complex job data
-- **Fluent API** - Fluent syntax for job dispatching
-- **Custom Failure Callbacks** - Handle job failures gracefully
-
-Very easy to customize doppar job behaves in the queue by configuring the `#[Queueable]` attribute directly on the job class like this way.
+Job behavior is configured declaratively at the class level using #[Queueable]:
 ```php
 #[Queueable(tries: 3, retryAfter: 10, delayFor: 300, onQueue: 'email')]
 class SendWelcomeEmailJob extends Job
 {
-    //
+    // Retry logic, delay, and queue assignment — defined once, here.
 }
 ```
-Your job class is now ready to work as a queueable job with your customized configuration. How cool is this right?
+
+## Model Hooks — Lifecycle Events as Methods
+Doppar replaces observer classes and external event listeners with `#[Hook]` attributes directly on your model methods. Model lifecycle behavior lives in the model itself — no separate file, no registration ceremony:
+```php
+#[Hook('before_created')]
+public function generateSlug(): void
+{
+    $this->slug = str()->slug($this->title);
+}
+
+#[Hook('after_updated')]
+public function invalidateCache(): void
+{
+    Cache::delete("post:{$this->id}");
+}
+```
+Available hooks: `before_created`, `after_created`, `before_updated`, `after_updated`, `before_deleted`, `after_deleted`. Everything stays co-located, readable, and maintainable.
+
+## Frozen Services — Immutability at the Framework Level
+Doppar introduces `#[Immutable]` — an attribute that enforces boot-time-only mutation on a service class. Once the application is fully booted, any attempt to modify an immutable service throws an `ImmutableViolationException` at runtime.
+```php
+#[Immutable]
+class PaymentService
+{
+    use EnforcesImmutability;
+
+    public string $gateway = 'stripe';
+    public float  $taxRate  = 0.08;
+}
+```
+During the boot phase, the service is fully configurable. Once booted, it becomes read-only. No other PHP framework has this.
+
+## Real-Time WebSockets with Doppar Airbend
+Doppar ships a full WebSocket broadcasting system — public channels, private channels, presence channels, whispers, and real-time metrics — all built in.
+```javascript
+// Client-side
+const channel = airbender.channel('orders');
+channel.listen('OrderShippedEvent', (data) => {
+    console.log('Order shipped:', data.orderId);
+});
+
+// Presence channel
+const presence = airbender.join('team.42');
+presence.here(members => updateOnlineList(members));
+presence.joining(user => addToList(user));
+presence.leaving(user => removeFromList(user));
+```
+
+## API Presenter — Structured, Lazy, Composable
+Doppar's API Presenter gives you a clean, expressive layer for shaping your API responses. Exclude fields, lazy-load relationships, and paginate — all in one fluent chain:
+```php
+UserPresenter::bundle(User::oldest('id')->paginate(20))
+    ->except('password', 'remember_token')
+    ->lazy()
+    ->toPaginatedResponse();
+```
+
+## Bloom Filters — Built In
+Doppar ships native Bloom filter support with MD5 and Murmur hashing strategies over Redis. Probabilistic existence checks — no external package:
+```php
+Bloom::key('seen_emails')->add($email);
+
+if (Bloom::key('seen_emails')->has('random@other.com')) {
+    // Probably seen before — skip expensive DB lookup
+}
+```
 
 ## Doppar AI Component
 Doppar AI lets you run powerful AI models locally in PHP, combining TransformersPHP for on-device inference and Symfony AI Agent for a clean developer workflow. Choose any supported Hugging Face model, and call it directly from your controllers using the Pipeline API.
@@ -180,26 +226,37 @@ use Doppar\AI\Enum\TaskEnum;
 
 $result = Pipeline::execute(
     task: TaskEnum::SENTIMENT_ANALYSIS,
-    data: 'I absolutely love this product! Best purchase ever!'
+    data: 'I absolutely love Doppar.'
 );
-
-// Output: [['label' => 'POSITIVE', 'score' => 0.9998]]
+```
+Output:
+```php
+[
+    'label' => 'POSITIVE',
+    'score' => 0.9998
+]
 ```
 On first run the model is downloaded automatically and then cached in `storage/app/transformers`, giving you fast, fully self-hosted AI responses.
 
-Agent for conversational AI
+Agent API — connect to any major AI provider with a fluent, consistent interface:
+
 ```php
 use Doppar\AI\Agent;
 use Doppar\AI\AgentFactory\Agent\OpenAI;
 
-$response = Agent::using(OpenAI::class)
+$stream = Agent::using(OpenAI::class)
     ->withKey(env('OPENAI_API_KEY'))
     ->model('gpt-3.5-turbo')
     ->prompt('Explain quantum computing in simple terms')
+    ->withStreaming()
     ->send();
 
-echo $response; // Returns the AI-generated explanation
+foreach ($stream as $chunk) {
+    echo $chunk;
+    flush();
+}
 ```
+Supports `OpenAI`, `Gemini`, `Claude`, `OpenRouter`, and `self-hosted` models — all through the same clean API.
 
 ## Doppar Benchmark - High-Concurrency Performance Test
 We stress-tested Doppar under extreme concurrency to evaluate its throughput, latency, and stability on a real database-backed endpoint. The results speak for themselves. We compared request handling and latency of Doppar under high concurrency with a database-backed endpoint.
@@ -257,9 +314,26 @@ Doppar introduces two powerful, fully native systems — Entity ORM and Entity B
 ## Entity ORM
 Entity ORM is a modern, intuitive, and high-performance Object-Relational Mapper designed to make database interactions seamless and efficient. Each database table is represented by a dedicated Data Model, giving you a clean, object-oriented interface for querying, inserting, updating, and deleting records — all without writing raw SQL.
 
-Beyond simple CRUD operations, Entity ORM empowers you to manage complex data relationships with ease. Features like eager loading, nested relationships, and relationship-based filtering make it effortless to work with related data while eliminating repetitive boilerplate code.
+```php
+// Define a Query Binding inside Post Model
+public function __published($query)
+{
+    return $query->where('status', 'published');
+}
 
-Whether you’re handling straightforward tables or building intricate relational architectures, Entity ORM keeps your workflow smooth, expressive, and maintainable — turning database interactions into a natural, enjoyable part of your development process.
+// Usage
+$posts = Post::published()->get();
+```
+
+Relationship make sense including relational column search
+```php
+Post::active()
+    ->present('comments.reply', fn($q) => $q->where('approved', true))
+    ->search(attributes: ['title', 'user.name', 'tags.name'], searchTerm: $request->search)
+    ->embed(relations: ['category:id,name', 'user:id,name', 'tags'])
+    ->embedCount(['tags', 'comments.reply' => fn($q) => $q->where('approved', true)])
+    ->paginate(perPage: 10);
+```
 
 Crafted entirely within Doppar’s core, Entity ORM delivers pure, dependency-free performance for clean, reliable, and scalable data handling.
 
@@ -268,18 +342,22 @@ Entity Builder is a powerful, flexible, and model-free query builder built for d
 
 With Entity Builder, you can construct, execute, and manage even the most complex SQL queries through a clean, expressive, and chainable interface. From fetching and filtering to joins, inserts, and updates, Entity Builder translates raw SQL power into elegant, object-oriented syntax that feels intuitive and effortless.
 
-While Entity ORM excels in model-driven development, Entity Builder shines in dynamic scenarios — such as data analysis, raw manipulation, or rapid prototyping — letting you query any table directly. It supports nearly all ORM-level query capabilities (minus relationship-based operations) while maintaining the same clarity, consistency, and speed.
+```php
+db()->bucket('post')
+    ->if($request->input('search'),
+        // If search is provided, filter by title
+        fn($q) => $q->where('title', 'LIKE', "%{$request->search}%"),
 
-Fully integrated into Doppar’s ecosystem, Entity Builder runs without any third-party dependencies, ensuring unmatched reliability and performance across all data-driven applications.
+        // If no search is provided, filter by featured status
+        fn($q) => $q->where('is_featured', true)
+    )
+    ->get();
+```
 
 With Doppar Entity Builder, you get the freedom of SQL with the clarity, safety, and precision of Doppar.
 
-## ODO
-Doppar includes ODO, a modern, lightweight, and fully customizable templating engine designed exclusively for the Doppar Framework.
-
-ODO is designed to be fully flexible. Every part of its syntax—directives, echo tags, raw output, escaped output, and comment markers—can be customized to match your preferred style or project requirements.
-
-The syntax configuration lives in the `config/odo.php` file. This file allows you to define how ODO interprets template expressions and which symbols or delimiters it should use during compilation
+## ODO — A Configurable Templating Engine
+Doppar includes ODO, a lightweight templating engine built exclusively for Doppar. Unlike Blade or Twig, every part of ODO's syntax is configurable — directives, echo delimiters, raw output markers, comment syntax — all via `config/odo.php`. You define how your templates look.
 
 ## Core Concepts
 Doppar brings together modern PHP practices and elegant simplicity — empowering developers to build with grace and precision.
@@ -315,14 +393,21 @@ At the core of Doppar’s API readiness is its JSON-first controller structure. 
 Doppar includes a flexible and secure API authentication system using **Doppar flarion**, supporting token-based authentication out of the box.
 
 ### Rate Limiting
+Apply rate limits directly in your route definition — no middleware registration, no config files:
+```php
+#[Route(uri: 'api/login', methods: ['POST'], rateLimit: 10, rateLimitDecay: 1)]
+public function login() { }
 
-To prevent abuse and improve performance, Doppar provides built-in rate limiting. You can apply rate limits globally, per user, per route, or based on IP. With simple configuration, you can:
+// Or with a PHP attribute
+#[Throttle(limit: 60, decay: 1)]
+public function apiEndpoint() { }
 
-  - Protect against brute force attacks
-  - Control load on your infrastructure
-  - Improve the fairness of resource distribution
+// Or with a DocBlock annotation
+/** @RateLimit(limit=100, decay=60) */
+public function search() { }
+```
 
-Rate limiting is managed via middleware, and it's fully customizable. You can load it using attribute based routing system or annotation based or even more file based routing system.
+Three different styles, one consistent behavior.
 
 ## Security by Default
 Security is a first-class concern in Doppar. The framework is engineered to provide enterprise-grade protection out of the box, offering developers a secure foundation for applications ranging from microservices to full-scale enterprise systems.
