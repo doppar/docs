@@ -921,3 +921,403 @@ In an Odo template:
 <a href="/posts/create">Write New Post</a>
 #endscope
 ```
+
+## Role Inference
+
+Role inference lets you define a map of roles to abilities in one place. Guard reads a property on the authenticated user object, looks up that role in the map, and automatically grants every ability listed under it. No individual `Guard::define` calls are needed for abilities that are fully covered by a role.
+
+Wildcard patterns work inside role ability lists too — `post.*` inside a role grants every `post.*` ability for users of that role, just as `Guard::wildcard()` would.
+
+This is the right tool when your application has stable, well-known roles (`admin`, `editor`, `viewer`) and you want to declare their permissions in one readable map rather than scattering `Guard::define` calls across your codebase.
+
+### Registering Roles
+
+Define the role map in your `App\Providers\AppServiceProvider` using `Guard::roles`. The keys are role names and the values are lists of ability names:
+
+```php
+use Doppar\Authorizer\Support\Facades\Guard;
+
+public function boot(): void
+{
+    Guard::roles([
+        'admin'  => ['manage-users', 'manage-settings', 'post.*'],
+        'editor' => ['post.create', 'post.edit', 'post.view'],
+        'viewer' => ['post.view'],
+    ]);
+}
+```
+
+Guard reads the `role` property on the authenticated user object by default. A user with `$user->role === 'editor'` is automatically granted `post.create`, `post.edit`, and `post.view` without any further configuration.
+
+### Checking Role-Inferred Abilities
+
+At the call site, nothing changes. Use `Guard::allows`, `auth()->can`, or `#scope` exactly as you would for any other ability:
+
+```php
+if (Guard::allows('post.create')) {
+    // Granted automatically because user->role === 'editor'
+}
+
+if (auth()->can('manage-users')) {
+    // Granted automatically because user->role === 'admin'
+}
+```
+
+In a controller:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Phaseolies\Http\Response\RedirectResponse;
+use Phaseolies\Http\Request;
+use Doppar\Authorizer\Support\Facades\Guard;
+
+class PostController extends Controller
+{
+    #[Route(uri: 'post/store', methods: ['POST'])]
+    public function store(Request $request): RedirectResponse
+    {
+        if (! Guard::allows('post.create')) {
+            abort(403);
+        }
+
+        // Create the post...
+
+        return redirect('/posts');
+    }
+}
+```
+
+In Odo templates:
+
+```html
+#scope('post.create')
+    <a href="/posts/create">New Post</a>
+#endscope
+
+#scope('manage-users')
+    <a href="/admin/users">Manage Users</a>
+#endscope
+```
+
+### Wildcard Patterns Inside Roles
+
+A `*` in a role's ability list follows the same dot-segment rules as `Guard::wildcard()`. Assigning `post.*` to a role grants every ability whose name begins with `post.`:
+
+```php
+Guard::roles([
+    'admin'  => ['*'],  // grants every ability
+    'editor' => ['post.*'],  // grants post.create, post.edit, post.delete, …
+    'viewer' => ['post.view'],  // exact match only
+]);
+```
+
+### Custom Role Property
+
+If your user model stores the role under a different property name, pass it as the second argument:
+
+```php
+Guard::roles([
+    'superuser' => ['manage-everything'],
+    'operator'  => ['run-reports'],
+], property: 'access_level');
+```
+
+Guard will now read `$user->access_level` instead of `$user->role`.
+
+### Priority: Defined Abilities Win
+
+Role inference is checked after directly defined abilities and wildcard patterns. If you register an explicit ability for an action, it always takes precedence over what the role map would grant:
+
+```php
+// Explicit deny — overrides whatever the role map says
+Guard::define('post.delete', fn(User $user) => false);
+
+Guard::roles(['admin' => ['post.*']]);
+
+// Admin user is still denied post.delete because the explicit define runs first
+Guard::allows('post.delete'); // false
+```
+
+This lets you grant broad access via roles while carving out specific exceptions without touching the role map.
+
+### Inspecting the Role Map
+
+```php
+$map = Guard::roleMap();
+// ['admin' => ['manage-users', 'post.*'], 'editor' => ['post.create', ...]]
+
+$property = Guard::roleProperty();
+// 'role'
+```
+
+## Lazy Abilities
+
+A lazy ability defers evaluation of its callback until the first time the ability is actually checked in a request. If the ability is never checked, the callback is never called and its cost is zero.
+
+This matters when an ability's authorization logic is expensive — for example, a callback that calls an external compliance service, reads a remote configuration, builds a complex object, or joins multiple database tables. In a typical request only a handful of abilities are actually evaluated. With `Guard::lazy`, all others cost nothing.
+
+Once a lazy ability is checked for the first time, its callback is promoted into the standard abilities map and behaves identically to `Guard::define` for the rest of the request.
+
+### Registering a Lazy Ability
+
+Use `Guard::lazy` in your `AppServiceProvider`:
+
+```php
+use App\Models\User;
+use App\Services\ComplianceService;
+use Doppar\Authorizer\Support\Facades\Guard;
+
+public function boot(): void
+{
+    Guard::lazy('compliance-check', function (User $user) {
+        return ComplianceService::verify($user->id);
+    });
+}
+```
+
+The `ComplianceService::verify` call does not happen at boot, at service provider registration, or at any point before `Guard::allows('compliance-check')` is called. If this request never reaches that check, the service is never contacted.
+
+### Checking a Lazy Ability
+
+At the call site, lazy abilities are completely transparent. Use them exactly like any other ability:
+
+```php
+if (Guard::allows('compliance-check')) {
+    // ComplianceService::verify was called here for the first time
+}
+
+if (auth()->can('compliance-check')) {
+    // Works identically with auth()->can()
+}
+```
+
+In a controller:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Phaseolies\Http\Response\RedirectResponse;
+use Phaseolies\Http\Request;
+use Doppar\Authorizer\Support\Facades\Guard;
+
+class ExportController extends Controller
+{
+    #[Route(uri: 'export/run', methods: ['POST'])]
+    public function run(Request $request): RedirectResponse
+    {
+        if (! Guard::allows('compliance-check')) {
+            abort(403);
+        }
+
+        // Run the export...
+
+        return redirect('/exports');
+    }
+}
+```
+
+In Odo templates:
+
+```html
+#scope('compliance-check')
+    <a href="/export/run">Run Export</a>
+#endscope
+```
+
+### Promotion on First Check
+
+When `Guard::allows('compliance-check')` is called:
+
+1. Guard finds the ability in the lazy registry
+2. The callback is moved into the standard abilities map
+3. The lazy registry entry is removed
+4. The callback is evaluated normally
+
+Every subsequent call to `Guard::allows('compliance-check')` in the same request hits the standard abilities map directly — the callback runs once per request, never more.
+
+### Lazy Abilities with Arguments
+
+Lazy callbacks receive the same arguments as any `Guard::define` callback:
+
+```php
+Guard::lazy('expensive-ownership-check', function (User $user, Post $post) {
+    return ExternalOwnershipService::verify($user->id, $post->id);
+});
+```
+
+```php
+Guard::allows('expensive-ownership-check', $post);
+```
+
+### Inspecting Lazy Abilities
+
+```php
+$pending = Guard::lazyAbilities();
+// ['compliance-check' => Closure, ...]
+// Only abilities not yet promoted appear here
+```
+
+## Ability Voting
+
+Ability voting lets you attach multiple independent voter callbacks to a single ability. Each voter examines the user and any provided arguments from its own perspective and returns a vote. Guard tallies the votes according to a configurable strategy and returns the final boolean result.
+
+This is the right tool for sensitive actions that require sign-off from multiple independent conditions — for example, publishing content requires the user to be an editor, the content to have been reviewed, and the content not to be banned. Writing this as a single callback with multiple `&&` conditions works, but voting makes each condition independent, individually testable, and easy to extend.
+
+Each voter returns one of three values:
+- `true` — affirmative vote (GRANT)
+- `false` — negative vote (DENY)
+- `null` — abstain (ignored in the tally entirely)
+
+### Strategies
+
+**`majority`** (default) — access is granted when more voters return `true` than `false`. Abstentions are not counted. Ties deny access.
+
+**`unanimous`** — every non-abstaining voter must return `true`. A single `false` vote denies access regardless of all other votes. If all voters abstain, access is denied.
+
+### Registering a Vote
+
+Use `Guard::vote` in your `AppServiceProvider`:
+
+```php
+use App\Models\User;
+use App\Models\Post;
+use Doppar\Authorizer\Support\Facades\Guard;
+
+public function boot(): void
+{
+    Guard::vote('publish-post', [
+        fn(User $user, Post $post) => $user->isEditor,
+        fn(User $user, Post $post) => $post->isReviewed,
+        fn(User $user, Post $post) => !$post->isBanned,
+    ]);
+}
+```
+
+With no strategy specified, `majority` is used. Two of the three voters must return `true` for the ability to be granted.
+
+### Registering a Unanimous Vote
+
+```php
+Guard::vote('deploy-production', [
+    fn(User $user) => $user->hasRole('lead'),
+    fn(User $user) => $user->hasMfa,
+    fn(User $user) => !$user->isOnLeave,
+], strategy: 'unanimous');
+```
+
+Every voter must agree. A user who is a lead with MFA enabled but currently on leave is denied.
+
+### Checking a Voting Ability
+
+At the call site, voting abilities are transparent. Use them like any other ability:
+
+```php
+if (Guard::allows('publish-post', $post)) {
+    // All voters agreed (or majority did, depending on strategy)
+}
+```
+
+In a controller:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Post;
+use Phaseolies\Http\Response\RedirectResponse;
+use Phaseolies\Http\Request;
+use Doppar\Authorizer\Support\Facades\Guard;
+
+class PostController extends Controller
+{
+    #[Route(uri: 'post/publish', methods: ['POST'])]
+    public function publish(Request $request): RedirectResponse
+    {
+        $post = Post::find($request->post_id);
+
+        if (! Guard::allows('publish-post', $post)) {
+            abort(403);
+        }
+
+        // Publish the post...
+
+        return redirect('/posts');
+    }
+}
+```
+
+In Odo templates:
+
+```html
+#forelse ($posts as $post)
+    #scope('publish-post', $post)
+        <tr>
+            <td>[[ $post->title ]]</td>
+            <td>
+                <form method="POST" action="/post/publish">
+                    <input type="hidden" name="post_id" value="[[ $post->id ]]">
+                    <button type="submit">Publish</button>
+                </form>
+            </td>
+        </tr>
+    #endscope
+#empty
+#endforelse
+```
+
+### Abstentions
+
+A voter returns `null` to abstain. Abstentions are excluded from the tally entirely — they do not count as a grant or a deny:
+
+```php
+Guard::vote('feature-access', [
+    fn(User $user) => $user->isPremium, // votes true or false
+    fn(User $user) => $user->isInBeta ? true : null, // abstains if not in beta
+]);
+```
+
+The second voter only participates if the user is in the beta program. Otherwise it has no opinion and does not affect the outcome.
+
+### Tally Reference
+
+| Strategy | Grants | Denies | Abstains | Result |
+|---|---|---|---|---|
+| majority | 2 | 1 | 0 | granted |
+| majority | 1 | 2 | 0 | denied |
+| majority | 1 | 1 | 1 | denied (tie) |
+| majority | 1 | 0 | 2 | granted |
+| majority | 0 | 0 | 3 | denied |
+| unanimous | 3 | 0 | 0 | granted |
+| unanimous | 2 | 1 | 0 | denied |
+| unanimous | 2 | 0 | 1 | granted |
+| unanimous | 0 | 0 | 3 | denied (no grants) |
+
+### Inspecting Voting Abilities
+
+```php
+$voting = Guard::votingAbilities();
+```
+
+Output:
+```php
+[
+    'publish-post' => [
+        'voters' => [...],
+        'strategy' => 'majority',
+    ],
+    'deploy-production' => [
+        'voters' => [...],
+        'strategy' => 'unanimous',
+    ],
+]
+```
+
+Authorization in Doppar Guard keeps your application secure by providing a powerful, expressive way to define and evaluate user abilities. From simple permission checks to advanced features like roles, wildcards, conditions, and voting, Guard ensures access logic remains clean and maintainable.
+
+Build scalable applications with confidence, knowing every action is protected by a flexible and reliable authorization system
