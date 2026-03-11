@@ -1,9 +1,9 @@
 ---
-title: Validation
-description: Doppar Validation page
+title: Views
+description: Doppar Views page
 meta:
   - name: keywords
-    content: Validation
+    content: Views
 ---
 
 ## Views
