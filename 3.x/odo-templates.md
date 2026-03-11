@@ -1,418 +1,655 @@
----
-title: Odo templates
-description: Doppar html-templates page
-meta:
-  - name: keywords
-    content: html-templates
----
+# Odo Templates
 
-## Odo Templates
-### Introduction
-Doppar includes ODO, a modern, lightweight, and fully customizable templating engine designed exclusively for the Doppar Framework.
+## Introduction
 
-ODO makes it easy to build dynamic HTML views using expressive directives and clean syntax, without the complexity of traditional PHP templating. Instead of mixing raw PHP throughout your markup, ODO provides clear, readable template expressions like `#if`, `#foreach`, and `#include`, along with powerful echo tags such as `[[ ]]` and `[[! !]]`.
+Doppar includes **Odo**, a modern, lightweight, and fully customizable templating engine designed exclusively for the Doppar Framework. Odo makes it easy to build dynamic HTML views using expressive directives and clean syntax — without scattering raw PHP throughout your markup.
 
-The ODO engine compiles templates into efficient native PHP and caches them automatically. This gives you:
+Instead of writing PHP directly in your views, Odo gives you readable, expressive template directives like `#if`, `#foreach`, and `#include`, along with powerful echo tags like `[[ ]]`, `[[! !]]`, and `[[[ ]]]`.
 
-- the simplicity of a templating language,
-- the flexibility of PHP,
-- and the performance of precompiled views.
+Odo compiles your templates into efficient native PHP and caches them automatically, giving you:
 
-Every part of ODO's syntax — directive prefix, echo tags, comment tags, raw output tags, and more — is fully configurable. This makes ODO not just a templating engine, but a customizable expression layer tailored to the Doppar ecosystem.
+- The simplicity of a templating language
+- The full power and flexibility of PHP
+- The performance of precompiled, cached views
 
-ODO is built from the ground up for clarity, speed, and developer happiness — making template development in Doppar intuitive, elegant, and fast.
+Every part of Odo's syntax — directive prefix, echo tags, comment tags, raw output tags, and escaped output tags — is fully configurable via `config/odo.php`. This makes Odo not just a template engine, but a fully customizable expression layer built for the Doppar ecosystem.
 
-## Configure ODO Syntax
-ODO is designed to be fully flexible. Every part of its syntax—directives, echo tags, raw output, escaped output, and comment markers—can be customized to match your preferred style or project requirements.
+## Template Files
 
-The syntax configuration lives in the `config/odo.php` file. This file allows you to define how ODO interprets template expressions and which symbols or delimiters it should use during compilation.
+Odo template files use the `.odo.php` extension and are stored in the `resources/views` directory. Subdirectories are referenced using dot notation when rendering or including views.
+```
+resources/
+└── views/
+    ├── layouts/
+    │   └── app.odo.php
+    ├── partials/
+    │   └── header.odo.php
+    ├── auth/
+    │   ├── login.odo.php
+    │   └── register.odo.php
+    └── home.odo.php
+```
 
-## Conditionals and Loops
+A view named `auth.login` maps to `resources/views/auth/login.odo.php`.
+
+## Configuring Odo Syntax
+
+Odo's syntax is fully flexible. Every delimiter — directives, echo tags, raw output, escaped output, and comment markers — can be customized in `config/odo.php`. This is useful if you are integrating Odo into a project that already uses conflicting syntax, or if you simply prefer a different style.
+```php
+return [
+    'directive_prefix'   => '#',     // Directive prefix: #if, #foreach, etc.
+    'open_echo'          => '[[',    // Regular echo open tag
+    'close_echo'         => ']]',    // Regular echo close tag
+    'open_raw_echo'      => '[[!',   // Raw (unescaped) echo open tag
+    'close_raw_echo'     => '!]]',   // Raw (unescaped) echo close tag
+    'open_escaped_echo'  => '[[[',   // Escaped echo open tag
+    'close_escaped_echo' => ']]]',   // Escaped echo close tag
+    'open_comment'       => '[[--',  // Comment open tag
+    'close_comment'      => '--]]',  // Comment close tag
+];
+```
+
+Once changed, your templates must use the new delimiters. For example, if you change `directive_prefix` to `@`, your directives become `@if`, `@foreach`, `@auth`, and so on.
+
+## Displaying Data
+
+### Regular Echo
+
+Use `[[ ]]` to output a variable or expression. Values are automatically HTML-escaped to prevent XSS attacks. This is the recommended way to output user-provided data.
+```html
+<h1>[[ $user->name ]]</h1>
+<p>[[ $post->title ]]</p>
+<span>[[ date('Y') ]]</span>
+```
+
+### Raw Echo
+
+Use `[[! !]]` to output raw HTML without escaping. Use this only when you trust the content — for example, when rendering sanitized HTML stored in your database.
+```html
+<div class="post-body">
+    [[! $post->body !]]
+</div>
+```
+
+> **Warning:** Never use raw echo on user-provided input without sanitizing it first. Raw echo bypasses all HTML escaping and can expose your application to XSS attacks.
+
+### Escaped Echo
+
+Use `[[[ ]]]` to apply explicit HTML escaping. This behaves identically to `[[ ]]` but makes the escaping intent clear in contexts where you want to be explicit:
+```html
+<p>[[[ $user->bio ]]]</p>
+```
+
+### Default Values
+
+Use the `or` operator to provide a fallback value when a variable is not set or is null:
+```html
+<h1>[[ $title or 'Untitled' ]]</h1>
+<p>[[ $user->bio or 'No bio provided.' ]]</p>
+<img src="[[ $user->avatar or '/images/default.png' ]]">
+```
+
+## Comments
+
+Odo comments are stripped entirely from the compiled output and never sent to the browser. They are ideal for leaving notes in your templates without affecting performance or page source.
+```html
+[[-- This comment will not appear in the rendered HTML --]]
+
+[[--
+    Multi-line comments are fully supported.
+    Use these to document complex template sections.
+--]]
+```
+
+Unlike HTML comments (`<!-- -->`), Odo comments are invisible even in the page source.
+
+## Conditionals
 
 ### #if
-The `#if` directive is used to conditionally render content based on a variable or expression. If the condition evaluates to true, the content inside the #if block will be rendered. Otherwise, it will be skipped.
+
+The `#if` directive conditionally renders content based on any PHP expression:
 ```html
-#if ($condition)
-    // Code to execute if the condition is true
+#if ($user->isAdmin())
+    <a href="/admin">Admin Panel</a>
 #endif
 ```
+
 ### #elseif
-The `#elseif` directive is used to check an additional condition if the previous `#if` or any prior `#elseif` condition was not met (i.e., evaluated as false).
-#### Syntax:
+
+Chain additional conditions using `#elseif`:
 ```html
-#if ($condition1)
-    // Code for condition1
-#elseif ($condition2)
-    // Code for condition2
+#if ($user->isAdmin())
+    <a href="/admin">Admin Panel</a>
+#elseif ($user->isEditor())
+    <a href="/editor">Editor Panel</a>
+#elseif ($user->isModerator())
+    <a href="/moderation">Moderation Queue</a>
 #endif
 ```
+
 ### #else
-The `#else` directive is used to define a fallback block of content. It will run only if none of the previous #if or #elseif conditions are true.
-#### Syntax:
+
+Provide a fallback using `#else`:
 ```html
-#if ($condition)
-    // Code for condition
+#if ($user->isAdmin())
+    <a href="/admin">Admin Panel</a>
 #else
-    // Code if condition is false
+    <a href="/dashboard">Dashboard</a>
 #endif
 ```
+
 ### #unless
-The `#unless` directive is the inverse of `#if`. It checks if a condition is false, and only then executes the block of code inside. This makes it especially useful for readability when you're testing for the absence of a condition.
-#### Syntax:
+
+The `#unless` directive is the inverse of `#if`. It renders its block only when the condition evaluates to `false`. It improves readability when checking for the absence of something:
 ```html
-#unless ($condition)
-    // Code to execute if the condition is false
+#unless ($user->isVerified())
+    <div class="alert alert-warning">
+        Your email address is not verified.
+        <a href="/verify">Verify Now</a>
+    </div>
 #endunless
 ```
 
 ### #isset
-The `#isset` directive checks if a variable exists and is not null before attempting to use it. This prevents errors and allows you to safely access variables that may or may not be present in the current context.
 
-#### Syntax:
+Safely renders a block only when a variable exists and is not null:
 ```html
-#isset ($variable)
-    // Code to execute if the variable is set
+#isset ($user->phone)
+    <p>Phone: [[ $user->phone ]]</p>
 #endisset
 ```
 
-### #unset
-The `#unset` directive is used to remove a variable from memory so it is no longer available in the template context after that point. This can help prevent accidental reuse or override of sensitive or temporary data.
+This is equivalent to `#if (isset($user->phone))` but more expressive.
 
-#### Syntax:
+### #unset
+
+Removes a variable from the template context at that point in rendering:
 ```html
-#unset ($variable)
+#unset ($sensitiveData)
+
+[[-- $sensitiveData is no longer accessible below this line --]]
 ```
+
+## Loops
 
 ### #for
-The `#for` directive is used to create a loop that runs a specific number of times. It’s helpful when you want to repeat a block of content — such as generating rows, repeating messages, or testing layouts with placeholder items.
 
-#### Syntax:
+Runs a block a fixed number of times using a traditional for loop:
 ```html
-#for ($i = 0; $i < 10; $i++)
-    // Code to execute in each iteration
+#for ($i = 1; $i <= 5; $i++)
+    <p>Step [[ $i ]]</p>
 #endfor
 ```
+
 ### #foreach
-The `#foreach` directive is used to loop through each item in an array or collection. For each iteration, it assigns the current item to a temporary variable you define, which you can use inside the loop.
 
-#### Syntax:
+Iterates over every item in an array or collection:
 ```html
-#foreach ($items as $item)
-    // Code to execute for each item
+#foreach ($posts as $post)
+    <article>
+        <h2>[[ $post->title ]]</h2>
+        <p>[[ $post->excerpt ]]</p>
+    </article>
 #endforeach
 ```
-Odo provides a `$loop` variable during `#foreach` iterations, which includes useful metadata about the current loop state. In your `#foreach` loop, you can access several useful loop variables through the `$loop` object in your `#foreach` blocks. Here's what information is available and how to use it:
 
-#### Available Loop Variables
+#### The $loop Variable
 
-| Variable           | Description                             |
-|--------------------|-----------------------------------------|
-| `$loop->iteration` | Current iteration (1-based)             |
-| `$loop->index`     | Current index (0-based)                 |
-| `$loop->remaining` | Number of items remaining               |
-| `$loop->count`     | Total number of items                   |
-| `$loop->first`     | `true` if this is the first iteration   |
-| `$loop->last`      | `true` if this is the last iteration    |
-| `$loop->depth`     | Nesting level (`1` for the first loop)  |
-| `$loop->parent`    | Parent loop object if nested            |
+Odo automatically provides a `$loop` variable inside every `#foreach` block. It gives you rich metadata about the current state of the loop without writing extra PHP:
 
-#### Example Usage:
+| Variable | Type | Description |
+|---|---|---|
+| `$loop->iteration` | `int` | Current iteration number, starting from 1 |
+| `$loop->index` | `int` | Current index, starting from 0 |
+| `$loop->remaining` | `int` | Number of items remaining after the current one |
+| `$loop->count` | `int` | Total number of items in the array |
+| `$loop->first` | `bool` | `true` only on the first iteration |
+| `$loop->last` | `bool` | `true` only on the last iteration |
+| `$loop->depth` | `int` | Nesting depth — `1` for the outermost loop |
+| `$loop->parent` | `object\|null` | The parent loop's `$loop` object when nested |
 ```html
-#foreach (range(1, rand(1, 10)) as $item)
-    <div>
-        #if ($loop->first)
-            <strong>START OF LOOP</strong><br>
-        #endif
-        Iteration: [[ $loop->iteration ]]<br>
-        Index: [[ $loop->index ]]<br>
-        Value: [[ $item ]]<br>
-        Remaining: [[ $loop->remaining ]]<br>
-        Count: [[ $loop->count ]]<br>
-        Depth: [[ $loop->depth ]]<br>
-        #if ($loop->last)
-            <strong>END OF LOOP</strong>
-        #endif
-        <hr>
+#foreach ($posts as $post)
+    #if ($loop->first)
+        <h2>Latest Posts</h2>
+    #endif
+
+    <div class="post">
+        <span class="counter">
+            [[ $loop->iteration ]] of [[ $loop->count ]]
+        </span>
+        <h3>[[ $post->title ]]</h3>
+        <p>[[ $post->excerpt ]]</p>
     </div>
+
+    #if ($loop->last)
+        <p class="end-note">You have reached the end.</p>
+    #endif
 #endforeach
 ```
 
-#### Nested Loop Example:
-When using nested loops, Odo automatically tracks the depth and provides access to the parent loop via `$loop->parent`.
-This can be especially helpful when rendering complex structures like tables, trees, or multi-level menus.
+#### Nested Loops
+
+When nesting `#foreach` loops, Odo tracks depth automatically and exposes the outer loop via `$loop->parent`:
 ```html
-#foreach (['A', 'B'] as $outer)
-    #foreach (range(1, 3) as $inner)
-        Outer: [[ $outer ]]<br>
-        Inner: [[ $inner ]]<br>
-        Depth: [[ $loop->depth ]]<br>
-        Parent: [[ $loop->parent ? $loop->parent->index : 'none' ]]<br>
-        <hr>
+#foreach ($categories as $category)
+    <h2>[[ $category->name ]]</h2>
+
+    #foreach ($category->posts as $post)
+        <p>
+            Category [[ $loop->parent->iteration ]],
+            Post [[ $loop->iteration ]]:
+            [[ $post->title ]]
+            (Depth: [[ $loop->depth ]])
+        </p>
     #endforeach
 #endforeach
 ```
 
 ### #forelse
-The `#forelse` directive works like #foreach to iterate over each item in an array or collection. But it also provides an #empty block that runs if the array is empty or null. This lets you handle both cases in one clean construct.
 
-#### Syntax:
+Works exactly like `#foreach` but renders an `#empty` fallback block when the array is empty or null. This eliminates the need for a separate `#if` check:
 ```html
-#forelse ($items as $item)
-    // Code to execute for each item
+#forelse ($posts as $post)
+    <div class="card">
+        <h3>[[ $post->title ]]</h3>
+        <p>[[ $post->excerpt ]]</p>
+    </div>
 #empty
-    // Code to execute if the array is empty
+    <div class="alert alert-info">
+        No posts found. <a href="/posts/create">Create one now.</a>
+    </div>
 #endforelse
 ```
 
 ### #while
-The `#while` directive repeatedly executes a block of code as long as the given condition evaluates to true. It’s ideal for situations where you don’t know in advance how many times the loop will run, but you want to keep repeating until a condition changes.
 
-#### Syntax:
+Repeatedly executes a block as long as the condition is true. Useful when the number of iterations is not known in advance:
 ```html
-#while ($condition)
-    // Code to execute while the condition is true
+#while ($queue->isNotEmpty())
+    <p>Processing: [[ $queue->pop() ]]</p>
 #endwhile
 ```
 
-### #switch
-The `#switch` directive evaluates a variable and runs the code block that matches one of the defined cases. If no case matches, the `#default` block runs. This is useful for replacing multiple `#if/#elseif` checks when comparing the same variable.
+> **Warning:** Always ensure your `#while` condition will eventually become false to avoid infinite loops.
 
-#### Syntax:
-```html
-#switch ($variable)
-    #case ($value1)
-        // Code for value1
-        #break
-
-    #case ($value2)
-        // Code for value2
-        #break
-
-    #default
-        // Default code
-#endswitch
-```
 ### #break
-The `#break` directive exits the nearest enclosing loop or switch-case block immediately. It’s useful when you want to stop processing as soon as a certain condition is met.
 
-#### Syntax:
-```html
-#break
-```
-Example
+Exits the current loop immediately when a condition is met:
 ```html
 #foreach ($users as $user)
-    #if ($user->isBanned)
+    #if ($user->isBanned())
         #break
     #endif
     <p>[[ $user->name ]]</p>
 #endforeach
 ```
-### #continue
-The `#continue` directive skips the rest of the current loop iteration and immediately starts the next iteration. It’s useful when you want to ignore certain items based on a condition but keep looping.
 
-#### Syntax:
+You can break out of multiple nested loops at once by passing a depth integer:
 ```html
-#continue
+[[-- Breaks out of 2 levels of nested loops --]]
+#break(2)
 ```
-Example:
+
+You can also break conditionally:
+```html
+#break($loop->iteration === 5)
+```
+
+### #continue
+
+Skips the rest of the current iteration and moves to the next one:
 ```html
 #foreach ($users as $user)
-    #if ($user->isBanned)
+    #if ($user->isBanned())
         #continue
     #endif
     <p>[[ $user->name ]]</p>
 #endforeach
 ```
-### #php
-The `#php` directive lets you write raw PHP code blocks inside your template. This can be useful for complex logic, variable manipulation, or calculations that aren’t easily expressed with the template’s built-in directives.
 
-#### Syntax:
+Like `#break`, you can skip multiple nesting levels:
 ```html
-#php
-    // PHP code
-#endphp
+#continue(2)
 ```
 
-### #json
-The `#json` directive encodes a PHP variable or data structure into JSON format so you can safely include it in your HTML or scripts. It automatically converts arrays or objects to a JSON string.
+## Switch Statements
 
-#### Syntax:
+Use `#switch` when comparing a single variable against multiple possible values. This is cleaner than chaining multiple `#elseif` blocks:
 ```html
-#json ($data)
+#switch ($user->role)
+    #case ('admin')
+        <p>Welcome, Administrator.</p>
+        #break
+
+    #case ('editor')
+        <p>Welcome, Editor.</p>
+        #break
+
+    #case ('moderator')
+        <p>Welcome, Moderator.</p>
+        #break
+
+    #default
+        <p>Welcome.</p>
+#endswitch
 ```
-Example
+
+## Layout Inheritance
+
+Odo's layout system lets you define a master page structure once and reuse it across all your views. Child views extend a layout and inject their content into named placeholders called sections.
+
+### Defining a Layout
+
+Create a base layout in `resources/views/layouts/app.odo.php`:
 ```html
-<script>
-    var users = #json($users);
-</script>
-```
-
-### #csrf
-The `#csrf` directive inserts a hidden input field containing a CSRF (Cross-Site Request Forgery) token inside an HTML form. This token helps protect your application from CSRF attacks by verifying that the form submission came from your site.
-
-#### Syntax:
-```html
-#csrf
-```
-Example
-```html
-<form method="POST">
-    #csrf
-    <button type="submit">Submit</button>
-</form>
-```
-### #exit
-The `#exit` directive halts the execution of the template completely at the point where it is used. It stops processing any further code or output.
-```html
-#foreach ($users as $user)
-    #if ($user->isAdmin())
-        #exit
-    #endif
-#endforeach
-```
-### #empty
-The `#empty` directive checks if a given variable is empty (meaning it’s either null, an empty array, an empty string, or evaluates to false). If it is empty, the enclosed block of code runs.
-
-```html
-#empty ($users)
-    //  User is empty
-#endempty
-```
-## Section Directives
-In Doppar, section directives play a crucial role in managing how content is organized and rendered across multiple pages. They allow you to define named sections within your templates that can be filled or overridden by child templates. This makes building complex layouts and reusable components much easier.
-
-By using section directives along with layout inheritance (via #extends), you can create a master layout with common elements like headers, footers, and navigation, while customizing the content area on each individual page. This approach promotes cleaner, more maintainable code by separating structure from content.
-
-### #extends
-The `#extends` directive lets your template inherit from a base layout. This means you can define a master layout file (like a main page structure), and individual templates can extend it — injecting their content into predefined sections.
-
-```html
-#extends('layouts.app')
-```
-Extends a Odo layout.
-
-### #include
-The `#include` directive allows you to insert another template (partial) inside your current template. This is useful for reusable components like headers, footers, or widgets.
-
-```html
-#include('partials.header')
-```
-This pulls in the content of the `partials.header` template right where you place the directive.
-
-### Passing Data to Included Views:
-You can pass data to the included view by passing an array as the second argument:
-```html
-#include('partials.version', ['version' => 'v2.0.4'])
-```
-The data passed to an included view is scoped only to that view. It does not automatically inherit all variables from the parent view. You must explicitly pass any data you want available in the included template.
-
-### #yield
-The `#yield` directive defines a placeholder in a layout where content from child templates will be injected. It’s used in a parent layout file to mark spots that child views can fill using #section.
-
-```html
-#yield('content')
-```
-Outputs the content of a section.
-The string 'content' is the name of the section. When a child template defines a section named content, its content replaces this placeholder during rendering. If the child doesn’t provide the section, nothing is output (or a default can be specified)
-```html
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <title>My Site</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>#yield('title') — [[ config('app.name') ]]</title>
+    <link rel="stylesheet" href="/css/app.css">
+    #yield('styles')
 </head>
 <body>
-  <header>Site Header</header>
+    <nav>
+        #include('partials.navigation')
+    </nav>
 
-  <main>
-    #yield('content')
-  </main>
+    <main class="container">
+        #yield('content')
+    </main>
 
-  <footer>Site Footer</footer>
+    <footer>
+        #include('partials.footer')
+    </footer>
+
+    <script src="/js/app.js"></script>
+    #yield('scripts')
 </body>
 </html>
 ```
 
-### #section
-The `#section` directive defines a named block of content that can be injected into a layout’s corresponding #yield placeholder. It’s how child templates specify the content for different sections of a parent layout.
+### Extending a Layout
 
-Example:
+In a child view, use `#extends` to inherit the layout and `#section` to fill each placeholder:
 ```html
+#extends('layouts.app')
+
+#section('title')
+    Dashboard
+#endsection
+
+#section('styles')
+    <link rel="stylesheet" href="/css/dashboard.css">
+#endsection
+
 #section('content')
-    <p>This is the content section</p>
+    <h1>Welcome, [[ $user->name ]]</h1>
+
+    #if ($user->isAdmin())
+        <a href="/admin">Go to Admin Panel</a>
+    #endif
+#endsection
+
+#section('scripts')
+    <script src="/js/dashboard.js"></script>
 #endsection
 ```
-This defines a section named content. Whatever is inside this block will replace `#yield('content')` in the parent layout when rendered.
 
+### #yield
+
+Defines a named placeholder in a layout where child content will be injected. If the child does not define that section, nothing is output:
+```html
+#yield('content')
+```
+
+You can also provide a default value that renders when the child does not define the section:
+```html
+#yield('sidebar')
+```
+
+### #section / #endsection
+
+Defines a named block of content in a child template that maps to a `#yield` in the parent layout:
+```html
+#section('content')
+    <p>This content is injected into the layout's content placeholder.</p>
+#endsection
+```
 
 ### #stop
-The `#stop` directive ends the current section, just like #endsection. It tells the template engine where the content for a section finishes.
 
+An alias for `#endsection`. Both work identically — use whichever reads better in context:
 ```html
 #section('content')
-    <p>This is the content section</p>
+    <p>Page content here.</p>
 #stop
 ```
-`#stop` marks the end of the content section. It works exactly like #endsection—you can use either one to close your sections.
+
+### #show
+
+Ends a section and immediately outputs its content at that point. Useful for defining and rendering a section inline in a layout itself:
+```html
+#section('sidebar')
+    <p>Default sidebar content.</p>
+#show
+```
+
+### #append
+
+Appends additional content to an existing section without replacing it. Useful for adding extra scripts or styles from nested includes:
+```html
+#section('scripts')
+    <script src="/js/charts.js"></script>
+#append
+```
 
 ### #overwrite
-The `#overwrite` directive replaces the content of a section defined in a parent layout. Instead of appending or prepending, it completely overrides the section’s existing content.
 
+Completely replaces the content of a section defined in a parent layout, discarding whatever was there before:
 ```html
 #section('content')
-    <p>This content will overwrite the parent layout's content.</p>
+    <p>This entirely replaces the parent section content.</p>
 #overwrite
 ```
-Use `#overwrite` at the end of a section to replace the parent section’s content entirely. This is useful when you want to provide a completely different version of a section without merging.
+
+## Including Partials
+
+### #include
+
+Inserts another template file at the current position in the template. This is ideal for reusable components like navigation bars, footers, alerts, and cards:
+```html
+#include('partials.header')
+#include('partials.footer')
+#include('partials.navigation')
+```
+
+### Passing Data to Included Views
+
+Pass an array as the second argument to make specific variables available inside the included view. Data passed this way is scoped only to that view and does not automatically inherit the parent's variables:
+```html
+#include('partials.alert', ['type' => 'success', 'message' => 'Your profile was updated.'])
+
+#include('partials.user-card', ['user' => $user])
+
+#include('partials.pagination', ['paginator' => $posts->paginator()])
+```
+
+## Raw PHP
+
+### Inline PHP Statement
+
+Use `#php()` for a single inline PHP expression when you need to assign a variable or run a quick calculation:
+```html
+#php($subtotal = $price * $quantity)
+#php($tax = $subtotal * 0.15)
+
+<p>Subtotal: [[ $subtotal ]]</p>
+<p>Tax: [[ $tax ]]</p>
+<p>Total: [[ $subtotal + $tax ]]</p>
+```
+
+### PHP Blocks
+
+Use `#php / #endphp` for multi-line PHP logic that is too complex for a single expression:
+```html
+#php
+    $grouped = collect($orders)->groupBy('status');
+    $pending = $grouped->get('pending', []);
+    $completed = $grouped->get('completed', []);
+#endphp
+
+<p>Pending: [[ count($pending) ]]</p>
+<p>Completed: [[ count($completed) ]]</p>
+```
+
+## JSON Output
+
+Use `#json` to encode a PHP variable as a JSON string for use in JavaScript. It automatically applies safe HTML encoding for use inside `<script>` tags:
+```html
+<script>
+    const users = #json($users);
+    const settings = #json($settings);
+    const config = #json($config, JSON_PRETTY_PRINT);
+</script>
+```
+
+## Variable Assignment
+
+Use `#set` to assign or reassign a variable directly inside the template without a full `#php` block:
+```html
+#set('greeting', 'Good morning')
+#set('year', date('Y'))
+
+<h1>[[ $greeting ]], [[ $user->name ]]</h1>
+<footer>© [[ $year ]]</footer>
+```
+
+## HTTP Method Spoofing
+
+HTML forms only support `GET` and `POST`. Use `#method` to spoof `PUT`, `PATCH`, or `DELETE` requests so your routes can handle them correctly:
+```html
+[[-- Update a resource --]]
+<form method="POST" action="/posts/[[ $post->id ]]">
+    #csrf
+    #method('PUT')
+    <input type="text" name="title" value="[[ $post->title ]]">
+    <button type="submit">Update</button>
+</form>
+
+[[-- Delete a resource --]]
+<form method="POST" action="/posts/[[ $post->id ]]">
+    #csrf
+    #method('DELETE')
+    <button type="submit">Delete</button>
+</form>
+```
+
+## CSRF Protection
+
+Always include `#csrf` inside any form that submits data via `POST`, `PUT`, `PATCH`, or `DELETE`. It inserts a hidden input field containing a CSRF token that Doppar validates on every non-GET request:
+```html
+<form method="POST" action="/contact">
+    #csrf
+    <input type="text" name="name" placeholder="Your name">
+    <input type="email" name="email" placeholder="Your email">
+    <textarea name="message"></textarea>
+    <button type="submit">Send Message</button>
+</form>
+```
 
 ## Authentication Directives
-These directives help you control content visibility based on user authentication status.
 
 ### #auth
-The `#auth` directive checks if a user is authenticated (logged in). If the user is authenticated, the enclosed code will be executed.
 
-#### Syntax:
+Renders its content only when a user is authenticated and logged in:
 ```html
 #auth
-    // Code to execute if the user is authenticated
+    <p>Welcome back, [[ Auth::user()->name ]]</p>
+    <a href="/profile">My Profile</a>
+    <a href="/logout">Logout</a>
 #endauth
 ```
-### #guest
-The `#guest` directive checks if a user is NOT authenticated (i.e., a guest). It executes the enclosed code only when the user is not logged in.
 
-#### Syntax:
+### #guest
+
+Renders its content only when no user is authenticated — i.e., the visitor is a guest:
 ```html
 #guest
-    // Code to execute if the user is not authenticated
+    <a href="/login">Login</a>
+    <a href="/register">Create Account</a>
 #endguest
 ```
-## Flash Message Directives
-These directives help you show feedback messages like errors, success alerts, or notifications to users.
 
-#### Displaying Flash Messages
-
+Both directives can be combined in the same template:
 ```html
-#if (session()->has('success'))
-    <div class="alert alert-success">
-        [[ session()->pull('success') ]]
-    </div>
-#endif
+#auth
+    <a href="/dashboard">Dashboard</a>
+#endauth
+
+#guest
+    <a href="/login">Login</a>
+#endguest
 ```
+
+## Authorization Directives
+
+### #scope
+
+Renders content only when the authenticated user has a specific ability or permission. This integrates directly with Doppar's authorization system:
+```html
+#scope('edit-posts')
+    <a href="/posts/[[ $post->id ]]/edit">Edit Post</a>
+#endscope
+
+#scope('delete-posts')
+    <button class="btn btn-danger">Delete Post</button>
+#endscope
+```
+
+### #elsescope
+
+Provides an alternative block for a different ability, similar to `#elseif` for conditionals:
+```html
+#scope('admin')
+    <a href="/admin">Admin Panel</a>
+#elsescope('editor')
+    <a href="/editor">Editor Panel</a>
+#endscope
+```
+
+### #scopenot
+
+The inverse of `#scope` — renders content only when the user does NOT have the specified ability:
+```html
+#scopenot('admin')
+    <p>You do not have administrative access.</p>
+#endscopenot
+```
+
+### #elsescopenot
+
+Provides an alternative block inside a `#scopenot` directive:
+```html
+#scopenot('admin')
+    <p>Not an admin.</p>
+#elsescopenot('editor')
+    <p>Not an editor either.</p>
+#endscopenot
+```
+
+## Flash Message Directives
 
 ### #errors
-The `#errors` directive checks if there are any error messages available (usually from form validation). If errors exist, it runs the enclosed code block, letting you display them.
 
-#### Syntax:
-```html
-#errors
-    // Code to execute if errors messages exist
-#enderrors
-```
-Example
+Renders its block only when validation errors exist in the session. Use this to wrap your error display so it only appears after a failed form submission:
 ```html
 #errors
     <div class="alert alert-danger">
+        <strong>Please fix the following errors:</strong>
         <ul>
-            #foreach (session()->pull('errors') as $messages)
+            #foreach (session()->pull('errors') as $field => $messages)
                 #foreach ($messages as $message)
                     <li>[[ $message ]]</li>
                 #endforeach
@@ -421,21 +658,246 @@ Example
     </div>
 #enderrors
 ```
-This block only renders if there are errors. Each error message is listed inside an unordered list.
 
 ### #error
-The `#error` directive checks if a specific error message exists for a given input or key (like a form field name). If that key has an error, it will execute the enclosed code.
 
-#### Syntax:
+Checks whether a specific form field has a validation error. The `$message` variable is automatically available inside the block and contains the error text for that field:
 ```html
-#error('key')
-    // Code to execute if the error message exists
-#enderror
+<div class="form-group">
+    <label>Email Address</label>
+    <input type="email" name="email" value="[[ old('email') ]]">
+    #error('email')
+        <p class="text-danger small">[[ $message ]]</p>
+    #enderror
+</div>
+
+<div class="form-group">
+    <label>Password</label>
+    <input type="password" name="password">
+    #error('password')
+        <p class="text-danger small">[[ $message ]]</p>
+    #enderror
+</div>
 ```
-Example
+
+### Other Flash Messages
+
+Use standard `#if` checks with the session helper to display other flash messages like success or warning alerts:
 ```html
-#error('email')
-    <p class="error">[[ $message ]]</p>
-#enderror
+#if (session()->has('success'))
+    <div class="alert alert-success">
+        [[ session()->pull('success') ]]
+    </div>
+#endif
+
+#if (session()->has('warning'))
+    <div class="alert alert-warning">
+        [[ session()->pull('warning') ]]
+    </div>
+#endif
+
+#if (session()->has('info'))
+    <div class="alert alert-info">
+        [[ session()->pull('info') ]]
+    </div>
+#endif
 ```
-If there's a validation error for the email field, it shows the error message. `$message` automatically contains the error text for that field.
+
+## Halting Execution
+
+### #exit
+
+Stops template execution at the point it is placed. Nothing after `#exit` in the template will be rendered. This can be useful for early returns based on conditions:
+```html
+#if (! $user->isActive())
+    <p>Your account has been deactivated.</p>
+    #exit
+#endif
+
+[[-- This content only renders for active users --]]
+<h1>Welcome, [[ $user->name ]]</h1>
+```
+
+## Escaping Directives
+
+To output a directive literally without it being processed by Odo, prefix it with an extra `#`. The double prefix is stripped and the directive is output as plain text:
+```html
+##if       [[-- outputs: #if --]]
+##foreach  [[-- outputs: #foreach --]]
+##auth     [[-- outputs: #auth --]]
+##csrf     [[-- outputs: #csrf --]]
+```
+
+This is useful when writing documentation or code examples inside Odo templates.
+
+## Custom Directives
+
+Odo allows you to register your own custom template directives using `Odo::stamp()`. This lets you encapsulate any PHP logic into a clean, reusable template directive that can be used across all your views. Register custom directives inside the `boot()` method of any service provider.
+
+### Registering Directives
+```php
+<?php
+
+namespace App\Providers;
+
+use Phaseolies\Support\ServiceProvider;
+use Phaseolies\Support\Odo\Odo;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Odo::stamp('datetime', function ($expression) {
+            return "<?php echo date('Y-m-d H:i:s', strtotime({$expression})); ?>";
+        });
+    }
+}
+```
+
+### Inline Directives
+
+Inline directives take a single expression and return a transformed output value:
+```php
+Odo::stamp('uppercase', function ($expression) {
+    return "<?php echo strtoupper({$expression}); ?>";
+});
+
+Odo::stamp('lowercase', function ($expression) {
+    return "<?php echo strtolower({$expression}); ?>";
+});
+
+Odo::stamp('datetime', function ($expression) {
+    return "<?php echo date('Y-m-d H:i:s', strtotime({$expression})); ?>";
+});
+
+Odo::stamp('money', function ($expression) {
+    return "<?php echo number_format({$expression}, 2); ?>";
+});
+
+Odo::stamp('asset', function ($expression) {
+    return "<?php echo asset({$expression}); ?>";
+});
+```
+
+Use them in your templates just like any built-in directive:
+```html
+<h1>#uppercase($user->name)</h1>
+<p>#lowercase($user->email)</p>
+<span>#datetime($post->created_at)</span>
+<td>#money($product->price)</td>
+<img src="#asset('images/logo.png')" alt="Logo">
+```
+
+### Block Directives
+
+Block directives wrap sections of HTML with an opening and closing tag. Always register them as a pair — an opening directive that returns a PHP opening block, and a closing directive that returns the appropriate closing statement:
+```php
+Odo::stamp('role', function ($expression) {
+    return "<?php if(auth()->user()->hasRole({$expression})): ?>";
+});
+
+Odo::stamp('endrole', function () {
+    return "<?php endif; ?>";
+});
+```
+```html
+#role('admin')
+    <a href="/admin">Dashboard</a>
+    <a href="/users">Manage Users</a>
+#endrole
+
+#role('editor')
+    <a href="/posts">Manage Posts</a>
+#endrole
+```
+
+### Directive Utility Methods
+```php
+Odo::hasDirective('role');
+```
+Check whether a directive has been registered
+
+```php
+Odo::getDirectives();
+```
+Retrieve all registered custom directives
+
+```php
+Odo::forgetDirective('role');
+```
+
+### Naming Rules
+
+Directive names must contain only alphanumeric characters and underscores. Hyphens and special characters are not allowed. Invalid names throw an `InvalidArgumentException` immediately on registration:
+```php
+Odo::stamp('my-directive', ...);   // InvalidArgumentException — hyphens not allowed
+Odo::stamp('my directive', ...);   // InvalidArgumentException — spaces not allowed
+Odo::stamp('my_directive', ...);   // Registered successfully
+Odo::stamp('myDirective', ...);    // Registered successfully
+Odo::stamp('roleCheck', ...);      // Registered successfully
+```
+
+## Quick Reference
+
+### Echo Tags
+
+| Syntax | Escaped | Description |
+|---|---|---|
+| `[[ $var ]]` | Yes | Regular echo — HTML escaped output |
+| `[[! $var !]]` | No | Raw echo — unescaped HTML output |
+| `[[[ $var ]]]` | Yes | Explicit escaped echo |
+| `[[-- comment --]]` | — | Template comment — never rendered |
+
+### Built-in Directives
+
+| Directive | Closing | Description |
+|---|---|---|
+| `#if ($expr)` | `#endif` | Conditional rendering |
+| `#elseif ($expr)` | — | Additional condition branch |
+| `#else` | — | Fallback condition branch |
+| `#unless ($expr)` | `#endunless` | Renders when condition is false |
+| `#isset ($var)` | `#endisset` | Renders when variable is set |
+| `#unset ($var)` | — | Removes a variable |
+| `#for (...)` | `#endfor` | Fixed count loop |
+| `#foreach ($arr as $item)` | `#endforeach` | Array iteration with `$loop` |
+| `#forelse ($arr as $item)` | `#endforelse` | Loop with `#empty` fallback |
+| `#while ($expr)` | `#endwhile` | Condition-based loop |
+| `#break` | — | Exit current loop or switch |
+| `#break(n)` | — | Exit n levels of nesting |
+| `#continue` | — | Skip current iteration |
+| `#continue(n)` | — | Skip n levels of iteration |
+| `#switch ($var)` | `#endswitch` | Switch statement |
+| `#case ($val)` | — | Switch case branch |
+| `#default` | — | Switch default branch |
+| `#php` | `#endphp` | Raw PHP block |
+| `#php($expr)` | — | Inline PHP expression |
+| `#json($data)` | — | JSON encode and output |
+| `#set('var', value)` | — | Assign a template variable |
+| `#csrf` | — | Hidden CSRF token field |
+| `#method('verb')` | — | HTTP method spoofing field |
+| `#exit` | — | Halt template execution |
+| `#extends('layout')` | — | Inherit a parent layout |
+| `#section('name')` | `#endsection` | Define a named content section |
+| `#stop` | — | Alias for `#endsection` |
+| `#show` | — | End section and output immediately |
+| `#append` | — | Append content to a section |
+| `#overwrite` | — | Replace parent section entirely |
+| `#yield('name')` | — | Layout placeholder for a section |
+| `#include('view')` | — | Include a partial template |
+| `#auth` | `#endauth` | Renders for authenticated users |
+| `#guest` | `#endguest` | Renders for unauthenticated users |
+| `#scope('ability')` | `#endscope` | Renders when user has ability |
+| `#elsescope('ability')` | — | Else branch for scope check |
+| `#scopenot('ability')` | `#endscopenot` | Renders when user lacks ability |
+| `#elsescopenot('ability')` | — | Else branch for scopenot |
+| `#errors` | `#enderrors` | Renders when any errors exist |
+| `#error('field')` | `#enderror` | Renders when field has an error |
+
+### Custom Directive API
+
+| Method | Description |
+|---|---|
+| `Odo::stamp($name, $callback)` | Register a custom directive |
+| `Odo::hasDirective($name)` | Check if a directive is registered |
+| `Odo::getDirectives()` | Get all registered custom directives |
+| `Odo::forgetDirective($name)` | Remove a registered directive |
