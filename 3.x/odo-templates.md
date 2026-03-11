@@ -1,3 +1,11 @@
+---
+title: Odo templates
+description: Doppar Odo templates page
+meta:
+  - name: keywords
+    content: Odo templates
+---
+
 # Odo Templates
 
 ## Introduction
