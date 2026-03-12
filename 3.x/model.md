@@ -8,6 +8,7 @@ content: Model
 
 - [Model](#model)
 - [Properties Encryption](#properties-encryption)
+- [UUID Primary Keys](#uuid-primary-keys)
 
 ## Introduction
 Before diving into Doppar's data management capabilities, it’s important to familiarize yourself with some key model properties that shape how your data is handled. Doppar offers the flexibility to customize these properties to suit your specific needs. Key properties include `$pageSize`, which controls the number of records displayed per page; `$primaryKey`, which defines the unique identifier for your table; $table, which specifies the database table associated with the model; `$creatable`, which determines whether new records can be added and `$unexposable` and `$timeStamps`, which allows you to hide sensitive or irrelevant data from being exposed and handle datetime columns. The `$connection` property specifies the database connection the model should use. Once this property is defined, all queries and operations on the model will automatically use the specified connection With Doppar, you have full control to tweak these properties, ensuring your data interactions are both efficient and secure. Let's see the User model as for example.
@@ -309,7 +310,86 @@ $key = base64_decode(getenv('APP_KEY'));
 ```
 
 :::warning
-⚠️ Security Warning: The `APP_KEY` is highly sensitive. It must only be shared with trusted systems over secure channels (e.g., HTTPS, encrypted environment variables, secure vaults).
+Security Warning: The `APP_KEY` is highly sensitive. It must only be shared with trusted systems over secure channels (e.g., HTTPS, encrypted environment variables, secure vaults).
 :::
 
 For more detail, see the `Phaseolies\Support\Encryption` class for a detailed understanding of how the encryption `key`, `IV`, and `cipher` are generated and used internally.
+
+
+## UUID Primary Keys
+
+By default, tables use an auto-incrementing integer as their primary key. However, there are cases where a UUID (Universally Unique Identifier) is preferable — for example, when you need to generate IDs at the application layer before persisting to the database, or when merging data across multiple databases where integer IDs might collide.
+
+### Defining the Migration
+
+To use a UUID as the primary key, define the column using `uuid()` and chain 
+`->primary()` onto it. The underlying storage type is chosen automatically based 
+on the active database driver.
+
+| Driver     | Storage Type |
+|------------|--------------|
+| MySQL      | `CHAR(36)`   |
+| PostgreSQL | `UUID`       |
+| SQLite     | `TEXT`       |
+```php
+Schema::create('orders', function (Blueprint $table) {
+    $table->uuid('id')->primary();
+    $table->string('title');
+    $table->timestamps();
+});
+```
+
+You can also use any custom column name instead of `id`:
+```php
+Schema::create('orders', function (Blueprint $table) {
+    $table->uuid('order_id')->primary();
+    $table->string('title');
+    $table->timestamps();
+});
+```
+
+### Defining the Model
+
+When using a UUID primary key, you need to tell the model which column is the 
+primary key and ensure a UUID is generated before the record is inserted. This 
+is done using the `before_created` hook, which fires automatically before the 
+insert query is executed.
+```php
+<?php
+
+namespace App\Models;
+
+use Phaseolies\Database\Entity\Model;
+
+class Order extends Model
+{
+    protected $table = 'orders';
+
+    protected $creatable = [ 'title'];
+
+    #[Hook('before_created')]
+    public function generatePrimaryKey(): void
+    {
+        $this->id = str()->uuid();
+    }
+}
+```
+
+### Creating a Record
+
+Once the migration and model are set up, creating a record works exactly the same 
+as with an integer primary key. The UUID is generated automatically via the hook 
+before the insert is executed — no manual ID assignment needed.
+```php
+$order = Order::create([
+    'title' => 'New Order',
+]);
+
+echo $order->id; // e.g. "550e8400-e29b-41d4-a716-446655440000"
+```
+
+> **Note:** UUID primary keys are only supported through the Entity (model-based) 
+> layer. When using the entity builder, UUID primary keys are 
+> not supported and auto-incrementing integers should be used instead.
+
+The migration column type must be `uuid()`, not `id()` or  `bigInteger()`. Attempting to store a UUID string in an integer column will result in a database error.
