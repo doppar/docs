@@ -12,6 +12,7 @@ meta:
   - [Querying Date Columns](#querying-date-columns)
   - [Transform Entity Collection](#transform-entity-collection)
   - [Pagination](#pagination)
+  - [Cursor Pagination](#cursor-pagination)
   - [Database Transactions](#database-transactions)
   - [Entity Join](#entity-join)
   - [DB Query](#db-query)
@@ -158,12 +159,13 @@ db()->bucket('users')->oldest('id')->get();
 ### Selecting Specific Columns
 In many cases, you may not need to retrieve every column from a table—especially when working with large datasets. Entity's `select()` method allows you to specify exactly which columns you want to fetch, helping optimize performance and reduce memory usage.
 
-Here are a few examples:
+Here are a few examples. Selecting specific columns using an array:
 ```php
-// Selecting specific columns using an array
 db()->bucket('users')->select(['name', 'email'])->get();
+```
 
-// Selecting specific columns using multiple arguments
+Selecting specific columns using multiple arguments:
+```php
 db()->bucket('users')->select('name', 'email')->get();
 ```
 
@@ -352,9 +354,8 @@ This is useful for generating reports, monthly user activity, or analytics dashb
 To check whether a specific row exists in your database, you can use the `exists()` function. This method returns a boolean value (true or false) based on whether the specified condition matches any records. Here's an example:
 ```php
 db()->bucket('users')->where('id', 1)->exists();
-
-// Returns `true` if a matching row exists, otherwise `false`.
 ```
+Returns `true` if a matching row exists, otherwise `false`.
 
 ### whereIn()
 The `whereIn()` method filters records where a column's value matches any value in the given array.
@@ -480,13 +481,15 @@ In this case, `DB::sql()` adds a computed column named `tax_amount` that represe
 
 ### whereDate()
 The `whereDate()` method filters records by matching only the date part (`ignoring time`) of a column against a given value. It supports custom comparison operators.
+
+Where date equals a specific date
 ```php
-// Where date equals a specific date
 db()->bucket('users')
     ->whereDate('created_at', '2023-01-01')
     ->get();
-
-// Where date is greater than a specific date
+```
+Where date is greater than a specific date
+```php
 db()->bucket('users')
     ->whereDate('created_at', '>', '2023-01-01')
     ->get();
@@ -494,13 +497,16 @@ db()->bucket('users')
 
 ### whereMonth()
 The `whereMonth()` method filters records by matching only the month part of a date or datetime column against a given value. The month can be given as a number (1 for January, 12 for December) and supports custom comparison operators.
+
+Where month is January (month 1)
 ```php
-// Where month is January (month 1)
 db()->bucket('order')
     ->whereMonth('order_date', 1)
     ->get();
+```
 
-// Where month is greater than March
+Where month is greater than March
+```php
 db()->bucket('order')
     ->whereMonth('order_date', '>', 3)
     ->get();
@@ -508,13 +514,16 @@ db()->bucket('order')
 
 ### whereYear()
 The `whereYear()` method filters records by matching only the year part of a date or datetime column against a given value. Supports custom comparison operators.
+
+Where year is 2023
 ```php
-// Where year is 2023
 db()->bucket('posts')
     ->whereYear('published_at', 2023)
     ->get();
+```
 
-// Where year is greater than 2020
+Where year is greater than 2020
+```php
 db()->bucket('posts')
     ->whereYear('published_at', '>', 2020)
     ->get();
@@ -522,27 +531,33 @@ db()->bucket('posts')
 
 ### whereDay()
 The `whereDay()` method filters records by matching only the day of the month (1–31) from a date or datetime column. Supports custom comparison operators.
+
+Where day is the 15th
 ```php
-// Where day is the 15th
 db()->bucket('event')
     ->whereDay('event_date', 15)
     ->get();
+```
 
-// Where day is less than 10
+Where day is less than 10
+```php
 db()->bucket('event')
     ->whereDay('event_date', '<', 10)
     ->get();
 ```
+
 ### whereTime()
 The `whereTime()` method filters records by matching only the time part (`HH:MM:SS`) of a datetime or time column. Supports custom comparison operators.
 
+Where time is after 14:00:00
 ```php
-// Where time is after 14:00:00
 db()->bucket('appointment')
     ->whereTime('start_time', '>', '14:00:00')
     ->get();
+```
 
-// Where time equals 09:30:00
+Where time equals 09:30:00
+```php
 db()->bucket('appointment')
     ->whereTime('start_time', '09:30:00')
     ->get();
@@ -550,8 +565,9 @@ db()->bucket('appointment')
 
 ### whereToday()
 The `whereToday()` method filters records where the date part of a column matches today’s date.
+
+Records created today
 ```php
-// Records created today
 db()->bucket('order')
     ->whereToday('created_at')
     ->get();
@@ -559,8 +575,9 @@ db()->bucket('order')
 
 ### whereYesterday()
 The `whereYesterday()` method filters records where the date part of a column matches yesterday’s date.
+
+Records from last year
 ```php
-// Records from last year
 db()->bucket('statistics')
     ->whereYesterday('recorded_at')
     ->get();
@@ -568,8 +585,9 @@ db()->bucket('statistics')
 
 ### whereThisMonth()
 The `whereThisMonth()` method filters records where the month part of a column matches the current month.
+
+Records from this month
 ```php
-// Records from this month
 db()->bucket('sale')
     ->whereThisMonth('sale_date')
     ->get();
@@ -577,8 +595,9 @@ db()->bucket('sale')
 
 ### whereLastMonth()
 The `whereLastMonth()` method filters records where the month part of a column matches the previous month.
+
+Records from last month
 ```php
-// Records from last month
 db()->bucket('invoice')
     ->whereLastMonth('invoice_date')
     ->get();
@@ -586,8 +605,9 @@ db()->bucket('invoice')
 
 ### whereThisYear()
 The `whereThisYear()` method filters records where the year part of a column matches the current year.
+
+Records from this year
 ```php
-// Records from this year
 db()->bucket('report')
     ->whereThisYear('report_date')
     ->get();
@@ -595,8 +615,9 @@ db()->bucket('report')
 
 ### whereLastYear()
 The `whereLastYear()` method filters records where the year part of a column matches the previous year.
+
+Records from last year
 ```php
-// Records from last year
 db()->bucket('statistics')
     ->whereLastYear('recorded_at')
     ->get();
@@ -604,8 +625,9 @@ db()->bucket('statistics')
 
 ### whereDateBetween()
 The `whereDateBetween()` method filters records where a date or datetime column falls between two given values (inclusive). By default, only the date part is compared. You can enable time comparison with the `$includeTime` parameter.
+
+Between two dates (date only comparison)
 ```php
-// Between two dates (date only comparison)
 db()->bucket('result')
     ->whereDateBetween('test_date', '2023-01-01', '2023-01-31')
     ->get();
@@ -614,27 +636,31 @@ db()->bucket('result')
 ### whereDateTimeBetween()
 The `whereDateTimeBetween()` method filters records where a datetime column falls between two given datetime values (inclusive of both boundaries). This method includes time comparison by default and is ideal for precise timestamp ranges.
 
-Usage example
+Basic datetime range (inclusive of both boundaries)
 ```php
-// Basic datetime range (inclusive of both boundaries)
 db()->bucket('users')
     ->whereDateTimeBetween('created_at', '2025-01-01 00:00:00', '2025-10-31 13:59:59')
     ->get();
+```
 
-// Using DateTime objects
+Using DateTime objects
+```php
 $start = new DateTime('2025-01-01 00:00:00');
 $end = new DateTime('2025-10-31 13:59:59');
 db()->bucket('users')
     ->whereDateTimeBetween('created_at', $start, $end)
     ->get();
+```
 
-// Date strings with automatic time handling
-// Start becomes '2025-01-01 00:00:00', End becomes '2025-01-31 23:59:59'
+Date strings with automatic time handling. Start becomes '2025-01-01 00:00:00', End becomes '2025-01-31 23:59:59'
+```php
 db()->bucket('users')
     ->whereDateTimeBetween('created_at', '2025-01-01', '2025-01-31')
     ->get();
+```
 
-// Specific time window within a day
+Specific time window within a day
+```php
 db()->bucket('users')
     ->whereDateTimeBetween('created_at', '2025-01-15 09:00:00', '2025-01-15 17:00:00')
     ->get();
@@ -950,8 +976,11 @@ When you only need to access a property or call a method without arguments on ea
 $users = db()->bucket('users')->get();
 
 $names = $users->map->name;
+```
 
-// Equivalent to $users->map(fn($user) => $user->name)
+The above code is equivalent to:
+```php
+$users->map(fn($user) => $user->name)
 ```
 
 ### filter() – Conditional Filtering
@@ -1045,7 +1074,7 @@ Now call the pagination for views
 {!! paginator($data)->links() !!}
 
 <!-- "Previous" and "Next" buttons, along with page jump options. -->
-{!! paginator($data)->linkWithJumps() !!} // 
+{!! paginator($data)->linkWithJumps() !!}
 ```
 
 ## Customize Default Pagination
@@ -1061,11 +1090,71 @@ Once you modify the `jump.Odo.php` and `number.Odo.php` files, the changes will 
 To fetch a specific subset of records from the database—such as a “page” of users—you can use the offset and limit methods on an Entity query.
 ```php
 db()->bucket('users')
-    ->offset(4)  // Skip the first 4 records
-    ->limit(10)  // Retrieve the next 10 records
+    ->offset(4)
+    ->limit(10)
     ->get();
 ```
-This is useful for simple pagination or when you want to retrieve a specific slice of your dataset.
+This query will skip the first 4 records and retrieve the next 10 records. This is useful for simple pagination or when you want to retrieve a specific slice of your dataset.
+
+## Cursor Pagination
+Cursor-based pagination is an efficient alternative to traditional offset pagination, especially for large datasets. Instead of using `OFFSET` and `LIMIT`, it uses a cursor — an encoded pointer to the last seen record — to fetch the next page. This avoids the performance degradation that comes with large offsets and ensures stable, consistent results even when data is being inserted or deleted between requests.
+
+Doppar provides cursor pagination through the `cursorPaginate()` method, available on both Entity models and the raw query builder.
+
+### Basic Usage
+```php
+User::cursorPaginate();
+```
+
+This will give you a response like this:
+```json
+{
+    "data": [
+        {
+            "id": 1,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "created_at": "2024-01-01 10:00:00"
+        },
+        {
+            "id": 2,
+            "name": "Jane Smith",
+            "email": "jane@example.com",
+            "created_at": "2024-01-02 10:00:00"
+        }
+    ],
+    "per_page": 15,
+    "next_cursor": "eyJ2IjoyfQ==",
+    "next_page_url": "http://example.com/users?cursor=eyJ2IjoyfQ==&per_page=15&direction=asc",
+    "has_more": true,
+    "direction": "asc"
+}
+```
+
+### Paginating with Custom Options
+You can pass custom options to the `cursorPaginate()` method, such as the number of records per page and the direction of pagination. Paginate 20 records per page in descending order
+```php
+User::cursorPaginate(20, 'id', 'desc');
+```
+
+### Fetching the Next Page
+Pass the `next_cursor` value from the previous response to get the next page. In a controller, this typically looks like:
+```php
+public function index(Request $request)
+{
+    return User::query()
+        ->where('status', 'active')
+        ->cursorPaginate(
+            perPage: 15,
+            cursorColumn: 'id',
+            direction: 'asc',
+            cursor: $request->cursor
+        );
+}
+```
+The `next_page_url` in the response automatically carries the cursor, `per_page`, and direction parameters, so the client can simply follow the URL for the next page
+
+> Note: The cursor column should be indexed and have reasonably unique values (such as id or created_at) to ensure correct and efficient pagination. Cursor pagination does not support jumping to arbitrary pages — it is strictly sequential forward pagination.
 
 <a name="database-transactions"></a>
 
@@ -1166,10 +1255,9 @@ Deadlocks can occur when multiple transactions compete for the same database res
 ```php
 DB::transaction(function () {
     // Operations that might deadlock
-}, 3); // Will attempt up to 3 times before throwing an exception
+}, 3);
 ```
-
-This approach helps mitigate issues caused by deadlocks by retrying the transaction a set number of times before ultimately failing.
+Will attempt up to 3 times before throwing an exception. This approach helps mitigate issues caused by deadlocks by retrying the transaction a set number of times before ultimately failing.
 
 Using transactions properly ensures database consistency and prevents data corruption due to incomplete operations. Doppar provides flexible methods for handling transactions, allowing both automatic and manual control based on the use case.
 
@@ -1361,17 +1449,20 @@ $stats = DB::view('vw_user_statistics');
 ```
 
 #### View with WHERE Conditions
-You can pass where condition in your custom view like
+You can pass where condition in your custom view like this way. View with single WHERE condition
 ```php
-// View with single WHERE condition
 $nyUsers = DB::view(
     'vw_user_locations', 
     ['state' => 'New York']
 );
+```
+This is equivalent to:
+```sql
+SELECT * FROM vw_user_locations WHERE state = 'New York'
+```
 
-// Equivalent to: SELECT * FROM vw_user_locations WHERE state = 'New York'
-
-// View with multiple WHERE conditions
+View with multiple WHERE conditions
+```php
 $premiumNyUsers = DB::view(
     'vw_user_locations',
     [
@@ -1379,25 +1470,26 @@ $premiumNyUsers = DB::view(
         'account_type' => 'premium'
     ]
 );
-
-// Equivalent to: 
-// SELECT * FROM vw_user_locations 
-// WHERE state = 'New York' AND account_type = 'premium'
 ```
 
+This is equivalent to: 
+```sql
+SELECT * FROM vw_user_locations  WHERE state = 'New York' AND account_type = 'premium'
+``` 
+
 ### View with Parameter Binding
-You can also pass params with where condition as follows
+You can also pass params with where condition as follows. Let's see the example of using parameter binding for security
 ```php
-// 4. Using parameter binding for security
 $recentOrders = DB::view(
     'vw_recent_orders',
     ['status' => 'completed'],
     [':min_amount' => 100] // Additional parameters
 );
+```
 
-// Equivalent to:
-// SELECT * FROM vw_recent_orders 
-// WHERE status = 'completed' AND amount > :min_amount
+This is equivalent to:
+```sql
+SELECT * FROM vw_recent_orders WHERE status = 'completed' AND amount > :min_amount
 ```
 
 ### Summery
@@ -1450,7 +1542,6 @@ In real-world applications — especially in large-scale or modular systems — 
 Doppar Entity Builder makes working with multiple database connections seamless. You can easily target different connections either statically or dynamically at runtime, ensuring maximum flexibility without adding complexity.
 
 ```php
-// Querying from a different database connection
 db()->connection('mysql_second')
     ->bucket('users')
     ->get();
@@ -1463,18 +1554,25 @@ In Doppar, if you're working with multiple databases, you don't always need to u
 To do this on a specific database connection, Doppar lets you chain `connection('mysql_second')` before calling any query builder method. This allows you to use the full capabilities of `DB` facades query on a different database.
 
 Below is a basic example showing how you can use various methods on a specific connection using Doppar’s DB facade:
+
+Run a simple query on the 'mysql_second' connection
 ```php
 use Phaseolies\Support\Facades\DB;
 
-// Run a simple query on the 'mysql_second' connection
 DB::connection('mysql_second')->query('SELECT * FROM reports');
+```
 
-// Get all table names from the 'mysql_second' database
+Get all table names from the 'mysql_second' database
+```php
 DB::connection('mysql_second')->getTables();
+```
 
-// Check if a specific table exists in the secondary connection
+Check if a specific table exists in the secondary connection
+```php
 DB::connection('mysql_second')->tableExists('user');
+```
 
-// Access the raw PDO connection for lower-level operations
+Access the raw PDO connection for lower-level operations
+```php
 DB::connection('mysql_second')->getConnection();
 ```
