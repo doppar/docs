@@ -15,6 +15,7 @@ meta:
   - [Querying Date Columns](#querying-date-columns)
   - [Transform Entity Collection](#transform-entity-collection)
   - [Pagination](#pagination)
+  - [Cursor Pagination](#cursor-pagination)
   - [Database Transactions](#database-transactions)
   - [Entity Join](#entity-join)
   - [Handling Large Dataset](#handling-large-dataset)
@@ -96,9 +97,12 @@ Available Debug Methods:
 You can measure memory consumption of a query result by chaining `->withMemoryUsage()` after data retrieval:
 ```php
 User::limit(10)->get()->withMemoryUsage();
-
-// Memory usage: 2 MB, Peak: 2 MB
 ```
+Returns the memory used to fetch and hold the result.
+```
+Memory usage: 2 MB, Peak: 2 MB
+```
+
 What It Does:
 - Outputs the memory used to fetch and hold the result.
 - Helps profile large datasets or optimize memory-sensitive operations.
@@ -243,12 +247,13 @@ These methods offer a clean and readable way to sort query results by time or an
 ### Selecting Specific Columns
 In many cases, you may not need to retrieve every column from a table—especially when working with large datasets. Entity's `select()` method allows you to specify exactly which columns you want to fetch, helping optimize performance and reduce memory usage.
 
-Here are a few examples:
+Selecting specific columns using an array
 ```php
-// Selecting specific columns using an array
 User::select(['name', 'email'])->get();
+```
 
-// Selecting specific columns using multiple arguments
+Selecting specific columns using multiple arguments
+```php
 User::select('name', 'email')->get();
 ```
 
@@ -447,9 +452,9 @@ This is useful for generating reports, monthly user activity, or analytics dashb
 To check whether a specific row exists in your database, you can use the exists() function. This method returns a boolean value (true or false) based on whether the specified condition matches any records. Here's an example:
 ```php
 User::where('id', 1)->exists();
-
-// Returns `true` if a matching row exists, otherwise `false`.
 ```
+
+Returns `true` if a matching row exists, otherwise `false`.
 
 ### whereIn()
 The whereIn() method filters records where a column's value matches any value in the given array.
@@ -965,27 +970,40 @@ Result:
 ## Querying Date Columns
 ### whereDate()
 The `whereDate()` method filters records by matching only the date part (`ignoring time`) of a column against a given value. It supports custom comparison operators.
+
+Where date equals a specific date
 ```php
-// Where date equals a specific date
 User::query()
     ->whereDate('created_at', '2023-01-01')
     ->get();
+```
 
-// Where date is greater than a specific date
+Where date is greater than a specific date
+```php
 User::query()
     ->whereDate('created_at', '>', '2023-01-01')
     ->get();
 ```
 
+Where date is less than a specific date
+```php
+User::query()
+    ->whereDate('created_at', '<', '2023-01-01')
+    ->get();
+```
+
 ### whereMonth()
 The `whereMonth()` method filters records by matching only the month part of a date or datetime column against a given value. The month can be given as a number (1 for January, 12 for December) and supports custom comparison operators.
+
+Where month is January (month 1)
 ```php
-// Where month is January (month 1)
 Order::query()
     ->whereMonth('order_date', 1)
     ->get();
+```
 
-// Where month is greater than March
+Where month is greater than March
+```php
 Order::query()
     ->whereMonth('order_date', '>', 3)
     ->get();
@@ -993,13 +1011,16 @@ Order::query()
 
 ### whereYear()
 The `whereYear()` method filters records by matching only the year part of a date or datetime column against a given value. Supports custom comparison operators.
+
+Where year is 2023
 ```php
-// Where year is 2023
 Post::query()
     ->whereYear('published_at', 2023)
     ->get();
+```
 
-// Where year is greater than 2020
+Where year is greater than 2020
+```php
 Post::query()
     ->whereYear('published_at', '>', 2020)
     ->get();
@@ -1007,27 +1028,33 @@ Post::query()
 
 ### whereDay()
 The `whereDay()` method filters records by matching only the day of the month (1–31) from a date or datetime column. Supports custom comparison operators.
+
+Where day is the 15th
 ```php
-// Where day is the 15th
 Event::query()
     ->whereDay('event_date', 15)
     ->get();
+```
 
-// Where day is less than 10
+Where day is less than 10
+```php
 Event::query()
     ->whereDay('event_date', '<', 10)
     ->get();
 ```
+
 ### whereTime()
 The `whereTime()` method filters records by matching only the time part (`HH:MM:SS`) of a datetime or time column. Supports custom comparison operators.
 
+Where time is after 14:00:00
 ```php
-// Where time is after 14:00:00
 Appointment::query()
     ->whereTime('start_time', '>', '14:00:00')
     ->get();
+```
 
-// Where time equals 09:30:00
+Where time equals 09:30:00
+```php
 Appointment::query()
     ->whereTime('start_time', '09:30:00')
     ->get();
@@ -1035,8 +1062,9 @@ Appointment::query()
 
 ### whereToday()
 The `whereToday()` method filters records where the date part of a column matches today’s date.
+
+Records created today
 ```php
-// Records created today
 Order::query()
     ->whereToday('created_at')
     ->get();
@@ -1044,8 +1072,9 @@ Order::query()
 
 ### whereYesterday()
 The `whereYesterday()` method filters records where the date part of a column matches yesterday’s date.
+
+Records from yesterday
 ```php
-// Records from last year
 Statistic::query()
     ->whereYesterday('recorded_at')
     ->get();
@@ -1053,8 +1082,9 @@ Statistic::query()
 
 ### whereThisMonth()
 The `whereThisMonth()` method filters records where the month part of a column matches the current month.
+
+Records from this month
 ```php
-// Records from this month
 Sale::query()
     ->whereThisMonth('sale_date')
     ->get();
@@ -1062,8 +1092,9 @@ Sale::query()
 
 ### whereLastMonth()
 The `whereLastMonth()` method filters records where the month part of a column matches the previous month.
+
+Records from last month
 ```php
-// Records from last month
 Invoice::query()
     ->whereLastMonth('invoice_date')
     ->get();
@@ -1071,8 +1102,9 @@ Invoice::query()
 
 ### whereThisYear()
 The `whereThisYear()` method filters records where the year part of a column matches the current year.
+
+Records from this year
 ```php
-// Records from this year
 Report::query()
     ->whereThisYear('report_date')
     ->get();
@@ -1080,8 +1112,9 @@ Report::query()
 
 ### whereLastYear()
 The `whereLastYear()` method filters records where the year part of a column matches the previous year.
+
+Records from last year
 ```php
-// Records from last year
 Statistic::query()
     ->whereLastYear('recorded_at')
     ->get();
@@ -1089,8 +1122,9 @@ Statistic::query()
 
 ### whereDateBetween()
 The `whereDateBetween()` method filters records where a date or datetime column falls between two given values (inclusive). By default, only the date part is compared. You can enable time comparison with the `$includeTime` parameter.
+
+Between two dates (date only comparison)
 ```php
-// Between two dates (date only comparison)
 Result::query()
     ->whereDateBetween('test_date', '2023-01-01', '2023-01-31')
     ->get();
@@ -1099,27 +1133,31 @@ Result::query()
 ### whereDateTimeBetween()
 The `whereDateTimeBetween()` method filters records where a datetime column falls between two given datetime values (inclusive of both boundaries). This method includes time comparison by default and is ideal for precise timestamp ranges.
 
-Usage example
+Basic datetime range (inclusive of both boundaries)
 ```php
-// Basic datetime range (inclusive of both boundaries)
 User::query()
     ->whereDateTimeBetween('created_at', '2025-01-01 00:00:00', '2025-10-31 13:59:59')
     ->get();
+```
 
-// Using DateTime objects
+Using DateTime objects
+```php
 $start = new DateTime('2025-01-01 00:00:00');
 $end = new DateTime('2025-10-31 13:59:59');
 User::query()
     ->whereDateTimeBetween('created_at', $start, $end)
     ->get();
+```
 
-// Date strings with automatic time handling
-// Start becomes '2025-01-01 00:00:00', End becomes '2025-01-31 23:59:59'
+Date strings with automatic time handling. Start becomes '2025-01-01 00:00:00', End becomes '2025-01-31 23:59:59'
+```php
 User::query()
     ->whereDateTimeBetween('created_at', '2025-01-01', '2025-01-31')
     ->get();
+```
 
-// Specific time window within a day
+Specific time window within a day
+```php
 User::query()
     ->whereDateTimeBetween('created_at', '2025-01-15 09:00:00', '2025-01-15 17:00:00')
     ->get();
@@ -1208,7 +1246,7 @@ User::query()
 ```
 This filters users whose email matches the pattern `name@demo.com`, where name consists of lowercase letters only.
 
-> 📌 `REGEXP` is not supported by PostgreSQL (pgsql) and SQLite by default.
+> `REGEXP` is not supported by PostgreSQL (pgsql) and SQLite by default.
 While MySQL and MariaDB natively support `REGEXP`.
 
 Perform a case-insensitive match using LIKE
@@ -1646,19 +1684,24 @@ $user->email = $request->email;
 
 $dirty = $user->getDirtyAttributes();
 dd($dirty); // e.g., ['name' => 'Nure']
+```
 
-// Use this method to check if a specific attribute is dirty:
+Use this method to check if a specific attribute is dirty:
+```php
 if ($user->isDirtyAttr('name')) {
     // The name has changed
 }
+```
 
-// Optional: Check if anything changed before saving
+Check if anything changed before saving
+```php
 if (!empty($user->getDirtyAttributes())) {
     // Only changed fields will be updated
     // Though Doppar by default only update dirty records
     $user->save();
 }
 ```
+
 This ensures unnecessary database updates are avoided and improves performance. You can also update like this way, this way also usage dirty attrubutes to update data.
 ```php
 User::find($id)
@@ -1690,7 +1733,7 @@ $tag = tap(
     }
 );
 
-return $tag; // Returns the updated model instance
+return $tag;
 ```
 
 This pattern ensures that you can modify a value and still work with the original object without needing an extra line for returning it.
@@ -1951,8 +1994,14 @@ Product::query()
 To increase the value of a numeric column (e.g., views):
 ```php
 $post = Post::find(1);
-$post->increment('views'); // Increments by 1 by default
-$post->increment('views', 10); // Increments by 10
+$post->increment('views');
+```
+
+By default this will increment 1.
+
+Increments by 10
+```php
+$post->increment('views', 10);
 ```
 
 You can also update additional fields during the increment:
@@ -1964,11 +2013,15 @@ $post->increment('views', 1, [
 ```
 
 ### Decrementing a Column
-To decrease the value of a numeric column:
+To decrease the value of a numeric column. Decrements by 1 by default
 ```php
 $post = Post::find(1);
-$post->decrement('views'); // Decrements by 1 by default
-$post->decrement('views', 10); // Decrements by 10
+$post->decrement('views');
+```
+
+Decrements by 10
+```php
+$post->decrement('views', 10); 
 ```
 
 You can also attach extra updates when decrementing:
@@ -2005,8 +2058,13 @@ When you only need to access a property or call a method without arguments on ea
 $users = User::all();
 
 $names = $users->map->name;
+```
 
-// Equivalent to $users->map(fn($user) => $user->name)
+The above query is equivalent to 
+```php
+$users = User::all();
+
+$names = $users->map(fn($user) => $user->name);
 ```
 
 The property shortcut works great with relationships as well:
@@ -2133,12 +2191,69 @@ Once you modify the `jump.Odo.php` and `number.Odo.php` files, the changes will 
 ## Retrieving a Paginated Subset of Records
 To fetch a specific subset of records from the database—such as a “page” of users—you can use the offset and limit methods on an Entity query.
 ```php
-User::query()
-    ->offset(4)  // Skip the first 4 records
-    ->limit(10)  // Retrieve the next 10 records
-    ->get();
+User::query()->offset(4)->limit(10)->get();
 ```
-This is useful for simple pagination or when you want to retrieve a specific slice of your dataset.
+This query will skip the first 4 records and retrieve the next 10 records. This is useful for simple pagination or when you want to retrieve a specific slice of your dataset.
+
+## Cursor Pagination
+Cursor-based pagination is an efficient alternative to traditional offset pagination, especially for large datasets. Instead of using `OFFSET` and `LIMIT`, it uses a cursor — an encoded pointer to the last seen record — to fetch the next page. This avoids the performance degradation that comes with large offsets and ensures stable, consistent results even when data is being inserted or deleted between requests.
+
+Doppar provides cursor pagination through the `cursorPaginate()` method, available on both Entity models and the raw query builder.
+
+### Basic Usage
+```php
+User::cursorPaginate();
+```
+
+This will give you a response like this:
+```json
+{
+    "data": [
+        {
+            "id": 1,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "created_at": "2024-01-01 10:00:00"
+        },
+        {
+            "id": 2,
+            "name": "Jane Smith",
+            "email": "jane@example.com",
+            "created_at": "2024-01-02 10:00:00"
+        }
+    ],
+    "per_page": 15,
+    "next_cursor": "eyJ2IjoyfQ==",
+    "next_page_url": "http://example.com/users?cursor=eyJ2IjoyfQ==&per_page=15&direction=asc",
+    "has_more": true,
+    "direction": "asc"
+}
+```
+
+### Paginating with Custom Options
+You can pass custom options to the `cursorPaginate()` method, such as the number of records per page and the direction of pagination. Paginate 20 records per page in descending order
+```php
+User::cursorPaginate(20, 'id', 'desc');
+```
+
+### Fetching the Next Page
+Pass the `next_cursor` value from the previous response to get the next page. In a controller, this typically looks like:
+```php
+public function index(Request $request)
+{
+    return User::query()
+        ->where('status', 'active')
+        ->cursorPaginate(
+            perPage: 15,
+            cursorColumn: 'id',
+            direction: 'asc',
+            cursor: $request->cursor
+        );
+}
+```
+The `next_page_url` in the response automatically carries the cursor, `per_page`, and direction parameters, so the client can simply follow the URL for the next page
+
+> Note: The cursor column should be indexed and have reasonably unique values (such as id or created_at) to ensure correct and efficient pagination. Cursor pagination does not support jumping to arbitrary pages — it is strictly sequential forward pagination.
 
 <a name="database-transactions"></a>
 
@@ -2243,10 +2358,10 @@ Deadlocks can occur when multiple transactions compete for the same database res
 ```php
 DB::transaction(function () {
     // Operations that might deadlock
-}, 3); // Will attempt up to 3 times before throwing an exception
+}, 3);
 ```
 
-This approach helps mitigate issues caused by deadlocks by retrying the transaction a set number of times before ultimately failing.
+Will attempt up to 3 times before throwing an exception. This approach helps mitigate issues caused by deadlocks by retrying the transaction a set number of times before ultimately failing.
 
 Using transactions properly ensures database consistency and prevents data corruption due to incomplete operations. Doppar provides flexible methods for handling transactions, allowing both automatic and manual control based on the use case.
 
@@ -2474,11 +2589,11 @@ Parameters
 - **chunkSize:** The number of records to fetch per internal chunk.
 - **transform (optional):** A callback function to transform each model before yielding.
 
-Example with Lazy Streaming
+Example with Lazy Streaming. Fetch 100 at a time lazily
 ```php
 $users = User::query()
     ->where('status', true)
-    ->stream(100); // Fetch 100 at a time lazily
+    ->stream(100);
 
 foreach ($users as $user) {
     //
@@ -2493,10 +2608,10 @@ You can also transform records before they are yielded using the optional `trans
 foreach (
     User::query()
         ->where('status', true)
-        ->stream(1000, fn($user) => strtoupper($user->name)) // Convert name to uppercase
+        ->stream(1000, fn($user) => strtoupper($user->name))
     as $userName
 ) {
-    dump($userName); // Already transformed string
+    dump($userName);
 }
 ```
 In this example
@@ -2524,7 +2639,7 @@ foreach (
         ->fstream(1000, fn($user) => strtoupper($user->name))
     as $userName
 ) {
-    dump($userName); // Already transformed
+    dump($userName);
 }
 ```
 
@@ -2611,22 +2726,21 @@ Doppar makes it easy to query from different database connections using Entity m
 
 Assume you're using a model like `Report`. Below are three ways to run queries on different database connections:
 
+Default way
 ```php
-// Default way
-Report::query()
-    ->orderBy('id', 'desc')
-    ->get();
-
-// With specific connection
-Report::query('mysql_second')
-    ->orderBy('id', 'desc')
-    ->get();
-
-// Using connection() method
-Report::connection('mysql_second')
-    ->orderBy('id', 'desc')
-    ->get();
+Report::orderBy('id', 'desc')->get();
 ```
+
+With specific connection
+```php
+Report::query('mysql_second')->orderBy('id', 'desc')->get();
+```
+
+Using connection() method
+```php
+Report::connection('mysql_second')->orderBy('id', 'desc')->get();
+```
+
 This tells the model to run the query on the `mysql_second` connection instead of the default one. Perfect for pulling data from a secondary database on the fly.
 
 ## Database Connection in Models
@@ -2645,9 +2759,8 @@ class Report extends Model
 ```
 With the connection explicitly set in the model, all database operations on the `Report` model will use the `mysql_second` connection by default.
 
+All operations below continue using 'mysql_second'
 ```php
-// Uses the 'mysql_second' connection
-
 Report::query()->orderBy('id', 'desc')->get();
 
 Report::query()
@@ -2655,8 +2768,7 @@ Report::query()
     ->update([
         'status' => 'reviewed',
     ]);
-
-// All operations below continue using 'mysql_second'
+ 
 $report = Report::find(1);
 $report->title = 'Updated Report';
 $report->save();
