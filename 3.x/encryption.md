@@ -31,8 +31,6 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $encrypted = Crypt::encrypt("Hello World");
-
-        $encrypted // This is now encrypted
     }
 }
 ```
@@ -54,8 +52,49 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $decrypted = Crypt::decrypt($encrypted);
-
-        $encrypted // This is now decrypted
     }
 }
 ```
+
+## Global Helper Functions
+Doppar also provides convenient global helper functions for encryption and decryption, allowing you to encrypt and decrypt values without importing the Crypt facade.
+
+### `encrypt()`
+The global `encrypt()` function provides a quick way to encrypt strings without using the Crypt facade:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Phaseolies\Http\Request;
+
+class UserController extends Controller
+{
+    public function store(Request $request)
+    {
+        $encrypted = encrypt("Hello World");
+    }
+}
+```
+
+### `decrypt()`
+The global `decrypt()` function provides a quick way to decrypt strings without using the Crypt facade:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Phaseolies\Http\Request;
+
+class UserController extends Controller
+{
+    public function store(Request $request)
+    {
+        $decrypted = decrypt($encrypted);
+    }
+}
+```
+
+Both global helper functions work identically to their Crypt facade counterparts, using the same encryption key and providing the same level of security. They are particularly useful for quick encryption/decryption operations where importing the facade would be unnecessary overhead.

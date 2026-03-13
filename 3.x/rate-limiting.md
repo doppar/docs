@@ -122,8 +122,7 @@ The global `throttle()` helper lets you check whether a specific action has exce
 
 Example: Limiting password reset attempts per user.
 ```php
-$userId = auth()->id();
-$key = 'password-reset:' . $userId;
+$key = 'password-reset:' . auth()->id();
 
 if (throttle()->tooManyAttempts($key, 3)) {
     $seconds = throttle()->availableIn($key);
@@ -133,10 +132,9 @@ if (throttle()->tooManyAttempts($key, 3)) {
     ], 429);
 }
 
-// Record the attempt (3 attempts per 10 minutes)
 throttle()->hit($key, 600);
 ```
-The throttle key should uniquely identify the action you want to limit.
+The above example will do `3` attempts per `10` minutes. The throttle key should uniquely identify the action you want to limit.
 
 ## Response Headers
 When a rate limit is enforced, Doppar automatically includes helpful headers in the response:

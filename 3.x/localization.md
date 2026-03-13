@@ -13,19 +13,29 @@ Localization is a key feature in Doppar that allows your application to support 
 ## Setting the Locale
 To change the application's active locale (language), you can use the `App::setLocale()` method. This sets the language that will be used when retrieving translation strings.
 
+Sets the application locale to English
 ```php
 use Phaseolies\Support\Facades\App;
 
-App::setLocale('en'); // Sets the application locale to English
-App::setLocale('fr'); // Sets the application locale to French
+App::setLocale('en');
 ```
-The locale you set must correspond to a subdirectory in your lang folder (e.g., lang/en, lang/fr), where the respective language files are stored.
+
+Sets the application locale to French
+```php
+App::setLocale('fr');
+```
+The locale you set must correspond to a subdirectory in your lang folder `(e.g., lang/en, lang/fr)`, where the respective language files are stored.
 
 You can also set the application's locale using the `app()` helper, which provides a convenient shortcut for accessing services in the container. Here's how you would set the locale this way:
 
+Set locale to English
 ```php
-app()->setLocale('en'); // Set locale to English
-app()->setLocale('fr'); // Set locale to French
+app()->setLocale('en');
+```
+
+Set locale to French
+```php
+app()->setLocale('fr');
 ```
 This is functionally identical to using `App::setLocale()`, and is often used when you want to avoid importing the `App` facade directly.
 
@@ -55,21 +65,26 @@ return [
 ```
 You can retrieve this translation using different approaches:
 
-### Using the lang() Helper
+### Using the `lang()` Helper
 ```php
 lang()->get('messages.welcome', ['version' => Application::VERSION]);
-// or
+```
+
+Or you can use `trans()` function like this way
+```php
 lang()->trans('messages.welcome', ['version' => Application::VERSION]);
 ```
 
 ### Using the Lang Facade
+You can do the same thing using `Lang` facades:
 ```php
 use Phaseolies\Supports\Facades\Lang;
 
 $message = Lang::trans('messages.welcome', ['version' => Application::VERSION]);
 ```
 
-### Using the trans() Helper
+### Using the `trans()` Helper
+There is also a global `trans()` helper, no namespace import required.
 ```php
 $message = trans('messages.welcome', ['version' => Application::VERSION]);
 ```
