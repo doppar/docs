@@ -147,7 +147,7 @@ binding key.
 | Facade     | Underlying Class                                    | Binding    |
 |------------|-----------------------------------------------------|------------|
 | `App`      | `Phaseolies\Application`                            | `app`      |
-| `Auth`     | `Phaseolies\Auth\Security\Auth`                     | `auth`     |
+| `Auth`     | `Phaseolies\Auth\ActorManager`                      | `auth`     |
 | `Abort`    | `Phaseolies\Http\Support\Abort`                     | `abort`    |
 | `Cache`    | `Phaseolies\Cache\CacheStore`                       | `cache`    |
 | `Config`   | `Phaseolies\Config\Config`                          | `config`   |
