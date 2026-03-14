@@ -438,8 +438,12 @@ $post = Post::find(1);
 $post->tags()->relate([1, 2, 3]);
 
 $changes = $post->tags()->relate([1, 2, 4]); // 3 will be removed
+```
 
-$post->tags()->relate([1, 2, 3], false); // link without unlinking
+#### link without unlinking
+You can also use the `relate()` method without unlinking existing relationships by passing `false` as the second argument.
+```php
+$post->tags()->relate([1, 2, 3], false);
 ```
 
 ### Syncing with Pivot Data Using
@@ -570,8 +574,6 @@ Adds a `comments_count` attribute with the total number of related comments.
 
 This approach offers precise control over both the parent and related models — letting you build rich, optimized data responses in a single query.
 
-> 💡 For many-to-many relationships, all related columns — including pivot columns — are always included automatically. Selecting specific columns for these relations is not supported.
-
 ### Fetching Multiple Relationships
 This query retrieves users along with their related articles and address using the embed method. By embedding multiple relationships, it ensures that all necessary data is fetched in a single query, improving efficiency and reducing additional database calls.
 ```php
@@ -585,9 +587,9 @@ When fetching model records, there are times you might want to filter results ba
 
 In Doppar ORM, the present() method can be used to load relationships that are present (i.e., do not exist) in the model, or when you want to ensure related data is included, even if it is not empty.
 ```php
-// Retrieve all posts that have at least one comment...
 Post::query()->present('comments')->get();
 ```
+This will retrieve all posts that have at least one comment.
 
 The `present()` method can be used to load a relationship with custom query conditions. You can define specific conditions inside the closure passed to present() to filter the related data.
 ```php
@@ -624,9 +626,8 @@ Post::query()
 
 This returns all users that have at least one `post → comment → reply` where `status = true`.
 
-You can do the same thing using `ifExists` method
+You can do the same thing using `ifExists` method. Retrieve all posts that have at least one comment...
 ```php
-// Retrieve all posts that have at least one comment...
 Post::query()->ifExists('comments')->get();
 ```
 The `ifExists()` method in Doppar is used as a conditional check to determine whether a related model (e.g., posts) exists in the database for a given parent model (e.g., users). This method is useful for filtering results based on the existence of related data without requiring explicit joins or additional queries
@@ -653,8 +654,9 @@ This returns all users that have at least one `post → comment → reply` where
 
 ## Quering Relationship Missing
 The `absent()` method is used to fetch records where a particular relationship does not exist. This is useful when you want to retrieve records that are missing related data.
+
+Retrieve all posts that has no comments:
 ```php
-// Retrieve all posts that has no comments
 Post::query()->absent('comments')->get();
 ```
 
@@ -667,16 +669,18 @@ User::query()
 ```
 
 In the Doppar framework, the `ifNotExists()` method works similarly to the `ifExists()` method but with the inverse logic. Instead of filtering posts who that has at least one comment, it retrieves posts that don't have any related comments. This can be useful when you want to find records without any associated data.
+
+Find posts that don't have any comments:
 ```php
-// Find posts that don't have any comments
 Post::query()->ifNotExists('comments')->get();
 ```
 `ifNotExists('comments')` Filters the Post models to only those where the comments relationship is empty or doesn't exist.
 
 ## whereLinked()
 Filters models based on the existence of related records that match a given condition. This method allows you to query models that are linked (via relationships) to other models with specific field values.
+
+Find users who have at least one published post
 ```php
-// Find users who have at least one published post
 User::query()
     ->whereLinked('posts', 'status', true)
     ->orderBy('id', 'asc')
@@ -686,8 +690,9 @@ User::query()
 In the example above, only users who have at least one related Post with `status = true` will be returned.
 
 You can also use nested relationships in your `whereLinked()` method to apply conditions on deeper relationship chains.
+
+Find posts that have at least one comment with an approved reply:
 ```php
-// Find posts that have at least one comment with an approved reply
 Post::query()
     ->whereLinked('comments.reply', 'status', true)
     ->pluck('id');
@@ -698,9 +703,8 @@ his will return all `Post` records that have at least one `Comment` whose relate
 ## Relationship Count
 The `embedCount()` method is used to count related records without loading all the details. This is useful when you only need to know how many related items exist, for example, how many posts a user has, without fetching all posts from the database. Using `embedCount()` can make your queries faster and more efficient.
 
-For example:
+For example count posts for each user:
 ```php
-// Count posts for each user
 User::query()->embedCount('posts')->get();
 ```
 Or count multiple relations at once:
@@ -716,8 +720,9 @@ User::query()
 
 ### Conditional Counting
 You can apply conditions to only count certain related records. This is useful if you want to count only “active” or “published” items.
+
+Count only active posts for each user
 ```php
-// Count only active posts for each user
 User::query()
     ->embedCount('posts', function ($query) {
         $query->where('status', true);
@@ -725,9 +730,8 @@ User::query()
     ->get();
 ```
 
-Or count multiple relations with individual conditions:
+Or count multiple relations with individual conditions. Count published posts and approved comments for each user
 ```php
-// Count published posts and approved comments for each user
 User::query()->embedCount([
     'posts' => fn($q) => $q->where('published', true),
     'comments' => fn($q) => $q->where('approved', true),
@@ -736,8 +740,9 @@ User::query()->embedCount([
 
 ### Combining `embed()` and `embedCount()`
 Sometimes you need to load full relations for some fields but just count others.
+
+Load full posts and OTPs, but only count posts
 ```php
-// Load full posts and OTPs, but only count posts
 User::query()
     ->embed(['posts', 'otp'])
     ->embedCount(['posts'])
