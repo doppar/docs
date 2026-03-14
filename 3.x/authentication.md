@@ -30,21 +30,41 @@ This will scaffold the essential authentication logic into your application, inc
 - Middleware for route protection
 
 ## Authentication Model Configuration
-The `config/auth.php` file in Doppar defines the Entity model used for authentication.
+The `config/auth.php` file in Doppar defines the actors and Entity models used for authentication.
 
-By default, Doppar uses the `App\Models\User` model. However, if your application requires custom authentication logic or uses a different user-related model (e.g., Admin, Customer, or Member), you can update this value accordingly.
+By default, Doppar uses the `App\Models\User` model under an actor named `web`. However, if your application requires custom authentication logic or uses different user-related models (e.g., `Admin`, `Customer`, or `Member`), you can add additional actors accordingly.
 ```php
 <?php
 
 return [
-    // Specifies the model class used for authentication.
-    // You can replace this with a custom model if needed.
-    'model' => App\Models\User::class,
+    /*
+    |--------------------------------------------------------------------------
+    | Default Authentication Actor
+    |--------------------------------------------------------------------------
+    |
+    | The actor that is used when calling Auth:: or auth() without specifying
+    | an explicit actor name.
+    |
+    */
+    'default' => 'web',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Actors
+    |--------------------------------------------------------------------------
+    |
+    | Define every actor your application needs. Keep "session_key" values
+    | unique across actors to prevent session collisions.
+    |
+    */
+    'actors' => [
+
+        'web' => [
+            'model'       => App\Models\User::class,
+            'session_key' => 'user',
+        ],
+    ],
 ];
-```
-If you have a custom model like `App\Models\Admin`, you can update the configuration:
-```php
-'model' => App\Models\Admin::class,
 ```
 
 ## Custom Login Functionality
@@ -125,11 +145,12 @@ In some applications, authentication is not based on `email` but instead uses a 
 ```php
 /**
  * Get the authentication key name used for identifying the user.
+ *
  * @return string
  */
 public function getAuthKeyName(): string
 {
-    return "username"; // set any key for authentication
+    return "username";
 }
 ```
 Now, instead of logging in with an `email`, Doppar will use the `username` field for authentication.
@@ -150,34 +171,203 @@ class LoginController extends Controller
 {
     public function logout()
     {
-        Auth::logout(); // User login session is now destroyed
+        Auth::logout();
     }
 }
 ```
 
 ## Get Authenticated User Data
 To get the current authenticated user data, Doppar has `Auth::user()` method and `auth()` helper. Simply call
+
+Using the Auth facade
 ```php
 use Phaseolies\Support\Facades\Auth;
 
-// Using the Auth facade
-Auth::user(); // Returns the authenticated user instance
+Auth::user();
+```
 
-// Using the auth() helper
-auth()->user(); // Same as above
+Using the `auth()` helper
+```php
+auth()->user();
+```
 
-// From the current request instance
-$request->user(); // Useful in controller methods
+From the current request instance
+```php
+$request->user();
+```
 
-// Using the request() helper
-request()->user(); // Same as $request->user()
+Using the `request()` helper
+```php
+request()->user();
+```
 
-// Alternatively, using auth() directly from request
-request()->auth(); // Returns the authenticated user
+Alternatively, using `auth()` directly from request
+```php
+request()->auth();
 ```
 Each of these methods returns the current authenticated user object, allowing you to access properties like `$user->name`, `$user->email`, etc.
 
-## Two Factor Authentication
+## Multi Actor Authentication
+Doppar supports multiple authentication actors, allowing different user types — such as regular users and administrators — to be authenticated independently within the same request. Each actor maintains its own session, remember-me cookie, and user cache, so logging out of one actor never affects another.
+
+This is useful for applications that have:
+- A public-facing user area and a separate admin panel
+- Multiple user roles stored in different database tables
+- API consumers and web users authenticated differently
+
+### Configuring Actors
+Open `config/auth.php` and declare each actor under the `actors` key. Every actor requires a `model` (the Entity class) and a `session_key` (a unique string used to store the user's ID in the session).
+```php
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Default Authentication Actor
+    |--------------------------------------------------------------------------
+    |
+    | The actor that is used when calling Auth:: or auth() without specifying
+    | an explicit actor name.
+    |
+    */
+    'default' => 'web',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Actors
+    |--------------------------------------------------------------------------
+    |
+    | Define every actor your application needs. Keep "session_key" values
+    | unique across actors to prevent session collisions.
+    |
+    */
+    'actors' => [
+
+        'web' => [
+            'model'       => App\Models\User::class,
+            'session_key' => 'user',
+        ],
+
+        'admin' => [
+            'model'       => App\Models\Admin::class,
+            'session_key' => 'admin_user',
+        ],
+
+    ],
+];
+```
+
+You can add as many actors as your application needs. Each actor is fully isolated — its own session slot, its own remember-me cookie, and its own user cache.
+### Using Actors
+Doppar gives you three equivalent ways to target an actor. All of them resolve the same underlying instance — use whichever reads most naturally in context.
+
+Default actor (web) — all three are equivalent
+```php
+Auth::check();
+auth()->check();
+auth('web')->check();
+```
+
+Named actor via helper shorthand
+```php
+auth('admin')->check();
+```
+
+Named actor via the Auth facade — explicit fluent form
+```php
+Auth::actor('admin')->check();
+Auth::actor('admin')->user();
+Auth::actor('admin')->user()->name;
+```
+
+Named actor via helper and facade are identical
+```php
+auth('admin')->user()->name;
+Auth::actor('admin')->user()->name;
+```
+
+All authentication methods (try, `login`, `loginUsingId`, `onceUsingId`, `check`, `user`, `id`, `logout`, `viaRemember`, `can` etc.) are available on every actor.
+
+### Multi Actor Login
+Attempt login on the admin actor:
+
+```php
+if (auth('admin')->try($request->passed())) {
+    return redirect()->route('admin.dashboard');
+}
+```
+
+Or Log in a user object on the admin actor:
+```php
+auth('admin')->login($adminUser);
+```
+
+Now you can get the admin actor's authenticated user:
+```php
+$admin = auth('admin')->user();
+Auth::actor('admin')->user();
+```
+
+### Actor-Scoped Sessions and Cookies
+Each actor writes its state to separate, namespaced session keys and cookies so that actors can never interfere with one another:
+| Concern | Web actor | Admin actor |
+|---|---|---|
+| Session user ID | `user` | `admin_user` |
+| User cache | `cache_auth_web` | `cache_auth_admin` |
+| Via-remember flag | `auth_via_remember_web` | `auth_via_remember_admin` |
+| Remember-me cookie | `remember_doppar_web_<hash>` | `remember_doppar_admin_<hash>` |
+| 2FA pending user | `2fa_web_user_id` | `2fa_admin_user_id` |
+| 2FA remember flag | `2fa_web_remember` | `2fa_admin_remember` |
+
+### Logging Out of a Specific Actor
+Log out of the admin actor only — web actor session is untouched
+
+```php
+auth('admin')->logout();
+```
+
+Or via the Auth facade:
+
+```php
+Auth::actor('admin')->logout();
+```
+
+## Multi Actor Login Example
+Here is a complete example of an admin login controller using a dedicated actor:
+```php
+<?php
+
+namespace App\Http\Controllers\Admin\Auth;
+
+use Phaseolies\Http\Request;
+use App\Http\Controllers\Controller;
+
+class AdminLoginController extends Controller
+{
+    public function login(Request $request)
+    {
+        $request->sanitize([
+            'email'    => 'required|email|min:2|max:100',
+            'password' => 'required|min:2|max:20',
+        ]);
+
+        $remember = (bool) $request->input('remember');
+
+        if (auth('admin')->try($request->passed(), $remember)) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return back()->withErrors(['email' => 'Invalid admin credentials.']);
+    }
+
+    public function logout()
+    {
+        Auth::actor('admin')->logout();
+    }
+}
+```
+
+## Two Factor Authentication`
 ### Introduction
 Doppar Framework provides a robust, secure, and developer-friendly implementation of Two-Factor Authentication (2FA) to enhance user account protection. Built on top of industry standards such as `TOTP (Time-Based One-Time Password Algorithm)`, this module allows seamless integration of 2FA into any user-based application using the framework.
 
