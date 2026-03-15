@@ -48,7 +48,7 @@ This is the base layout file that your pages will extend. It defines the overall
 ```
 
 ###  Extending the Layout
-Here is a view file that extends the base layout and fills in the dynamic sections. Page-specific styles and scripts are pushed into their respective slots using `#inject` so they land in the correct place in the document — inside <head> for styles and before `</body>` for scripts — regardless of where in the template they are declared.
+Here is a view file that extends the base layout and fills in the dynamic sections. Page-specific styles and scripts are pushed into their respective slots using `#inject` so they land in the correct place in the document — inside `<head>` for styles and before `</body>` for scripts — regardless of where in the template they are declared.
 
 ```html
 [[-- resources/views/dashboard.odo.php --]]
