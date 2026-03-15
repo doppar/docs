@@ -647,6 +647,100 @@ Provides an alternative block inside a `#scopenot` directive:
 #endscopenot
 ```
 
+## #blank
+The `#blank` directive renders its content block when a variable is empty — meaning it is null, an empty string `""`, an `empty` array `[]`, or `0`. This is a cleaner and more expressive alternative to writing `#if (empty($var))` every time you need to check for the absence of data.
+
+```html
+#blank($posts)
+    <div class="alert alert-info">
+        No posts found. <a href="/posts/create">Create your first post.</a>
+    </div>
+#endblank
+```
+
+## #notblank
+The `#notblank` directive is the inverse of `#blank`. It renders its block only when the variable has a value — meaning it is not null, not an empty string, and not an empty array.
+
+```html
+#notblank($user->bio)
+    <p>[[ $user->bio ]]</p>
+#endnotblank
+
+#notblank($posts)
+    <p>[[ count($posts) ]] posts available.</p>
+#endnotblank
+```
+
+## #solo
+The `#solo` directive renders its content block exactly once per request, regardless of how many times the surrounding template or partial is included or iterated. With `#solo`, the asset tag renders exactly once no matter how many iterations the loop runs:
+```html
+#foreach ($posts as $post)
+    #solo
+        <script src="/js/editor.js"></script>
+        <link rel="stylesheet" href="/css/editor.css">
+    #endsolo
+
+    <div class="post">
+        <h3>[[ $post->title ]]</h3>
+        <p>[[ $post->excerpt ]]</p>
+    </div>
+#endforeach
+```
+
+`#solo` is also useful when a partial is included from multiple places in the same request. Even if the partial is included ten times across different views, anything inside `#solo` renders only on the first encounter:
+
+## Inject and Slot Directives
+Odo provides a named content stack system through the `#inject` and #slot directives. This system allows any view or partial — regardless of where it sits in the template hierarchy — to push content into a named location defined in the layout. This is the recommended way to manage page-specific scripts, stylesheets, and any other content that belongs in a specific part of the layout but originates from a child view or partial.
+
+### #slot
+The `#slot` directive defines a named output point in a layout. It outputs all content that has been pushed into that slot by any view or partial during the current render. Define your slots in your layout file where you want the collected content to appear:
+```html
+[[-- resources/views/layouts/app.odo.php --]]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>#yield('title') — [[ config('app.name') ]]</title>
+    <link rel="stylesheet" href="/css/app.css">
+
+    [[-- All stylesheets injected from child views appear here --]]
+    #slot('styles')
+</head>
+<body>
+    #yield('content')
+
+    <script src="/js/app.js"></script>
+
+    [[-- All scripts injected from child views appear here --]]
+    #slot('scripts')
+</body>
+</html>
+```
+You can define as many named slots as you need. Common slot names include styles, scripts, head, and modals, but you can use any name that suits your layout.
+
+### #inject
+The `#inject` directive pushes a block of content into a named slot. Any view, partial, or component can inject content into any slot defined in the layout. Multiple `#inject` calls targeting the same slot are all collected and rendered together in the order they were pushed.
+
+Injecting page-specific styles and scripts from a child view:
+```html
+[[-- resources/views/dashboard.odo.php --]]
+#extends('layouts.app')
+
+#inject('styles')
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/charts.css">
+#endinject
+
+#section('content')
+    <h1>Dashboard</h1>
+    #include('partials.revenue-chart')
+    #include('partials.user-table')
+#endsection
+
+#inject('scripts')
+    <script src="/js/dashboard.js"></script>
+#endinject
+```
 ## Flash Message Directives
 
 ### #errors
