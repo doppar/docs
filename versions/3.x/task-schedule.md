@@ -64,7 +64,7 @@ Doppar Task Scheduling System — Feature Overview
 
 
 ## Scheduling Pool Commands
-You can register an Pool command using the command method, passing either the command's `name` or its fully qualified class name. If your command requires additional parameters, simply supply them as we discussed [here](http://doppar.com/versions/3.x/pool-console.html#command-arguments). You can register you pool command in `App\Schedule\Schedule` class inside `schedule()` method.
+You can register an Pool command using the command method, passing either the command's `name` or its fully qualified class name. If your command requires additional parameters, simply supply them as we discussed [here](http://doppar.com/versions/3.x/pool-console#command-arguments). You can register you pool command in `App\Schedule\Schedule` class inside `schedule()` method.
 ```php
 <?php
 

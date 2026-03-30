@@ -74,32 +74,6 @@ server {
 }
 ```
 
-### cPanel
-When deploying Doppar application on cPanel, you may need to configure URL rewriting so that all requests are routed correctly through your application’s front controller.
-
-Place the following `.htaccess` file in your root project directory:
-
-```apache
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews
-    </IfModule>
-
-    RewriteEngine On
-
-    RewriteCond %{REQUEST_FILENAME} -d [OR]
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule ^ ^$1 [N]
-
-    RewriteCond %{REQUEST_URI} (\.\w+$) [NC]
-    RewriteRule ^(.*)$ public/$1 
-
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ server.php
-</IfModule>
-```
-
 ## Directory Permissions
 Doppar will need to write to the `storage` directories, so you should ensure the web server process owner has permission to write to these directories.
 

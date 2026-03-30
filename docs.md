@@ -15,6 +15,7 @@ meta:
   - [IDE Support](#ide-support)
   - [What's Next?](#whats-next)
 
+
 ## Installation
 
 Before you can start building with **Doppar**, ensure your local development environment is properly configured. This guide will walk you through installing the necessary dependencies and creating your first Doppar application.
@@ -58,7 +59,7 @@ composer -v
 
 After you have installed PHP, Composer, you're ready to create a new Doppar application. Run the following command to create a new Doppar application:
 ```bash
-composer create-project doppar/doppar doppar-app --stability=beta
+composer create-project doppar/doppar doppar-app
 ```
 
 ## Starting the Local Development Server
@@ -151,7 +152,7 @@ To run migrations:
 ```bash
 php pool migrate
 ```
-> 💡 Doppar migrations are stored in the `database/migrations `directory You can create a new migration. See details about [migration](migrations.html)
+> 💡 Doppar migrations are stored in the `database/migrations `directory You can create a new migration. See details about migration from migrtions menu
 
 ## IDE Support
 Doppar works seamlessly with any code editor or IDE, so you're free to choose the development environment that best fits your workflow.
@@ -165,11 +166,11 @@ Whether you're using Vim, Sublime Text, Emacs, or another editor, Doppar keeps t
 ## What's Next?
 Now that you have created your Doppar application, you may be wondering what to learn next. First, we strongly recommend becoming familiar with how Doppar works by reading the following documentation:
 
-- [Request Lifecycle](/versions/3.x/request-lifecycle.html)
-- [Configuration](/versions/3.x/configuration.html)
-- [Directory Structure](/versions/3.x/directory-structure.html)
-- [System Architecture](/versions/3.x/architecture-concept.html)
-- [Service Container](/versions/3.x/service-container.html)
-- [Facades](/versions/3.x/facades.html)
+- [Request Lifecycle](/versions/3.x/request-lifecycle)
+- [Configuration](/versions/3.x/configuration)
+- [Directory Structure](/versions/3.x/directory-structure)
+- [System Architecture](/versions/3.x/architecture-concept)
+- [Service Container](/versions/3.x/service-container)
+- [Facades](/versions/3.x/facades)
 
 How you want to use Doppar will also dictate the next steps on your journey.

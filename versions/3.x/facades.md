@@ -30,8 +30,6 @@ There is no magic you need to understand to use facades productively.
 Use them where they make your code cleaner, and reach for direct
 injection where explicitness matters more.
 
----
-
 ### Facades vs. Helper Functions
 
 Doppar also ships a set of global helper functions that cover the most
@@ -41,13 +39,9 @@ Pick whichever style fits the context — both are first-class in Doppar.
 These two are equivalent:
 ```php
 use Phaseolies\Support\Facades\Response;
-use Phaseolies\Support\Facades\Cache;
 
-return Response::json(['status' => 'ok']);
-return response()->json(['status' => 'ok']);
-
-Cache::set('key', $value, 300);
-cache()->get('key', $value, 300);
+Response::json(['status' => 'ok']);
+response()->json(['status' => 'ok']);
 ```
 
 Helpers are globally available — no import required.

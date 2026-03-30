@@ -33,20 +33,20 @@ To get started with Doppar, you’ll need:
 
 If you don’t already have **PHP** and **Composer** installed, you can quickly set them up using the platform-specific instructions below.
 
-:::tabs
-== macOS
+macOS
 ```bash
 /bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.3)"
 ```
-== Linux
+
+Linux
 ```bash
 /bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.3)"
 ```
-== Windows (PowerShell)
-```bash
+
+Windows (PowerShell)
+```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.3'))
 ```
-:::
 
 These scripts will install PHP 8.3 along with Composer in a reliable and clean manner. Always verify installation success by running:
 
@@ -152,7 +152,7 @@ To run migrations:
 ```bash
 php pool migrate
 ```
-> 💡 Doppar migrations are stored in the `database/migrations `directory You can create a new migration. See details about [migration](migrations.html)
+> 💡 Doppar migrations are stored in the `database/migrations `directory You can create a new migration. See details about [migration](migrations)
 
 ## IDE Support
 Doppar works seamlessly with any code editor or IDE, so you're free to choose the development environment that best fits your workflow.
@@ -166,11 +166,11 @@ Whether you're using Vim, Sublime Text, Emacs, or another editor, Doppar keeps t
 ## What's Next?
 Now that you have created your Doppar application, you may be wondering what to learn next. First, we strongly recommend becoming familiar with how Doppar works by reading the following documentation:
 
-- [Request Lifecycle](/versions/3.x/request-lifecycle.html)
-- [Configuration](/versions/3.x/configuration.html)
-- [Directory Structure](/versions/3.x/directory-structure.html)
-- [System Architecture](/versions/3.x/architecture-concept.html)
-- [Service Container](/versions/3.x/service-container.html)
-- [Facades](/versions/3.x/facades.html)
+- [Request Lifecycle](/versions/3.x/request-lifecycle)
+- [Configuration](/versions/3.x/configuration)
+- [Directory Structure](/versions/3.x/directory-structure)
+- [System Architecture](/versions/3.x/architecture-concept)
+- [Service Container](/versions/3.x/service-container)
+- [Facades](/versions/3.x/facades)
 
 How you want to use Doppar will also dictate the next steps on your journey.

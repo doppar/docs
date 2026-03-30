@@ -272,7 +272,7 @@ This query:
 
 Total queries: 3
 
-Without eager loading, lazy loading would trigger 1 query for posts + N queries for comments + M queries for users, which could easily run into hundreds or thousands of queries. You can debug this situation using [doppar insight](doppar-insight.html) package.
+Without eager loading, lazy loading would trigger 1 query for posts + N queries for comments + M queries for users, which could easily run into hundreds or thousands of queries. You can debug this situation using [doppar insight](doppar-insight) package.
 
 By strategically using `embed()` for eager loading and nesting related relationships, Doppar Entity ORM ensures your applications remain performant while maintaining clean, readable code.
 

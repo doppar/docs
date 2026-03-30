@@ -205,7 +205,7 @@ public function __invoke()
 ```
 In this example, the `response.break` middleware receives the parameter `admin`, demonstrating how you can pass dynamic configuration directly through attributes. 
 
-> 💡 Learn more about passing parameters to middleware [middleware-parameters](middleware.html#middleware-parameters)
+> 💡 Learn more about passing parameters to middleware [middleware-parameters](middleware#middleware-parameters)
 
 ### Routing with Rate Limit
 Though rate limiting can be implemented using middleware, it can now be defined directly within the route attributes.
@@ -762,7 +762,7 @@ Generated Routes:
 
 ## Reminder on API Usage
 When you are building APIs that accept file uploads, this note is important:
-::: warning 📌 Reminder on API Usage
+> Reminder on API Usage
 If you are uploading files using `form-data` rather than `x-www-form-urlencoded`, Doppar does not support file handling for `PUT` and `PATCH` requests. Always use `POST` request when your API endpoint accepts files. Using `PUT/PATCH` with `form-data` uploads may cause unexpected issues.
 
 By default, Doppar’s `Route::apiBundle` will generate a `PUT` request for the update action.
@@ -774,7 +774,7 @@ Route::apiBundle('file', FileController::class, [
     ]
 ]);
 ```
-:::
+
 This ensures your update endpoint can handle file uploads without issues.
 
 ## Nested Bundle Routes
@@ -834,7 +834,7 @@ Route::nestedBundle('posts', 'comments', CommentController::class, [
 ```
 
 > `Note:` Bundle routes do not support method chaining like `->middleware('auth')`.
-To apply middleware, use [attribute-based middleware](https://doppar.com/versions/3.x/middleware.html#attribute-based-middleware-loading) calling directly in your bundle controller.
+To apply middleware, use [attribute-based middleware](https://doppar.com/versions/3.x/middleware#attribute-based-middleware-loading) calling directly in your bundle controller.
 
 ## Route Group
 `Route::group` is used to group multiple routes under a shared configuration like URL prefix. This helps in organizing routes cleanly and applying common logic to them.

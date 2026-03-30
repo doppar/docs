@@ -83,24 +83,18 @@ Usage example of `pipe()` function
 
 ```php
 
-$title = $request->pipe('title', function ($title) {
-    // your logic goes here
-}, 'default-title');
-
 $title = $request->pipe('title', fn($v) => strtoupper($v));
 // Example input: "hello world" => Output: "HELLO WORLD"
+```
 
-$slug = $request->pipe('slug', fn($v) => Str::slug($v));
-// Example input: "Hello World!" => Output: "hello-world"
-
+You can also use built in php function like this way:
+```php
 $title = $request->pipe('title', 'strtoupper', 'Untitled');
 // If 'title' is missing => 'Untitled' => Output: 'UNTITLED'
+```
 
-$slug = $request->pipe('title', function ($title) {
-    return Str::slug($title ?? 'default-title');
-}, 'default-title');
-// Fallback Slug from Title
-
+With default value:
+```php
 $slug = $request->pipe('slug', 'strtolower', 'default-slug');
 // If 'slug' is missing => 'default-slug' => Output: 'default-slug'
 ```

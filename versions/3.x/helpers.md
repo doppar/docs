@@ -532,7 +532,7 @@ $firstItem = $collection->first();
 echo $firstItem; // Output: 10
 ```
 
-See more example from [collection](https://doppar.com/versions/3.x/collections.html)
+See more example from [collection](https://doppar.com/versions/3.x/collections)
 
 ### delete_folder_recursively()
 The `delete_folder_recursively()` function is a helper designed to delete a folder and all its contents, including subfolders and files. It performs a recursive deletion, ensuring that every file and folder inside the target folder is deleted before the folder itself is removed.
