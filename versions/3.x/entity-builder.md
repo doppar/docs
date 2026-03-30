@@ -1013,7 +1013,7 @@ db()->bucket('user')
     });
 ```
 
-These methods make Doppar’s Entity collection manipulation concise, readable, and highly adaptable for API responses, data formatting, and conditional logic. See more from [collections](collections.html).
+These methods make Doppar’s Entity collection manipulation concise, readable, and highly adaptable for API responses, data formatting, and conditional logic. See more from [collections](collections).
 
 ## Pagination
 Pagination is an essential feature for working with large datasets, enabling you to fetch and display data in manageable chunks. This improves both performance and user experience, especially in applications that deal with lists like users, posts, products, or logs.
@@ -1061,20 +1061,20 @@ When working with paginated data in your views, Doppar provides two convenient m
 
 Now call the pagination for views
 ```html
-@foreach ($data['data'] as $user)
+#foreach ($data['data'] as $user)
     <tr>
         <td>[[ $user->id ]]</td>
         <td>[[ $user->name ]]</td>
         <td>[[ $user->username ]]</td>
         <td>[[ $user->email ]]</td>
     </tr>
-@endforeach
+#endforeach
 
 <!-- "Previous" and "Next" buttons, along with page numbers. -->
-{!! paginator($data)->links() !!}
+[!! paginator($data)->links() !!]
 
 <!-- "Previous" and "Next" buttons, along with page jump options. -->
-{!! paginator($data)->linkWithJumps() !!}
+[!! paginator($data)->linkWithJumps() !!]
 ```
 
 ## Customize Default Pagination

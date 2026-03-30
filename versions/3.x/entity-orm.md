@@ -2115,7 +2115,7 @@ $users->each->sendEmail();
 ```
 This is equivalent to the closure example above, but much more concise.
 
-These methods make Doppar’s Entity collection manipulation concise, readable, and highly adaptable for API responses, data formatting, and conditional logic. See more from [collections](collections.html).
+These methods make Doppar’s Entity collection manipulation concise, readable, and highly adaptable for API responses, data formatting, and conditional logic. See more from [collections](collections).
 
 ## Pagination
 Pagination is an essential feature for working with large datasets, enabling you to fetch and display data in manageable chunks. This improves both performance and user experience, especially in applications that deal with lists like users, posts, products, or logs.

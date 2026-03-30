@@ -159,7 +159,7 @@ class PostController extends Controller
 
 You may mix both class-level and method-specific middleware. In such cases, both sets will be executed, with class-level middleware running first.
 
-> ⚠️ Middleware specified using attributes must be registered in your `\App\Http\Kernel.php`. If your middleware requires parameters (e.g. role:admin), attribute based middleware calling does not support parameter passing. In this case, you should follow route specific middleware.
+> Middleware specified using attributes must be registered in `\App\Http\Kernel.php`
 
 ## Assigning Middleware Using Routes
 If you would like to assign middleware to specific routes, you may invoke the `middleware` method when defining the route:

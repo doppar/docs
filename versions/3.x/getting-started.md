@@ -309,7 +309,7 @@ Handling thousands of concurrent connections while keeping performance predictab
 ## Entity Builder and Entity ORM
 Doppar introduces two powerful, fully native systems — Entity ORM and Entity Builder — built entirely from the core with zero external dependencies. Together, they redefine how developers interact with databases by combining expressive syntax, high performance, and total control.
 
-![Doppar Entity Builder and Entity ORM](/doppar-entity-builder.png)
+![Doppar Entity Builder and Entity ORM](/assets/img/doppar-entity-builder.png)
 
 ## Entity ORM
 Entity ORM is a modern, intuitive, and high-performance Object-Relational Mapper designed to make database interactions seamless and efficient. Each database table is represented by a dedicated Data Model, giving you a clean, object-oriented interface for querying, inserting, updating, and deleting records — all without writing raw SQL.
