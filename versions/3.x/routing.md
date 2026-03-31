@@ -513,9 +513,7 @@ Here’s how you do it in your form:
 </form>
 ```
 
-::: warning
 Always include `#csrf` to protect against CSRF attacks. The `@method` directive tells Doppar to treat the request as the specified HTTP verb.
-:::
 
 ## Any Route
 The `Route::any()` method is used to register a route that responds to any HTTP method (GET, POST, PUT, DELETE, etc.). This is particularly useful for routes where the HTTP method doesn’t matter, such as catch-all pages, testing endpoints, or webhook receivers.

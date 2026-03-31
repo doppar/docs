@@ -130,19 +130,9 @@ foreach ($files as $file) {
 
 ## Reminder on API Usage
 When you are building APIs that accept file uploads, this note is important:
-::: warning 📌 Reminder on API Usage
-If you are uploading files using `form-data` rather than `x-www-form-urlencoded`, Doppar does not support file handling for `PUT` and `PATCH` requests. Always use `POST` request when your API endpoint accepts files. Using `PUT/PATCH` with `form-data` uploads may cause unexpected issues.
 
-By default, Doppar’s `Route::apiBundle` will generate a `PUT` request for the update action.
-Since `PUT` does not support file uploads for `form-data`, you can override it to `POST`:
-```php
-Route::apiBundle('file', FileController::class, [
-    'methods' => [
-        'update' => 'POST' // Now the update endpoint uses POST
-    ]
-]);
-```
-:::
+> If you are uploading files using `form-data` rather than `x-www-form-urlencoded`, Doppar does not support file handling for `PUT` and `PATCH` requests. Always use `POST` request when your API endpoint accepts files. Using `PUT/PATCH` with `form-data` uploads may cause unexpected issues.
+
 This ensures your update endpoint can handle file uploads without issues.
 
 ## File Downloads

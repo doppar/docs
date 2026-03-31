@@ -264,9 +264,7 @@ User::query()
 ```
 In this example, both the parent (User) and the related (posts) data are retrieved without applying encryption.
 
-::: warning
 The `withoutEncryption` method is not intended for use with find(). It should only be used for queries that do not rely on find() to retrieve individual records.
-:::
 
 ## Same-Origin Decryption
 By default, encrypted properties on models like when you retrieve them (e.g., using User::all()), these properties will appear as encrypted unless you decrypt them manually.
@@ -309,9 +307,7 @@ Must be the base64-decoded version of the application’s APP_KEY.
 $key = base64_decode(getenv('APP_KEY'));
 ```
 
-:::warning
 Security Warning: The `APP_KEY` is highly sensitive. It must only be shared with trusted systems over secure channels (e.g., HTTPS, encrypted environment variables, secure vaults).
-:::
 
 For more detail, see the `Phaseolies\Support\Encryption` class for a detailed understanding of how the encryption `key`, `IV`, and `cipher` are generated and used internally.
 
