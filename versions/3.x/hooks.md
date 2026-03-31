@@ -745,9 +745,7 @@ class Setting extends Model
 }
 ```
 
-::: warning
-Do not use `booting` or `booted` for per-record logic. They fire only for the first instantiation in a request. Use `before_created` or `after_created` for per-row operations.
-:::
+> Do not use `booting` or `booted` for per-record logic. They fire only for the first instantiation in a request. Use `before_created` or `after_created` for per-row operations.
 
 ### before_created and after_created
 
@@ -837,11 +835,8 @@ public static function sendVerificationEmail(Model $model): void
 }
 ```
 
-::: warning
-`before_created` and `after_created` are only triggered by `save()` on a new model instance, `create()`, `updateOrCreate()` when it performs an insert, and `firstOrCreate()` when it creates a new record.
-
+> `before_created` and `after_created` are only triggered by `save()` on a new model instance, `create()`, `updateOrCreate()` when it performs an insert, and `firstOrCreate()` when it creates a new record.
 They are **not** triggered by `Post::query()->insert([...])`.
-:::
 
 ---
 
@@ -974,11 +969,8 @@ class PostUpdatedHook
 }
 ```
 
-::: warning
-`before_updated` and `after_updated` are only triggered when updating via `save()` on an existing model instance, the model's `update()` method, or `updateOrCreate()` when it performs an update.
-
-They are **not** triggered by `User::query()->where('id', $id)->update([...])`.
-:::
+> `before_updated` and `after_updated` are only triggered when updating via `save()` on an existing model instance, the model's `update()` method, or `updateOrCreate()` when it performs an update.
+They are not triggered by `User::query()->where('id', $id)->update([...])`.
 
 ---
 
@@ -1075,11 +1067,7 @@ public static function cleanupRelatedAssets(Model $model): void
 }
 ```
 
-::: warning
-`before_deleted` and `after_deleted` are only triggered when deleting via the model instance's `delete()` method.
-
-They are **not** triggered by `Post::query()->where('id', $id)->delete()`.
-:::
+> `before_deleted` and `after_deleted` are only triggered when deleting via the model instance's `delete()` method. They are not triggered by `Post::query()->where('id', $id)->delete()`.
 
 ## Accessing Model State Inside Hooks
 
@@ -1168,13 +1156,9 @@ public function prepareForInsert(): void
 ```
 All of the above will be included in the INSERT.
 
-::: warning
-Attribute mutations in `after_created` and `after_updated` hooks are **not** automatically persisted. The INSERT or UPDATE has already executed. If you need to persist further changes after the fact, call `$this->save()` explicitly — but use `withoutHook()` to avoid triggering hooks recursively.
-:::
+Attribute mutations in `after_created` and `after_updated` hooks are not automatically persisted. The `INSERT` or `UPDATE` has already executed. If you need to persist further changes after the fact, call `$this->save()` explicitly — but use `withoutHook()` to avoid triggering hooks recursively.
 
-::: warning
 Inside `#[Hook]` attribute methods, use `$this` to access the model. Inside array-based inline callbacks (`[self::class, 'method']`) and class-based `handle()` methods, the model is passed as the `$model` parameter — `$this` is not the model.
-:::
 
 ## Skipping Hooks
 
@@ -1230,9 +1214,7 @@ $post->withoutHook()->delete();
 User::withoutHook()->find($id)->delete();
 ```
 
-::: warning
-`withoutHook()` disables **all** hooks for that single operation chain. Subsequent operations on other model instances are not affected.
-:::
+`withoutHook()` disables all hooks for that single operation chain. Subsequent operations on other model instances are not affected.
 
 ## Execution Order
 
