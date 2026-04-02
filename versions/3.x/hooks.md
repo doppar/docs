@@ -22,9 +22,9 @@ meta:
   - [Mixing Attribute and Array Hooks](#mixing-attribute-and-array-hooks)
 - [Lifecycle Events In Depth](#lifecycle-events-in-depth)
   - [booting and booted](#booting-and-booted)
-  - [before_created and after_created](#before_created-and-after_created)
-  - [before_updated and after_updated](#before_updated-and-after_updated)
-  - [before_deleted and after_deleted](#before_deleted-and-after_deleted)
+  - [before_created and after_created](#beforecreated-and-aftercreated)
+  - [before_updated and after_updated](#beforeupdated-and-afterupdated)
+  - [before_deleted and after_deleted](#beforedeleted-and-afterdeleted)
 - [Accessing Model State Inside Hooks](#accessing-model-state-inside-hooks)
   - [Reading Attributes](#reading-attributes)
   - [Detecting Changes](#detecting-changes)
@@ -138,8 +138,6 @@ protected array $hooks = [
     'after_deleted'  => [self::class, 'invalidateCache'],
 ];
 ```
-
----
 
 ### Class-Based Handler
 
@@ -315,8 +313,6 @@ class Invoice extends Model
     }
 }
 ```
-
----
 
 ### Multiple Events in One Array
 
@@ -838,8 +834,6 @@ public static function sendVerificationEmail(Model $model): void
 > `before_created` and `after_created` are only triggered by `save()` on a new model instance, `create()`, `updateOrCreate()` when it performs an insert, and `firstOrCreate()` when it creates a new record.
 They are **not** triggered by `Post::query()->insert([...])`.
 
----
-
 ### before_updated and after_updated
 
 `before_updated` fires just before the UPDATE query. Attribute mutations made inside this hook are included in the UPDATE — the dirty snapshot is taken after the hook runs. `after_updated` fires after the record was successfully updated.
@@ -948,6 +942,7 @@ class Post extends Model
 }
 ```
 
+Now the `PostUpdatedHook` will only run when the title or body attributes have changed.
 ```php
 <?php
 
@@ -971,8 +966,6 @@ class PostUpdatedHook
 
 > `before_updated` and `after_updated` are only triggered when updating via `save()` on an existing model instance, the model's `update()` method, or `updateOrCreate()` when it performs an update.
 They are not triggered by `User::query()->where('id', $id)->update([...])`.
-
----
 
 ### before_deleted and after_deleted
 
@@ -1074,30 +1067,37 @@ public static function cleanupRelatedAssets(Model $model): void
 Inside any hook you have full access to the model's current state, its original state before the operation began, and which attributes have changed.
 
 ### Reading Attributes
-
+Current value via magic getter
 ```php
-// Current value via magic getter
 $this->name
 $this->email
 $this->status
+```
 
-// All current attributes as array
+All current attributes as array
+```php
 $this->getAttributes()
+```
 
-// Single original attribute (value before the current operation)
+Single original attribute (value before the current operation)
+```php
 $this->getOriginal('name')
+```
 
-// All original attributes as array
+All original attributes as array
+```php
 $this->getOriginalAttributes()
 ```
 
 ### Detecting Changes
 
+`true` if the attribute differs from its original value
 ```php
-// true if the attribute differs from its original value
 $this->isDirtyAttr('email')
+```
 
-// all changed attributes as key => new_value pairs
+All changed attributes as `key => new_value` pairs
+```php
 $this->getDirtyAttributes()
 // returns: ['email' => 'new@example.com', 'role' => 'admin']
 ```
