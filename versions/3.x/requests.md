@@ -436,13 +436,6 @@ If your DTOs define a `toArray()` method, you can easily serialize them for outp
 return $request->bindTo(new UserDTO())->toArray();
 ```
 
-#### 📌 When to Use
-
-- When working with structured JSON or form payloads.
-- When isolating validation/data transfer logic into typed DTOs.
-- When handling nested form structures in APIs, admin panels, or form builders.
-- When needing clean, type-safe data layers beneath controllers or service classes.
-
 ### Attribute-based DTO binding in Controllers
 
 You can bind the request body directly into controller parameters using the `#[BindPayload]` attribute. The router will instantiate the parameter type and hydrate it via `Request::bindTo()` before your method runs.
