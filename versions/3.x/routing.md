@@ -50,7 +50,7 @@ php pool route:clear
 Use this when making route changes in production or if experiencing route-related issues.
 
 ## Attribute Based Routing
-Doppar also supports attribute-based routing, allowing you to define routes directly above your controller methods using PHP 8 attributes. This approach offers a cleaner, more localized way to declare routes, keeping route definitions close to the logic they handle. It reduces the need to manage separate route files for simple or self-contained controllers, improving code readability and maintainability
+Doppar attribute-based routing allows you to define routes directly above your controller methods using PHP 8 attributes. This approach offers a cleaner, more localized way to declare routes, keeping route definitions close to the logic they handle. It reduces the need to manage separate route files for simple or self-contained controllers, improving code readability and maintainability
 
 Each attribute-based route can specify its path, name, HTTP methods, and other configurations, just like traditional route definitions. The Doppar routing engine automatically detects and registers these routes when your application boots.
 

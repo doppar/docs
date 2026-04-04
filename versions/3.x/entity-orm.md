@@ -2163,14 +2163,14 @@ When working with paginated data in your views, Doppar provides two convenient m
 
 Now call the pagination for views
 ```html
-@foreach ($data['data'] as $user)
+#foreach ($data['data'] as $user)
     <tr>
         <td>[[ $user->id ]]</td>
         <td>[[ $user->name ]]</td>
         <td>[[ $user->username ]]</td>
         <td>[[ $user->email ]]</td>
     </tr>
-@endforeach
+#endforeach
 
 <!-- "Previous" and "Next" buttons, along with page numbers. -->
 [[! paginator($data)->links() !]]
