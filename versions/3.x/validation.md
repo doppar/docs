@@ -347,3 +347,321 @@ $request->sanitize([
 ]);
 ```
 The above validation will be applied like that, the number can be nullable and if number provides, it must be float and digit must in between greater than equal `2` and less than equal `5` and decimal after number will be 2 digit to "have exactly two decimal places" or "with two decimal places" like `3.33` not `3.333`
+
+## String Validation Rules
+Doppar offers a variety of built-in string validation rules that make it easy to enforce common patterns such as alphabetic characters, numeric strings, email formats, and more. Each rule can be combined with others to create flexible and powerful validation logic tailored to your application's needs.
+### Alpha
+Validates that the field's value contains only alphabetic characters `(A–Z, a–z)`. Numbers, spaces, symbols, and punctuation will all fail this rule.
+```php
+$request->sanitize([
+    'first_name' => 'required|alpha'
+]);
+```
+"John" will pass, but "John123" will fail because it contains numbers. "John Doe" will also fail because it contains a space, and "John_Doe" will fail because it contains an underscore.
+
+### Alpha Numeric
+Validates that the field's value contains only letters and numbers `(A–Z, a–z, 0–9)`. Spaces, dashes, underscores, and special characters are not allowed.
+```php
+$request->sanitize([
+    'username' => 'required|alpha_num'
+]);
+```
+"john123" and "John" will both pass, but "john_123" will fail because it contains an underscore, and "john 123" will fail because it contains a space.
+
+### Alpha Dash
+Validates that the field's value contains only letters, numbers, dashes `(-)`, and underscores `(_)`. Spaces and other special characters are not allowed.
+```php
+$request->sanitize([
+    'handle' => 'required|alpha_dash'
+]);
+```
+
+"my-handle" and "my_handle_01" will both pass, but "my handle" will fail because it contains a space, and "my@handle" will fail because @ is not a permitted character.
+
+### Slug
+Validates that the field's value is a valid URL slug — only lowercase letters, numbers, and single hyphens between words are allowed. The value must not start or end with a hyphen, and consecutive hyphens are not permitted.
+```php
+$request->sanitize([
+    'post_slug' => 'required|slug'
+]);
+```
+
+"my-blog-post" and "post-2025" will pass, but "My-Blog-Post" will fail because it contains uppercase letters. "-my-post" will fail because it starts with a hyphen, "my--post" will fail because of consecutive hyphens, and "my post" will fail because it contains a space.
+
+### String
+Validates that the field's value is a PHP string type. Any other PHP type — integers, arrays, or booleans — will fail this rule.
+```php
+$request->sanitize([
+    'bio' => 'required|string'
+]);
+```
+
+"Hello world" will pass, and even an empty string "" will pass the type check (use required alongside to disallow empty values). However, 123 will fail because it is an integer, and ["a", "b"] will fail because it is an array.
+
+### Uppercase
+Validates that the field's value consists entirely of uppercase letters. At least one uppercase letter must be present. Numbers and symbols are permitted alongside uppercase letters, but any lowercase letter will cause validation to fail.
+```php
+$request->sanitize([
+    'country_code' => 'required|uppercase'
+]);
+```
+"BD" and "USD" will both pass, but "Bd" will fail because it contains a lowercase d, and "bd" will fail because the entire value is lowercase.
+
+### Lowercase
+Validates that the field's value consists entirely of lowercase letters. At least one lowercase letter must be present. Numbers and symbols are permitted alongside lowercase letters, but any uppercase letter will cause validation to fail.
+```php
+$request->sanitize([
+    'email_prefix' => 'required|lowercase'
+]);
+```
+"john" and "john123" will both pass, but "John" will fail because it contains an uppercase J, and "JOHN" will fail because the entire value is uppercase.
+
+### Starts With
+Validates that the field's value begins with a specified prefix string. The check is case-sensitive.
+```php
+$request->sanitize([
+    'reference_code' => 'required|starts_with:REF-'
+]);
+```
+"REF-00123" will pass, but "ref-00123" will fail because the prefix check is case-sensitive. "INV-00123" will fail because it uses a different prefix entirely, and "00123" will fail because there is no prefix at all.
+
+### Ends With
+Validates that the field's value ends with a specified suffix string. The check is case-sensitive.
+```php
+$request->sanitize([
+    'domain' => 'required|ends_with:.com'
+]);
+```
+"example.com" will pass, but "example.COM" will fail because the suffix check is case-sensitive. "example.net" will fail because the suffix does not match, and "example" will fail because there is no suffix at all.
+
+### Size
+Validates that the field's value is exactly the specified size. For string values, size checks the character count. For numeric values, size checks that the value equals the given number exactly — not the digit count, but the numeric value itself.
+```php
+$request->sanitize([
+    'otp_code'   => 'required|size:6',
+    'fixed_rate' => 'required|numeric|size:5'
+]);
+```
+
+For a string field with `size:6`, `"928471"` will pass because it is exactly 6 characters, but `"9284"` will fail because it is only 4 characters, and `"92847123"` will fail because it is 8 characters. For a numeric field with `size:5`, the value 5 will pass because it equals 5, but the value 10 will fail because 10 does not equal 5.
+
+## Numeric & Digit Validation Rules
+Doppar provides flexible validation options to handle different numeric scenarios. Whether you need to accept any numeric value (including strings that represent numbers) or enforce stricter formats like integers or specific digit lengths, these rules help you define clear boundaries for valid input.
+### Numeric
+Validates that the field's value is a valid number — this includes integers, floats, and numeric strings. If you need to enforce integers only or floats with decimal constraints, use the int or float rules instead.
+```php
+$request->sanitize([
+    'price' => 'required|numeric'
+]);
+```
+"42", "3.14", and the integer 42 will all pass, but "abc" will fail because it is not a number, and "12abc" will fail because it is a mixed string.
+
+### Digits
+Validates that the field's value is a numeric string containing exactly N digits. This rule is strict — decimal points, negative signs, and non-digit characters are not allowed. Use this for fixed-length codes such as PINs, OTPs, or verification codes.
+```php
+$request->sanitize([
+    'pin' => 'required|digits:4'
+]);
+```
+"1234" will pass with digits:4, but "123" will fail because it has only 3 digits, and "12345" will fail because it has 5. "12.4" will fail because it contains a decimal point, and "12a4" will fail because it contains a non-digit character.
+
+### Min Digits
+Validates that the field's value is a numeric string containing at least N digits. Decimal points, signs, or non-digit characters are not allowed — the value must be a pure sequence of digits.
+```php
+$request->sanitize([
+    'phone_number' => 'required|min_digits:7'
+]);
+```
+"01712345678" (11 digits) and "1234567" (exactly 7 digits) will both pass with `min_digits:7`, but "123456" will fail because it only has 6 digits. "123-4567" will also fail because it contains a non-digit character.
+
+### Max Digits
+Validates that the field's value is a numeric string containing no more than N digits. Like `min_digits`, the value must be a pure digit sequence with no decimal points or special characters.
+```php
+$request->sanitize([
+    'zip_code' => 'required|max_digits:10'
+]);
+```
+"1234" and "1234567890" (exactly 10 digits) will both pass with max_digits:10, but "12345678901" will fail because it has 11 digits. "123.456" will also fail because it contains a decimal point.
+
+## Boolean & Type Validation
+Boolean and type validation rules ensure that incoming data matches the expected data type, which is critical for maintaining predictable application behavior. These rules are especially useful when handling form inputs, API payloads, or configuration flags where values may come in different formats but need to be interpreted consistently.
+### Boolean
+Validates that the field's value is a boolean or boolean-like value. This is useful when accepting toggle states, flags, or checkbox inputs where the underlying type may vary across form and API submissions.
+
+The following values are all considered valid: true, false, 1, 0, "1", "0", "true", and "false".
+```php
+$request->sanitize([
+    'is_active'          => 'required|boolean',
+    'receive_newsletter' => 'required|boolean'
+]);
+```
+true, "false", "1", and 0 will all pass, but "yes" will fail because it is not a recognised boolean value, and "on" will also fail for the same reason.
+
+### Array
+Validates that the field's value is a PHP array type. This is particularly relevant for API requests where a field is expected to hold multiple values such as a list of tag IDs, selected options, or permission slugs.
+```php
+$request->sanitize([
+    'tags'        => 'required|array',
+    'permissions' => 'required|array'
+]);
+```
+[1, 2, 3] and ["admin", "editor"] will both pass. An empty array [] will also pass the type check — use required alongside to disallow empty submissions. However, "admin" will fail because it is a plain string, and "[1,2,3]" will fail because a JSON string representation of an array is not a PHP array.
+
+## URL, IP & Network Validation
+URL, IP, and network validation rules are used to ensure that input values related to web addresses and network identifiers are correctly formatted and valid. These rules are especially important when working with external resources, server configurations, APIs, or any system that relies on accurate networking data.
+### URL
+Validates that the field's value is a well-formed URL including the protocol `(e.g., http:// or https://)`. Bare domain names without a protocol will fail.
+```php
+$request->sanitize([
+    'website' => 'required|url'
+]);
+```
+"https://example.com" and "http://sub.example.com/path?q=1" will both pass, but "example.com" will fail because it is missing the protocol. "not a url" will also fail.
+
+### IP Address
+Validates that the field's value is a valid IP address in either IPv4 or IPv6 format. Use this when you need to accept either format without restriction. If you need to enforce a specific version, use ipv4 or ipv6 instead.
+```php
+$request->sanitize([
+    'server_ip' => 'required|ip'
+]);
+```
+"192.168.1.1" (IPv4) and "2001:0db8:85a3::8a2e:0370:7334" (IPv6) will both pass, but "999.999.999.999" will fail because it is out of the valid IPv4 range, and "not-an-ip" will fail entirely.
+
+### IPv4
+Validates that the field's value is a valid IPv4 address specifically. IPv6 addresses will be rejected. A valid IPv4 address consists of four octets separated by dots, each ranging from 0 to 255.
+```php
+$request->sanitize([
+    'server_ip' => 'required|ipv4'
+]);
+```
+"192.168.0.1", "0.0.0.0", and "255.255.255.255" will all pass, but "2001:db8::1" will fail because IPv6 addresses are not accepted, and "192.168.0" will fail because it is an incomplete address.
+
+### IPv6
+Validates that the field's value is a valid IPv6 address specifically. IPv4 addresses will be rejected.
+```php
+$request->sanitize([
+    'server_ip' => 'required|ipv6'
+]);
+```
+"2001:0db8:85a3:0000:0000:8a2e:0370:7334", "::1" (loopback), and "fe80::1" (link-local) will all pass, but "192.168.1.1" will fail because IPv4 addresses are not accepted under this rule.
+
+## Format & Pattern Validation
+Format and pattern validation rules are designed to ensure that input values follow a specific structure or encoding standard. These rules are especially useful when working with structured data, identifiers, or inputs that must conform to strict formatting requirements.
+### JSON
+Validates that the field's value is a valid JSON-encoded string. The value must be of string type and must successfully parse as JSON. Use this for endpoints that accept serialised configuration, metadata, or structured payloads as a string.
+```php
+$request->sanitize([
+    'metadata' => 'required|json'
+]);
+```
+
+'{"key":"value"}', '[1,2,3]', and '"simple string"' will all pass because they are valid JSON. However, '{"key":}' will fail because it is malformed JSON, 'hello' will fail because it is not valid JSON, and the integer 123 will fail because the value must be a string type.
+
+### UUID
+Validates that the field's value is a valid UUID conforming to versions 1 through 5 of the UUID specification. The expected format is `xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx` where `M` is the version digit (1–5). Matching is case-insensitive.
+```php
+$request->sanitize([
+    'product_id' => 'required|uuid'
+]);
+```
+
+"550e8400-e29b-41d4-a716-446655440000" and "6ba7b810-9dad-11d1-80b4-00c04fd430c8" will both pass, but "not-a-uuid" will fail entirely, and "550e8400e29b41d4a716446655440000" will fail because the required dashes are missing.
+
+### Phone
+Validates that the field's value is a valid phone number. The rule accepts an optional leading `+` for international format, followed by digits, spaces, dashes, and parentheses. The total length must be between 7 and 20 characters.
+```php
+$request->sanitize([
+    'phone' => 'required|phone'
+]);
+```
+
+"+8801712345678", "01712345678", "(017) 1234-5678", and "+880 17 1234 5678" will all pass. However, "123" will fail because it is too short (under 7 characters), and "phone#123" will fail because # is not a permitted character.
+
+### Regex
+Validates that the field's value matches a custom regular expression pattern you define. This is the most flexible validation rule — use it when none of the built-in rules cover your specific format requirement. The pattern must be a valid PHP-compatible regular expression including delimiters.
+```php
+$request->sanitize([
+    'postal_code'    => 'required|regex:/^[0-9]{4}$/',
+    'vehicle_number' => 'required|regex:/^[A-Z]{2}-\d{4}$/'
+]);
+```
+For r`egex:/^[0-9]{4}$/`, "1234" will pass but "12345" will fail because it has 5 digits. For `regex:/^[A-Z]{2}-\d{4}$/`, "AB-1234" will pass but "ab-1234" will fail because the regex expects uppercase letters.
+
+> Always include regex delimiters `(e.g., /pattern/)` and test your pattern thoroughly before using it in production, as an invalid regex will silently cause validation to fail.
+
+### Date Format
+Validates that the field's value matches a specific PHP date format string exactly. Unlike the general date rule which accepts a wide range of date strings, date_format requires the value to conform precisely to the format you specify.
+```php
+$request->sanitize([
+    'appointment_date' => 'required|date_format:Y-m-d',
+    'log_timestamp'    => 'required|date_format:Y-m-d H:i:s'
+]);
+```
+
+For date_format:Y-m-d, "2025-04-15" will pass, but "15-04-2025" will fail because the order is wrong, and "2025/04/15" will fail because the separator is incorrect. For date_format:Y-m-d H:i:s, "2025-04-15 10:30:00" will pass but "2025-04-15 10:30" will fail because the seconds component is missing.
+
+## Comparison Validation Rules
+Comparison validation rules are used to validate relationships between multiple fields within the same request. These rules are essential when you need to ensure consistency, confirmation, or distinction between related inputs, such as passwords, email addresses, or other paired values.
+### Same As
+Validates that the field's value exactly matches the value of another field in the same request. The comparison is strict and case-sensitive. This is most commonly used for password confirmation.
+```php
+$request->sanitize([
+    'password'         => 'required|min:8',
+    'password_confirm' => 'required|same_as:password'
+]);
+```
+
+If password is "secret123", then password_confirm with the same value "secret123" will pass. However, "Secret123" will fail because the comparison is case-sensitive, and "secret" will fail because the values do not match.
+
+### Confirmed
+Works similarly to `same_as`, but instead of specifying the comparison field explicitly, Doppar automatically looks for a field named `{fieldname}_confirmation` in the request. If the field being validated is `password`, Doppar will automatically look for a `password_confirmation` field. Both fields must contain identical values.
+```php
+$request->sanitize([
+    'password' => 'required|min:8|confirmed'
+]);
+```
+If password is "mypassword" and `password_confirmation` is also "mypassword", validation will pass. It will fail if `password_confirmation` contains "myPassword" because the comparison is case-sensitive, and it will also fail if the `password_confirmation` field is absent from the request entirely.
+
+### Different
+Validates that the field's value differs from the value of another specified field. Use this to prevent users from submitting identical values in two fields that should be distinct, such as a new email address that must differ from the current one on file.
+```php
+$request->sanitize([
+    'new_email' => 'required|email|different:current_email'
+]);
+```
+If current_email is "old@example.com", then new_email with value "new@example.com" will pass. However, if new_email is also "old@example.com", validation will fail because both fields hold the same value.
+
+## List Validation Rules
+List validation rules are used to control whether a field’s value belongs to a predefined set of acceptable or restricted options. These rules are particularly useful when you want to limit user input to known values, such as statuses, roles, categories, or sorting options.
+### In
+Validates that the field's value is one of a predefined set of allowed values. The comparison is strict and case-sensitive.
+```php
+$request->sanitize([
+    'status'     => 'required|in:active,inactive,pending',
+    'sort_order' => 'required|in:asc,desc'
+]);
+```
+
+"active" and "pending" will both pass for the status field, but "deleted" will fail because it is not in the allowed list. "Active" will also fail because the comparison is case-sensitive.
+
+### Not In
+Validates that the field's value is not present in a given list of disallowed values. Use this to block reserved values, forbidden roles, or restricted keywords from being submitted.
+```php
+$request->sanitize([
+    'role'     => 'required|not_in:superadmin,root',
+    'username' => 'required|not_in:admin,administrator,system'
+]);
+```
+"editor" will pass for the role field because it is not in the disallowed list, but "root" will fail because it is explicitly blocked. Similarly, "admin" will fail for the username field because it appears in the disallowed values.
+
+## Timezone Validation
+Timezone validation rules ensure that a given value is a valid and recognized timezone identifier based on the IANA (Internet Assigned Numbers Authority) timezone database. This is important for applications that rely on accurate date and time calculations across different regions.
+### Timezone
+Validates that the field's value is a valid IANA timezone identifier. Doppar checks the submitted value against PHP's official list of timezone identifiers, ensuring the timezone can be reliably used for date and time operations in your application.
+```php
+$request->sanitize([
+    'user_timezone' => 'required|timezone'
+]);
+```
+"Asia/Dhaka", "America/New_York", "Europe/London", and "UTC" will all pass. However, "Asia/Dhaka123" will fail because it is not a valid identifier, "GMT+6" will fail because offset notation is not a valid IANA identifier, and "dhaka" will fail because it does not follow the correct format.
+> To browse all valid IANA timezone identifiers, refer to PHP's DateTimeZone::listIdentifiers() or the [IANA Time Zone Database](https://www.iana.org/time-zones).
