@@ -252,6 +252,174 @@ class LoginController extends Controller
     }
 }
 ```
+
+## Custom Validation Rules
+While Doppar's built-in validation rules cover the most common scenarios, there are times when your application requires custom validation logic — such as validating a domain name format, enforcing a country-specific phone number pattern, or checking a value against an external service. For these cases, Doppar allows you to create fully custom validation rule classes that integrate seamlessly with the `sanitize()` method.
+
+Custom rules are self-contained PHP classes that implement the `RuleInterface` contract. Each class defines its own validation logic and its own error message, keeping your validation code organised, reusable, and independently testable.
+
+### Creating a Custom Rule
+Doppar provides a `pool` command to scaffold a new custom rule class automatically:
+```bash
+php pool make:rule Domain
+```
+This will generate a new class at `App\Http\Validations\Rules\Domain.php` with the following structure:
+```php
+<?php
+
+namespace App\Http\Validations\Rules;
+
+use Phaseolies\Http\Validation\Contracts\RuleInterface;
+
+class Domain implements RuleInterface
+{
+    /**
+     * Determine if the given field value passes the validation rule.
+     *
+     * @param string $field The name of the field being validated.
+     * @param mixed  $value The value of the field to validate.
+     * @param array  $input The full input data array.
+     * @return bool
+     */
+    public function passes(string $field, mixed $value, array $input): bool
+    {
+        //
+    }
+
+    /**
+     * Get the validation error message for the rule.
+     *
+     * @param string $field The name of the field being validated.
+     * @return string
+     */
+    public function message(string $field): string
+    {
+        //
+    }
+}
+```
+
+Every custom rule must implement two methods:
+
+`passes(string $field, mixed $value, array $input): bool` — this is where your validation logic lives. It receives the field name, the field's submitted value, and the entire input array. Return true if the value passes validation, or false if it fails.
+
+`message(string $field): string` — this returns the error message that will be shown to the user when validation fails. The $field parameter contains the name of the field so you can include it in your message naturally.
+
+### Writing the Validation Logic
+Once the class is generated, implement your logic inside the `passes()` method and define your error message inside `message()`. Here is a complete example that validates a domain name:
+```php
+<?php
+
+namespace App\Http\Validations\Rules;
+
+use Phaseolies\Http\Validation\Contracts\RuleInterface;
+
+class Domain implements RuleInterface
+{
+    public function passes(string $field, mixed $value, array $input): bool
+    {
+        return (bool) preg_match('/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i', $value ?? '');
+    }
+
+    public function message(string $field): string
+    {
+        return "The {$field} must be a valid domain name.";
+    }
+}
+```
+
+"example.com" and "sub.example.co.uk" will pass, but "not a domain", "example" (no TLD), and "-invalid.com" (leading hyphen) will all fail and return the message "The domain must be a valid domain name.".
+
+You can also accept constructor parameters to make your rule configurable. The following example validates phone numbers and accepts a country code to switch between different regex patterns:
+```php
+<?php
+
+namespace App\Http\Validations\Rules;
+
+use Phaseolies\Http\Validation\Contracts\RuleInterface;
+
+class PhoneNumber implements RuleInterface
+{
+    public function __construct(private string $country = 'ANY') {}
+
+    public function passes(string $field, mixed $value, array $input): bool
+    {
+        return match ($this->country) {
+            'BD'    => (bool) preg_match('/^(?:\+?880|0)1[3-9]\d{8}$/', $value ?? ''),
+            default => (bool) preg_match('/^\+?[0-9\s\-\(\)]{7,20}$/', $value ?? ''),
+        };
+    }
+
+    public function message(string $field): string
+    {
+        return "The {$field} must be a valid phone number.";
+    }
+}
+```
+
+Passing `new PhoneNumber('BD')` will enforce the Bangladeshi phone number format, while new `PhoneNumber()` or `new PhoneNumber('ANY')` will fall back to the general international format.
+
+### Using a Custom Rule
+To use your custom rule inside `sanitize()`, you do not pass it as a plain string like built-in rules. Instead, you wrap your rule instance with `Bind::to()`, which is a helper provided by Doppar to attach custom rule objects to fields.
+```php
+use Phaseolies\Http\Validation\Bind;
+use App\Http\Validations\Rules\Domain;
+
+$sanitized = $request->sanitize([
+    'domain' => Bind::to(new Domain()),
+]);
+```
+
+`Bind::to()` accepts any instance of a class that implements RuleInterface. When `sanitize()` processes the field, it calls your rule's `passes()` method. If it returns false, validation fails and the message from your rule's `message()` method is used as the error.
+
+For configurable rules, pass the required arguments directly to your class constructor:
+```php
+use Phaseolies\Http\Validation\Bind;
+use App\Http\Validations\Rules\PhoneNumber;
+
+$sanitized = $request->sanitize([
+    'phone' => Bind::to(new PhoneNumber('BD')),
+]);
+```
+
+### Conditional Rules with `context()`
+In many real-world applications, a validation rule should only apply under certain conditions — for example, a domain field should only be validated when the user's account type is "business", or a phone number should only be checked against the Bangladeshi format when the selected country is "BD". For these cases, Doppar provides the `context()` method, which you can chain onto `Bind::to()`.
+
+`context()` accepts an associative array of field-value pairs. The rule will only execute if every condition in the array matches the corresponding value in the submitted request input. If any condition is not met, the rule is silently skipped and treated as passing — the field is not flagged as invalid.
+```php
+use Phaseolies\Http\Validation\Bind;
+use App\Http\Validations\Rules\Domain;
+
+$sanitized = $request->sanitize([
+    'status' => 'required|in:active,inactive,pending',
+    'domain' => Bind::to(new Domain())->context(['status' => 'active']),
+]);
+```
+
+In the example above, the Domain rule will only run if the submitted request contains status with the value "active". If status is "inactive" or is not present in the request at all, the rule is skipped entirely and the domain field will not produce any validation error regardless of its value.
+
+### Matching Multiple Conditions
+You can pass multiple key-value pairs to `context()`. When you do, all conditions must be satisfied simultaneously for the rule to run. If even one condition does not match, the rule is skipped.
+```php
+$sanitized = $request->sanitize([
+    'domain' => Bind::to(new Domain())->context([
+        'status' => 'active',
+        'type'   => 'business',
+    ]),
+]);
+```
+The Domain rule here will only execute when the request contains both `status === "active"` and `type === "business"`. If the request has `status === "active"` but `type === "personal"`, the rule is skipped. Both conditions must be true at the same time.
+
+### How context() Works
+See the scenario to understand how `context` works.
+
+Scenario                               | Behaviour
+-------------------------------------- | -----------------------------------------------
+`Bind::to(new Domain())`               | Always runs
+`->context(['status' => 'active'])`    | Runs only when `$input['status'] === 'active'`
+`->context(['a' => '1', 'b' => '2'])` | Runs only when all conditions match
+Condition not met                      | Rule is silently skipped (treated as passing)
+
 ## Exists In Validation
 To validate if a value exists in a specific database table, you follow this example
 ```php
