@@ -96,7 +96,7 @@ class Contract extends Model
 }
 ```
 
-> **Note:** The `actor` column must exist in the history table. Run `php doppar migrate:temporal` after enabling `trackActor: true` — Doppar will add the column to any existing history table automatically.
+> **Note:** The `actor` column must exist in the history table. Run `php pool migrate:temporal` after enabling `trackActor: true` — Doppar will add the column to any existing history table automatically.
 
 Both options can be combined:
 
@@ -113,7 +113,7 @@ class Contract extends Model
 The `migrate:temporal` command scans your `app/Models` directory, finds every model marked with `#[Temporal]`, and creates the corresponding history table.
 
 ```bash
-php doppar migrate:temporal
+php pool migrate:temporal
 ```
 
 Example output:
@@ -153,17 +153,17 @@ The command is **idempotent** — running it again on a table that already exist
 
 Preview the SQL that would be executed
 ```bash
-php doppar migrate:temporal --show
+php pool migrate:temporal --show
 ```
 
 Use a secondary database connection
 ```bash
-php doppar migrate:temporal --connection=pgsql_reports
+php pool migrate:temporal --connection=pgsql_reports
 ```
 
 Scan a non-default models directory
 ```bash
-php doppar migrate:temporal --path=app/Domain/Models
+php pool migrate:temporal --path=app/Domain/Models
 ```
 
 ## History Table Structure
@@ -461,7 +461,7 @@ class Contract extends Model
 After adding `trackActor: true` to an existing model, run the migration command to add the `actor` column to the existing history table:
 
 ```bash
-php doppar migrate:temporal
+php pool migrate:temporal
 ```
 
 The actor is resolved by calling `auth()->user()->getKey()` at the moment the snapshot is written. If no user is authenticated (e.g. during a console command or a job), the `actor` column is stored as `null`.
