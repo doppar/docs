@@ -59,6 +59,59 @@ public function store(
 
 Localize your dependencies exactly where they are used. Doppar intelligently resolves classes without manual setup. It turns dependency management into an elegant, explicit part of your codebase. Doppar’s container is more than a dependency injector — it’s a clarity engine.
 
+## Temporal Time Travel ORM
+Most frameworks let you store data. Doppar lets you understand its history.
+
+With Doppar’s built-in Temporal ORM, every model becomes a time-aware entity. Every create, update, and delete operation is automatically captured as a full snapshot — giving you a complete, queryable timeline of your data with zero extra code.
+
+At its core, the Temporal Time-Travel ORM does three things:
+
+Watches — Every model marked with `#[Temporal]` automatically gets lifecycle hooks registered. After every create, update, or delete, a snapshot of the row is captured.
+
+Stores— That snapshot — the full row as JSON, plus metadata — is written into a companion history table (`contracts_history`, `users_history`, etc.).
+
+Exposes— A fluent time-travel API lives directly on the model. Query any past state, walk the full history, diff two points in time, rewind, restore.
+
+No observer classes. No event listeners. No configuration files. One attribute, and it all works.
+```php
+<?php
+
+namespace App\Models;
+
+use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Temporal\Attributes\Temporal;
+
+#[Temporal]
+class Contract extends Model
+{
+    protected $creatable = ['title', 'status', 'amount', 'client_id'];
+}
+```
+Now run `php pool migrate:temporal` and that’s it.
+
+What You Get Instantly
+- **Complete audit history** — every change, every state, every moment
+- **Time-travel queries** — fetch records exactly as they existed in the past
+- **Diffing** — compare any two points in time
+- **Undo / restore** — roll back data safely in one call
+- **Actor tracking** — know exactly who made each change
+
+Every change becomes part of a clean, structured timeline — built automatically.
+
+## Frozen Services — Immutability at the Framework Level
+Doppar introduces `#[Immutable]` — an attribute that enforces boot-time-only mutation on a service class. Once the application is fully booted, any attempt to modify an immutable service throws an `ImmutableViolationException` at runtime.
+```php
+#[Immutable]
+class PaymentService
+{
+    use EnforcesImmutability;
+
+    public string $gateway = 'stripe';
+    public float  $taxRate  = 0.08;
+}
+```
+During the boot phase, the service is fully configurable. Once booted, it becomes read-only. No other PHP framework has this.
+
 ## A Request Pipeline That Thinks
 Doppar introduces a next-generation Request Object that goes far beyond simple input retrieval.
 With fluent pipelines, inline validation, and declarative transformations, the Doppar Request turns raw input handling into a clean, expressive, and composable workflow.
@@ -167,20 +220,6 @@ public function invalidateCache(): void
 }
 ```
 Available hooks: `before_created`, `after_created`, `before_updated`, `after_updated`, `before_deleted`, `after_deleted`. Everything stays co-located, readable, and maintainable.
-
-## Frozen Services — Immutability at the Framework Level
-Doppar introduces `#[Immutable]` — an attribute that enforces boot-time-only mutation on a service class. Once the application is fully booted, any attempt to modify an immutable service throws an `ImmutableViolationException` at runtime.
-```php
-#[Immutable]
-class PaymentService
-{
-    use EnforcesImmutability;
-
-    public string $gateway = 'stripe';
-    public float  $taxRate  = 0.08;
-}
-```
-During the boot phase, the service is fully configurable. Once booted, it becomes read-only. No other PHP framework has this.
 
 ## Real-Time WebSockets with Doppar Airbend
 Doppar ships a full WebSocket broadcasting system — public channels, private channels, presence channels, whispers, and real-time metrics — all built in.
