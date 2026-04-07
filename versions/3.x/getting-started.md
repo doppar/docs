@@ -30,9 +30,9 @@ Doppar is built around one core principle — clarity without compromise. Every 
 
 Unlike traditional PHP frameworks that trade simplicity for abstraction, Doppar delivers both — a syntax that’s catchy. In Doppar, everything is explicit, discoverable, and self-documenting. No hidden bindings. No magic facades. No framework guesswork.
 ```php
-#[Route(uri: 'user/store', methods: ['POST'], middleware: ['auth'])]
+#[Route(uri: 'user', middleware: ['auth'])]
 public function store(
-    #[Bind(YourConcrete::class)] YourAbstraction $lala
+    #[Bind(UserRepository::class)] UserRepositoryInterface $userRepositoryInterface
 ) {
     //
 }
@@ -60,17 +60,15 @@ public function store(
 Localize your dependencies exactly where they are used. Doppar intelligently resolves classes without manual setup. It turns dependency management into an elegant, explicit part of your codebase. Doppar’s container is more than a dependency injector — it’s a clarity engine.
 
 ## Temporal Time Travel ORM
-Most frameworks let you store data. Doppar lets you understand its history.
-
-With Doppar’s built-in Temporal ORM, every model becomes a time-aware entity. Every create, update, and delete operation is automatically captured as a full snapshot — giving you a complete, queryable timeline of your data with zero extra code.
+Most frameworks let you store data. Doppar lets you understand its history. With Doppar’s built-in Temporal ORM, every model becomes a time-aware entity. Every create, update, and delete operation is automatically captured as a full snapshot — giving you a complete, queryable timeline of your data with zero extra code.
 
 At its core, the Temporal Time-Travel ORM does three things:
 
-Watches — Every model marked with `#[Temporal]` automatically gets lifecycle hooks registered. After every create, update, or delete, a snapshot of the row is captured.
+**Watches** — Every model marked with `#[Temporal]` automatically gets lifecycle hooks registered. After every create, update, or delete, a snapshot of the row is captured.
 
-Stores— That snapshot — the full row as JSON, plus metadata — is written into a companion history table (`contracts_history`, `users_history`, etc.).
+**Stores** — That snapshot — the full row as JSON, plus metadata — is written into a companion history table (`contracts_history`, `users_history`, etc.).
 
-Exposes— A fluent time-travel API lives directly on the model. Query any past state, walk the full history, diff two points in time, rewind, restore.
+**Exposes** — A fluent time-travel API lives directly on the model. Query any past state, walk the full history, diff two points in time, rewind, restore.
 
 No observer classes. No event listeners. No configuration files. One attribute, and it all works.
 ```php
