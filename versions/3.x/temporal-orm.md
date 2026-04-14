@@ -21,7 +21,9 @@ content: Temporal, Time-Travel, ORM, History, Audit, Snapshot
 - [Utility Methods](#utility-methods)
 - [Driver Support](#driver-support)
 
-## Introduction
+## Temporal ORM
+
+### Introduction
 
 Doppar's **Temporal Time-Travel ORM** gives every model a complete, automatic audit history. Every time a record is created, updated, or deleted, a full snapshot of its state is written to a companion history table. You can then query what any record looked like at any point in the past — down to the microsecond — without changing a single line of your existing model or controller code.
 

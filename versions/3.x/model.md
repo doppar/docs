@@ -10,7 +10,8 @@ content: Model
 - [Properties Encryption](#properties-encryption)
 - [UUID Primary Keys](#uuid-primary-keys)
 
-## Introduction
+## Model
+### Introduction
 Before diving into Doppar's data management capabilities, it’s important to familiarize yourself with some key model properties that shape how your data is handled. Doppar offers the flexibility to customize these properties to suit your specific needs. Key properties include `$pageSize`, which controls the number of records displayed per page; `$primaryKey`, which defines the unique identifier for your table; $table, which specifies the database table associated with the model; `$creatable`, which determines whether new records can be added and `$unexposable` and `$timeStamps`, which allows you to hide sensitive or irrelevant data from being exposed and handle datetime columns. The `$connection` property specifies the database connection the model should use. Once this property is defined, all queries and operations on the model will automatically use the specified connection With Doppar, you have full control to tweak these properties, ensuring your data interactions are both efficient and secure. Let's see the User model as for example.
 
 ## Creating Model Classes
