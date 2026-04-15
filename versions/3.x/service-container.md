@@ -66,9 +66,11 @@ For example, you might type-hint the `Phaseolies\Http\Request` object directly i
 ```php
 use Phaseolies\Http\Request;
 
-Route::get('/', function (Request $request) {
-    // Use the request object...
-});
+#[Route(uri: 'post/store', methods: ['POST'])]
+public function store(Request $request)
+{
+    // Utilize the request object...
+}
 ```
 
 ## Attribute-Based Binding
