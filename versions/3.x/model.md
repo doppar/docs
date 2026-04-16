@@ -9,6 +9,7 @@ content: Model
 - [Model](#model)
 - [Properties Encryption](#properties-encryption)
 - [UUID Primary Keys](#uuid-primary-keys)
+- [Computed Properties](#computed-properties)
 
 ## Model
 ### Introduction
@@ -390,3 +391,293 @@ echo $order->id; // e.g. "550e8400-e29b-41d4-a716-446655440000"
 > not supported and auto-incrementing integers should be used instead.
 
 The migration column type must be `uuid()`, not `id()` or  `bigInteger()`. Attempting to store a UUID string in an integer column will result in a database error.
+
+## Computed Properties
+
+Computed properties allow you to define virtual, derived values directly on your model — values that are calculated on the fly from existing attributes rather than stored in the database. Once declared, a computed property behaves just like a real column: you can access it as a property, and it is automatically included in `toArray()` and `toJson()` output.
+
+This is useful for values like full names, formatted dates, derived scores, or any combination of attributes that you consistently need but do not want to duplicate in your database schema.
+
+### Defining Computed Properties
+
+To define a computed property, mark a public method on your model with the `#[Computed]` attribute from `Phaseolies\Database\Entity\Attributes\Computed`.
+
+```php
+<?php
+
+namespace App\Models;
+
+use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Attributes\Computed;
+
+class User extends Model
+{
+    protected $table = 'users';
+
+    #[Computed]
+    public function fullName(): string
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
+}
+```
+
+The method must be `public` and can return any type — string, int, bool, array, or null.
+
+### Accessing Computed Properties
+
+Doppar automatically converts the method name to `snake_case` when exposing the computed property. You can access computed properties using either the `snake_case` key or the original `camelCase` method name — both work transparently.
+
+```php
+$user = User::find(1);
+
+// snake_case — preferred for consistency with real columns
+echo $user->full_name; // "John Doe"
+
+// camelCase — also works
+echo $user->fullName;  // "John Doe"
+```
+
+Both styles call the same underlying method. The `snake_case` form is recommended because it is consistent with how real database columns are accessed.
+
+### Serialization
+
+Computed properties are automatically included when you convert a model to an array or JSON. The serialized key is always the `snake_case` version of the method name.
+
+```php
+$user = User::find(1);
+
+$array = $user->toArray();
+```
+
+Outout:
+```php
+[
+    'id'         => 1,
+    'first_name' => 'John',
+    'last_name'  => 'Doe',
+    'email'      => 'john@example.com',
+    'full_name'  => 'John Doe',   ← computed
+]
+```
+
+For json:
+```json
+{
+    "id": 1,
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "full_name": "John Doe"
+}
+```
+
+This means computed properties are included in API responses, log output, and any place that serializes the model — with no extra steps required.
+
+```php
+// json_encode works the same way
+echo json_encode($user);
+// {"id":1,...."full_name":"John Doe"}
+
+// Casting to string also works
+echo (string) $user;
+// {"id":1,...."full_name":"John Doe"}
+```
+
+### Hiding Computed Properties
+
+Just like real attributes, computed properties can be hidden from serialization using `makeHidden()`. You can pass either the `snake_case` key or the `camelCase` method name — both are accepted.
+
+```php
+$user = User::find(1);
+```
+
+Hide by snake_case key
+```php
+$user->makeHidden(['full_name'])->toArray();
+```
+
+Hide by camelCase method name — same result
+```php
+$user->makeHidden(['fullName'])->toArray();
+```
+
+You can also declare computed properties as hidden by default using `$unexposable` on the model, exactly like real attributes:
+
+```php
+class User extends Model
+{
+    protected $unexposable = ['full_name'];
+
+    #[Computed]
+    public function fullName(): string
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
+}
+```
+
+When `full_name` is listed in `$unexposable`, it will never appear in `toArray()`, `toJson()`, or `json_encode()` output unless explicitly made visible.
+
+### Multiple Computed Properties
+
+A model can define any number of computed properties. Each method decorated with `#[Computed]` is independently resolved and included in serialization output.
+
+```php
+<?php
+
+namespace App\Models;
+
+use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Attributes\Computed;
+
+class User extends Model
+{
+    protected $table = 'users';
+
+    #[Computed]
+    public function fullName(): string
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
+
+    #[Computed]
+    public function initials(): string
+    {
+        return strtoupper(
+            substr($this->first_name, 0, 1) . substr($this->last_name, 0, 1)
+        );
+    }
+
+    #[Computed]
+    public function emailDomain(): string
+    {
+        return substr(strrchr($this->email, '@'), 1);
+    }
+}
+```
+
+And the result:
+```php
+$user = User::find(1);
+
+echo $user->full_name;    // "John Doe"
+echo $user->initials;     // "JD"
+echo $user->email_domain; // "example.com"
+
+$user->toArray();
+
+[
+    'id'           => 1,
+    'first_name'   => 'John',
+    'last_name'    => 'Doe',
+    'email'        => 'john@example.com',
+    'full_name'    => 'John Doe',
+    'initials'     => 'JD',
+    'email_domain' => 'example.com',
+]
+```
+
+### Return Types
+
+Computed properties are not limited to strings. The method can return any PHP type — `int`, `float`, `bool`, `array`, or `null`. Whatever the method returns is included as-is in the serialized output.
+
+```php
+class Order extends Model
+{
+    protected $table = 'orders';
+
+    #[Computed]
+    public function totalWithTax(): float
+    {
+        return round($this->total * 1.15, 2);
+    }
+
+    #[Computed]
+    public function isPaid(): bool
+    {
+        return $this->status === 'paid';
+    }
+
+    #[Computed]
+    public function summary(): array
+    {
+        return [
+            'items' => $this->item_count,
+            'total' => $this->total,
+        ];
+    }
+}
+```
+
+A computed property that returns `null` is still included in `toArray()` output with a `null` value.
+
+```php
+class Product extends Model
+{
+    protected $table = 'products';
+
+    #[Computed]
+    public function discountedPrice(): ?float
+    {
+        return $this->discount > 0
+            ? round($this->price - ($this->price * $this->discount / 100), 2)
+            : null;
+    }
+}
+```
+
+Included even when `null`
+```php
+$product->toArray();
+[
+    'price'            => 100.00,
+    'discount'         => 0,
+    'discounted_price' => null,
+]
+```
+
+### Computed Properties Are Never Persisted
+
+Computed properties exist only in PHP — they are never written to or read from the database. Calling `save()`, `update()`, or `saveMany()` on a model with computed properties will never attempt to insert or update those values.
+
+```php
+$user = User::find(1);
+
+$user->last_name = 'Smith';
+$user->save();
+
+// The SQL generated is:
+// UPDATE users SET last_name = 'Smith', updated_at = '...' WHERE id = 1
+//
+// 'full_name' is never part of the query.
+```
+
+Computed properties are also excluded from dirty-checking. Changing a computed property's output (by changing the underlying attributes it depends on) does not make the computed key itself appear as dirty.
+
+### Priority Over Computed
+
+If a database column has the same name as a computed property's `snake_case` key, the real database column always wins. This prevents computed properties from silently shadowing actual stored data.
+
+```php
+class User extends Model
+{
+    #[Computed]
+    public function fullName(): string
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
+}
+```
+
+If the users table has a real 'full_name' column with value "Stored Value"
+```php
+$user = User::find(1);
+
+echo $user->full_name; // "Stored Value" — the real column wins
+```
+
+In practice, name your computed methods so they do not clash with existing column names. If you find a clash, rename either the column or the computed method.
+
+> **Note:** Methods without the `#[Computed]` attribute are still accessible via `$model->methodName` through the normal PHP method call path, but they will **not** appear in `toArray()`, `toJson()`, or `json_encode()` output. The `#[Computed]` attribute is what opts the method into serialization.
+
