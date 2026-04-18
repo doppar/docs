@@ -6,11 +6,11 @@ meta:
     content: Axios
 ---
 
-## Axios - Fluent HTTP Client for PHP
+## Axios
 
 ### Introduction
 
-**Doppar Axios** is a modern, feature-rich HTTP client for PHP, inspired by the simplicity of JavaScript clients like Axios but built on top of Symfony's robust `HttpClient`. Does not depends on doppar internal core, you can use it any PHP application. It does not depend on any internal Doppar core, making it suitable for use in any PHP application.
+Doppar Axios is a modern, feature-rich HTTP client for PHP, inspired by the simplicity of JavaScript clients like Axios but built on top of Symfony's robust `HttpClient`. Does not depends on doppar internal core, you can use it any PHP application. It does not depend on any internal Doppar core, making it suitable for use in any PHP application.
 
 ## Features
 
@@ -131,18 +131,23 @@ $response = $adminClient->to('/users')->get()->json();
 ```
 
 Below is a complete example that demonstrates how to build a base client and reuse it with scoped modifications in different contexts, such as user requests and admin-level operations:
+
+Create a base configured client
 ```php
-// Create a base configured client
 $client = Axios::withBaseUrl('https://jsonplaceholder.typicode.com')
     ->withHeaders(['Accept' => 'application/json'])
     ->withBearerToken($token)
     ->timeout(10.0);
+```
 
-// Reuse with different endpoints
+Reuse with different endpoints
+```php
 $posts = $client->to('/posts')->get()->json();
 $comments = $client->to('/comments')->get()->json();
+```
 
-// Create a more specific scope for admin access
+Create a more specific scope for admin access
+```php
 $adminClient = $client
     ->withHeaders(['X-Admin' => 'true'])
     ->withQuery(['debug' => 'true']);
@@ -154,26 +159,32 @@ $adminData = $adminClient->to('/admin/stats')->get()->json();
 Axios lets you control the HTTP protocol version on a per‑client basis. Whether you need to force` HTTP/2` for performance or fall back to `HTTP/1.1` for compatibility, these methods let you scope a client instance with your desired HTTP version—without mutating the original.
 
 You can use `withHttp2()` to enable `HTTP/2` for your requests. `HTTP/2` offers multiplexing, header compression, and lower latency—ideal for modern APIs and high‑throughput scenarios.
+
+Force HTTP/2 on HTTPS URLs (default behavior)
 ```php
 use Doppar\Axios\Http\Axios;
 
-// Force HTTP/2 on HTTPS URLs (default behavior)
 $client = Axios::withBaseUrl('https://api.example.com')
     ->withHttp2();
+```
 
-// Optionally, force HTTP/2 even for plain HTTP endpoints
+Optionally, force HTTP/2 even for plain HTTP endpoints
+```php
 $clientForceAll = Axios::withBaseUrl('http://intranet.local')
     ->withHttp2(true);
+```
 
-// The request will carry the HTTP/2 setting under the hood:
+The request will carry the HTTP/2 setting under the hood:
+```php
 $response = $client->to('/v1/data')->get();
 ```
 
 Revert to `HTTP/1.1` for maximum compatibility with legacy servers, proxies, or environments where `HTTP/2` may not be fully supported.
+
+Create a base client that defaults to `HTTP/1.1`
 ```php
 use Doppar\Axios\Http\Axios;
 
-// Create a base client that defaults to HTTP/1.1
 $client = Axios::withBaseUrl('https://legacy.example.com')
     ->withoutHttp2();
 
@@ -439,33 +450,33 @@ How It Works
   - Server-side errors (status code 5xx)
 - Retries are not triggered on 4xx errors (e.g., bad request, unauthorized).
 
-Example: Retry a Request Up to 3 Times
+Example: 3 retries with 100ms delay between attempts
 ```php
 use Doppar\Axios\Http\Axios;
 
 $response = Axios::to('https://example.com/posts')
-    ->retry(3, 100) // 3 retries with 100ms delay between attempts
+    ->retry(3, 100)
     ->get()
     ->json();
 
 return $response;
 ```
-You can increase the delay for exponential backoff or adjust retries per endpoint:
+You can increase the delay for exponential backoff or adjust retries per endpoint. See the example below. Up to `5` attempts, `0.5s` apart
 ```php
 Axios::to('https://example.com/data')
-    ->retry(5, 500) // up to 5 attempts, 0.5s apart
+    ->retry(5, 500)
     ->get();
 ```
 
 ## with Request Timeout
 In network communication, it’s best practice to set a timeout to avoid waiting forever for a slow or unresponsive server. With Doppar Axios, you can easily define the maximum number of seconds a request should wait using the `timeout()` method.
 
-Example: Abort Request After 5 Seconds
+Example: max 5 seconds to complete the request
 ```php
 use Doppar\Axios\Http\Axios;
 
 $response = Axios::to('https://example.com/posts')
-    ->timeout(5) // max 5 seconds to complete the request
+    ->timeout(5)
     ->get();
 
 return $response->json();
