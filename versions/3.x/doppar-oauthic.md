@@ -70,34 +70,51 @@ Doppar OAuthic provides a simple and fluent API for authenticating users with OA
 ### Redirect to the OAuth Provider
 You initiate the OAuth flow by redirecting the user to the provider's login/consent screen:
 ```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Phaseolies\Utilities\Attributes\Route;
 use Doppar\OAuthic\OAuthic;
 
-Route::get('redirect', function () {
-    return redirect(OAuthic::driver('github')->redirect());
-});
+class OAuthController extends Controller
+{
+    #[Route(uri: 'redirect', name: 'oauth.redirect')]
+    public function redirect()
+    {
+        return redirect(OAuthic::driver('github')->redirect());
+    }
+}
 ```
 
 ### Handle the Callback and Retrieve User Info
 After the user authenticates and approves access, the provider will redirect them back to your application. You can then retrieve the authenticated user's details:
 
 ```php
+<?php
+
 use Doppar\OAuthic\OAuthic;
 use Phaseolies\Support\Facades\Auth;
 
-Route::get('callback', function () {
-    $provider = OAuthic::driver('github')->user();
+class OAuthController extends Controller
+{
+    #[Route(uri: 'callback', name: 'oauth.callback')]
+    public function callback()
+    {
+        $provider = OAuthic::driver('github')->user();
 
-    $provider->getId();       // Provider user ID
-    $provider->getName();     // Full name
-    $provider->getEmail();    // Email address
-    $provider->getAvatar();   // Profile picture URL
-    $provider->getRaw();      // Raw response array from provider
+        $provider->getId();       // Provider user ID
+        $provider->getName();     // Full name
+        $provider->getEmail();    // Email address
+        $provider->getAvatar();   // Profile picture URL
+        $provider->getRaw();      // Raw response
 
-    // Save or Update the user
+        // Save or Update the user
 
-    // Now login
-    Auth::login($user);
-});
+        // Now login
+        Auth::login($user);
+    }
+}
 ```
 
 ## Stateless Mode
