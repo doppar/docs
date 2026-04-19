@@ -312,8 +312,9 @@ Doppar provides a powerful global `app()` helper function that gives you access 
 
 ### Automatic Resolution
 Doppar supports automatic resolution of class dependencies. Just pass the class name to `app()`:
+
+Creates an instance of SMSService
 ```php
-// Creates an instance of SMSService
 $object = app(SMSService::class);
 $object->sendSms();
 ```
@@ -332,12 +333,13 @@ $service = app(SMSService::class, ['apiKey' => 'your-key-here']);
 ```
 
 ### Binding and Resolving Custom Keys
-You can bind any service or class instance to a custom key using the `bind()` method, then resolve it via `app()`:
+You can bind any service or class instance to a custom key using the `bind()` method, then resolve it via `app()`. The below example will bind 'sms' to an instance of SMSService
 ```php
-// Bind 'sms' to an instance of SMSService
 $this->app->bind('sms', fn() => new SMSService());
+```
 
-// Retrieve and use the service
+Then you can retrieve and use the service like this way:
+```php
 app('sms')->sendSms();
 ```
 

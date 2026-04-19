@@ -362,8 +362,6 @@ use Phaseolies\Utilities\Attributes\Model;
 #[Route('/profile/{user}', methods: ['GET'])]
 public function show(#[Model] ?User $user) 
 {
-    // The $user instance is automatically fetched using the 'id' column.
-    // If no matching user is found, null will be assigned by default.
     return $user;
 }
 ```
@@ -377,7 +375,6 @@ The `#[Model('email')]` attribute clearly expresses that binding should occur ba
 #[Route('/profile/{user}', methods: ['GET'])]
 public function show(#[Model('email')] ?User $user) 
 {
-    // Fetched using the 'email' column.
     return $user;
 }
 ```
@@ -393,12 +390,10 @@ If a matching user is not found, a `NotFoundHttpException` is thrown immediately
 public function show(
     #[Model(column: 'email', exception: true)] ?User $user
 ) {
-    // If no user is found,
-    // NotFoundHttpException will be thrown automatically.
     return $user;
 }
 ```
-This ensures strict route validation and avoids passing null models to your logic.
+If no user is found, `NotFoundHttpException` will be thrown automatically. This ensures strict route validation and avoids passing null models to your logic.
 
 ## Globally Set Route Key Name
 In Doppar, you can define a global route key name for your model to simplify and standardize how it’s resolved during route model binding.
@@ -528,16 +523,25 @@ The `*` acts as a wildcard, so this route matches any URL starting with welcome 
 Once your form is set up to spoof `PUT`, `PATCH`, or `DELETE` methods, you need to define the corresponding routes in your `routes/web.php` file. These routes will map the specific HTTP methods to the appropriate controller actions.
 
 In Doppar, this is typically done using the `Route::put`, `Route::patch`, and `Route::delete` methods provided by the routing system.
+
+#### PUT Route
 ```php
 use App\Http\Controllers\ProfileController;
 
-// PUT Route
 Route::put('update-profile', [ProfileController::class, 'update']);
+```
 
-// PATCH Route
+#### PATCH Route
+```php
+use App\Http\Controllers\ProfileController;
+
 Route::patch('update-profile', [ProfileController::class, 'update']);
+```
 
-// DELETE Route
+#### DELETE Route
+```php
+use App\Http\Controllers\ProfileController;
+
 Route::delete('user/{id}', [ProfileController::class, 'delete']);
 ```
 
@@ -594,11 +598,14 @@ Now call the route
 
 ## Generating URLs to Named Routes
 Once you have assigned a name to a given route, you may use the route's name when generating URLs or redirects via Doppar's route and redirect helper functions:
-```php
-// Generating URLs...
-$url = route('profile');
 
-// Generating Redirects...
+Generating URLs:
+```php
+$url = route('profile');
+```
+
+Generating Redirects:
+```php
 return redirect()->route('profile');
 ```
 
@@ -768,12 +775,12 @@ Since `PUT` does not support file uploads for `form-data`, you can override it t
 ```php
 Route::apiBundle('file', FileController::class, [
     'methods' => [
-        'update' => 'POST' // Now the update endpoint uses POST
+        'update' => 'POST'
     ]
 ]);
 ```
 
-This ensures your update endpoint can handle file uploads without issues.
+Now the update endpoint uses `POST` method. This ensures your update endpoint can handle file uploads without issues.
 
 ## Nested Bundle Routes
 The `nestedBundle` method registers a full CRUD route set for a child resource that is nested under a parent resource.

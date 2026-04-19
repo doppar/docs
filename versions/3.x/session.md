@@ -39,14 +39,20 @@ Doppar makes it simple to store and retrieve session data using intuitive method
 To store data in the session, use the `put()` method:
 ```php
 $request->session()->put($key, $value);
-// You can also use session() global function object
+```
+
+You can also use `session()` global function object
+```php
 session()->put($key, $value);
 ```
 
 To retrieve data from the session, use the `get()` method:
 ```php
 $request->session()->get($key);
-// You can also use session() global function object
+```
+
+You can also use `session()` global function object
+```php
 session()->get($key);
 ```
 
@@ -93,17 +99,20 @@ Session::get('name');
 
 ## The Global Session Helper
 You may also use the global session PHP function to retrieve and store data in the session. When the session helper is called with a single, string argument, it will return the value of that session key. When the helper is called with an array of key / value pairs, those values will be stored in the session:
+
+Retrieve a piece of data from the session:
 ```php
-Route::get('/home', function () {
-    // Retrieve a piece of data from the session...
-    $value = session('key');
+$value = session('key');
+```
 
-    // Specifying a default value...
-    $value = session('key', 'default');
+Specifying a default value
+```php
+$value = session('key', 'default');
+```
 
-    // Store a piece of data in the session...
-    session(['key' => 'value']);
-});
+Store a piece of data in the session
+```php
+session(['key' => 'value']);
 ```
 
 ## Retrieving All Session Data
@@ -154,6 +163,7 @@ return back()->withAnyKey('User created successfully');
 You can directly flash a key-value pair to the session using the `flash()` method:
 ```php
 session()->flash('success', 'User created successfully');
+
 return redirect('/register');
 ```
 This is useful when you're not chaining off a redirect or doing session manipulation manually.

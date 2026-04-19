@@ -21,13 +21,16 @@ echo url("/posts/{$post->id}");
 // http://example.com/posts/1
 ```
 
-You can use `to()` function to generate url like
+You can use `to()` function to generate url. See the example using URL facades:
 ```php
-
 use Phaseolies\Support\Facades\URL;
 
-URL::to('products')->make(); // using URL facades
-url()->to('products')->make(); // using helper function
+URL::to('products')->make();
+```
+
+Using helper function
+```php
+url()->to('products')->make();
 
 // http://example.com/products
 ```
@@ -70,8 +73,7 @@ url()->to('/download')
     ->withFragment('about')
     ->make();
 
-// output
-http://localhost:8000/download?file=report.pdf&expires=1742401435&signature=363ef0e47fd9fca7197882490ee8f4c132df6b9b6e9e0041ac0df5c31cc349d3#about
+// http://localhost:8000/download?file=report.pdf&expires=1742401435&signature=363ef0e47fd9fca7197882490ee8f4c132df6b9b6e9e0041ac0df5c31cc349d3#about
 ```
 
 ## Verify Signed URL
@@ -112,7 +114,7 @@ Toggle between HTTP and HTTPS programmatically:
 ```php
 url()->to('login')->setSecure(true)->make();
 
-// Output: https://example.com/login
+// https://example.com/login
 ```
 
 ## URL Validation

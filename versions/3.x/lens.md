@@ -465,6 +465,7 @@ Use this method to restore nested arrays from flat representations, such as thos
 The `rand` method returns a new array with the values shuffled in random order.
 ```php
 $items = [1, 2, 3, 4, 5];
+
 $shuffled = Lens::rand($items);
 // $shuffled might be [3, 1, 5, 2, 4] or any other random permutation
 ```

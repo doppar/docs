@@ -8,9 +8,9 @@ meta:
 
 ## Release Notes
 
-Welcome to the official **Doppar PHP Framework Release Notes** — your central hub for updates, improvements, and innovations across every Doppar version.
+Welcome to the official Doppar PHP Framework Release Notes — your central hub for updates, improvements, and innovations across every Doppar version.
 
-Doppar will ship **one major version every year on December 1st**, with minor and patch updates released as needed throughout the year. Each release focuses on performance, developer experience, and modern PHP capabilities.
+Doppar will ship one major version every year on December 1st, with minor and patch updates released as needed throughout the year. Each release focuses on performance, developer experience, and modern PHP capabilities.
 
 ## Versioning Scheme
 
@@ -36,6 +36,6 @@ Each major version of Doppar receives the following support:
 
 ## Doppar v3.0.0 Release Notes (December 1, 2025)
 
-Doppar `v3.0.0` is the **first official public release** of the Doppar PHP Framework. This foundation release introduces a modern, performance-focused architecture built with PHP 8.3+, featuring attribute-powered routing, the ODO templating engine, Entity ORM, Doppar AI, and a daemon based native task runtime designed for real-time applications.
+Doppar `v3.0.0` is the first official public release of the Doppar PHP Framework. This foundation release introduces a modern, performance-focused architecture built with PHP 8.3+, featuring attribute-powered routing, the ODO templating engine, Entity ORM, Doppar AI, and a daemon based native task runtime designed for real-time applications.
 
-This release sets the tone for Doppar’s philosophy: **clarity, precision, and performance-first engineering.**
+This release sets the tone for Doppar’s philosophy: clarity, precision, and performance-first engineering.

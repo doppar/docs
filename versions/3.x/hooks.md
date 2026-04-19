@@ -33,7 +33,8 @@ meta:
 - [Execution Order](#execution-order)
 - [Important Constraints](#important-constraints)
 
-## Introduction
+## Hooks
+### Introduction
 
 Model Hooks in Doppar provide a clean, expressive way to respond to lifecycle events on your models. They allow you to execute custom logic automatically when specific events occur — such as when a model is being created, updated, deleted, or booted for the first time.
 
@@ -713,6 +714,7 @@ class User extends Model
 
 `booting` fires before a model class is fully initialised. `booted` fires after. Both run exactly once per class per PHP process — on the first instantiation of the class — and never again for any subsequent instance of the same class.
 
+Runs once when this class is first instantiated in the process:
 ```php
 <?php
 
@@ -723,19 +725,28 @@ use Phaseolies\Database\Entity\Model;
 
 class Setting extends Model
 {
-    protected $table = 'settings';
-
     #[Hook('booting')]
     public function onBooting(): void
     {
-        // Runs once when this class is first instantiated in the process
         info('Setting model class is booting.');
     }
+}
+```
 
+Runs once after the class is fully ready:
+```php
+<?php
+
+namespace App\Models;
+
+use Phaseolies\Database\Entity\Attributes\Hook;
+use Phaseolies\Database\Entity\Model;
+
+class Setting extends Model
+{
     #[Hook('booted')]
     public function onBooted(): void
     {
-        // Runs once after the class is fully ready
         info('Setting model class has booted.');
     }
 }
@@ -1246,7 +1257,7 @@ class Post extends Model
 
 ## Important Constraints
 
-**Hooks are triggered by model methods only**
+Hooks are triggered by model methods only
 
 Hooks fire when you use the model's own persistence methods. Direct entity builder calls bypass all hooks entirely.
 
@@ -1256,7 +1267,6 @@ Post::create(['title' => 'Hello']);
 $post->save();
 $post->update(['title' => 'Updated']);
 $post->delete();
-User::withoutHook()->create(['name' => 'Import']);
 
 // Hooks do NOT fire
 Post::query()->insert(['title' => 'Hello']);
@@ -1265,24 +1275,27 @@ Post::query()->where('id', 1)->delete();
 Post::query()->whereIn('id', [1, 2, 3])->delete();
 ```
 
-**Attribute hooks use `$this`, array hooks receive `$model`**
+Attribute hooks use `$this`, array hooks receive `$model`
 
 ```php
-// Attribute hook — instance method, no parameter
 #[Hook('before_created')]
 public function generateSlug(): void
 {
-    $this->slug = str()->slug($this->title); // $this is the model
+    // $this is the model
+    $this->slug = str()->slug($this->title);
 }
+```
 
-// Array hook — static method, model passed as parameter
+Array hook — static method, model passed as parameter
+```php
 protected array $hooks = [
     'before_created' => [self::class, 'generateSlug'],
 ];
 
 public static function generateSlug(Model $model): void
 {
-    $model->slug = str()->slug($model->title); // use $model, not $this
+    // use $model, not $this
+    $model->slug = str()->slug($model->title);
 }
 ```
 

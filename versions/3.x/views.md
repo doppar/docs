@@ -23,9 +23,11 @@ Views help separate your application's logic from its presentation layer, improv
 Since this view is stored at `resources/views/greeting.odo.php`, we may return it using the global view helper like so:
 
 ```php
-Route::get('/', function () {
+#[Route(uri:'/')]
+public function home()
+{
     return view('greeting', ['name' => 'James']);
-});
+}
 ```
 
 ## Passing Data to Views
