@@ -78,13 +78,14 @@ In this example, `DB_HOST` is fetched from the environment file, and if it's not
 
 ### app()
 The `app()` function provides access to the service container instance in thouht it return the Application instance of Doppar. It can be used to resolve dependencies, retrieve bound services, or access the container itself.
-```php
-$app = app(); // This returns the global Application instance.
-```
-But if your pass a class like
 
+`app()` returns the global Application instance.
 ```php
-$logger = app(Logger::class); // This fetches an instance of Logger.
+$app = app();
+```
+But if your pass a class like this, then this will fetch an instance of Logger
+```php
+$logger = app(Logger::class);
 ```
 
 You can Resolve a service with parameters as well
@@ -107,6 +108,7 @@ resolve(string $name, array $parameters = []): mixed
 use App\Services\PaymentService;
 
 $paymentService = resolve(PaymentService::class);
+
 $paymentService->charge(100);
 ```
 Here, PaymentService will be automatically instantiated by the container, and any dependencies it needs will be resolved and injected.
@@ -130,11 +132,12 @@ $url = url('/home');
 // http://example.com/home
 ```
 
-You can use this url() as an object like
+You can use this `url()` as an object like
 ```php
  return url()
     ->to('/profile')
-    ->withQuery('foo=bar&baz=qux') // you can pass here array also like ['foo' => 'bar', 'baz' => 'qux']
+    // you can pass here array also like ['foo' => 'bar', 'baz' => 'qux']
+    ->withQuery('foo=bar&baz=qux') 
     ->withFragment('about')
     ->withSignature(3600)
     ->setSecure(true)
@@ -215,14 +218,19 @@ The `back()` function in Doppar is a helper used to create a redirect response t
 return back();
 ```
 This redirects the user back to the previous location using the default status code (302). A RedirectResponse instance, which will redirect the user either to the previous location or the fallback location.
+
+Redirect back with default 302 status
 ```php
-// Redirect back with default 302 status
 return back();
+```
 
-// Redirect back with a custom status code and headers
+Redirect back with a custom status code and headers
+```php
 return back(301, ['Cache-Control' => 'no-store']);
+```
 
-// Redirect back with a fallback URL if the referer is not available
+Redirect back with a fallback URL if the referer is not available
+```php
 return back(302, [], '/home');
 ```
 ### session()
@@ -475,14 +483,14 @@ abort_if(!file_exists($filePath), 404, 'File not found');
 ## Log Helpers
 These are helper functions designed to simplify logging at different levels of severity. They utilize Doppar's built-in Log facade to log messages with various log levels. Each function accepts a payload (which can be any type of data) and logs it accordingly at the specified level.
 ```php
-info('This is an info message.'); // Logs an info-level message
-warning('This is a warning message.'); // Logs a warning-level message
-error('This is an error message.'); // Logs an error-level message
-alert('This is an alert message.'); // Logs an alert-level message
-notice('This is a notice message.'); // Logs a notice-level message
-emergency('This is an emergency message.'); // Logs an emergency-level message
-critical('This is a critical message.'); // Logs a critical-level message
-debug('This is a debug message.'); // Logs a debug-level message
+info('This is an info message.'); // Logs as info
+warning('This is a warning message.'); // Logs as warning
+error('This is an error message.'); // Logs as error
+alert('This is an alert message.'); // Logs as alert
+notice('This is a notice message.'); // Logs as notice
+emergency('This is an emergency message.'); // Logs as emergency
+critical('This is a critical message.'); // Logs as critical
+debug('This is a debug message.'); // Logs as debug
 ```
 ### collect()
 The `collect()` function is a helper designed to create a new instance of a Doppar Collection. It simplifies the process of creating and working with collections in your application. Collections allow you to work with arrays in a more expressive and fluent way, providing additional methods for filtering, transforming, and manipulating data.
@@ -543,10 +551,13 @@ $result = delete_folder_recursively('/path/to/folder');
 ```
 ### uuid()
 The `uuid()` function is a helper designed to generate a UUID v4 (Universally Unique Identifier), which is a random 128-bit value represented as a string. UUIDs are commonly used for generating unique identifiers in distributed systems, databases, and APIs.
+
+Generate a UUID v4 string
 ```php
-// Generate a UUID v4 string
 $uuid = str()->uuid();
-// or
+```
+Using helper function
+```php
 $uuid = uuid();
 // "f47ac10b-58cc-4372-a567-0e02b2c3d479"
 ```
@@ -556,14 +567,17 @@ Doppar provides a collection of global string helper functions in PHP. While man
 
 ### mask()
 The `mask()` function is a helper designed to mask parts of a given string while keeping a specified number of characters visible at the start and the end. This can be useful for hiding sensitive information (like credit card numbers, emails, or phone numbers) while displaying a portion of it for the user to verify.
+
+Mask a credit card number except for the last four digits
 ```php
 use Phaseolies\Support\Facades\Str;
 
-// Mask a credit card number except for the last four digits
 $maskedCard = str()->mask('1234 5678 9876 5432', 4, 4, '*');
 $maskedCard = Str::mask('1234 5678 9876 5432', 4, 4, '*');
+```
 
-// Mask a phone number except for the first three and last four digits
+Mask a phone number except for the first three and last four digits
+```php
 $maskedPhone = str()->mask('123-456-7890', 3, 4, '#');
 $maskedPhone = Str::mask('123-456-7890', 3, 4, '#');
 ```
@@ -592,83 +606,90 @@ $shortDescription = Str::truncate('This is a long description that should be sho
 // Output: "This is a long description... Read More"
 ```
 ### snake()
-The `snake()` function is a helper designed to convert a camelCase string into a snake_case string. This is useful when you need to transform variable names, keys, or identifiers from camelCase (often used in programming) into snake_case (commonly used in database column names or URL routing).
+The `snake()` function is a helper designed to convert a camelCase string into a `snake_case` string. This is useful when you need to transform variable names, keys, or identifiers from camelCase (often used in programming) into `snake_case` (commonly used in database column names or URL routing).
+
+Convert a camelCase string to `snake_case`
 ```php
-// Convert a camelCase string to snake_case
 $snakeString = str()->snake('camelCaseString');
 // Output: 'camel_case_string'
 ```
 ### camel()
-The `camel()` function is a helper designed to convert a snake_case string into a camelCase string. This is useful when you need to transform variable names, keys, or identifiers from snake_case (commonly used in databases or file names) into camelCase (often used in programming languages like JavaScript and PHP for variable names).
+The `camel()` function is a helper designed to convert a `snake_case` string into a camelCase string. This is useful when you need to transform variable names, keys, or identifiers from `snake_case` (commonly used in databases or file names) into camelCase (often used in programming languages like JavaScript and PHP for variable names).
+
+Convert a snake_case string to `camelCase`
 ```php
-// Convert a snake_case string to camelCase
 $camelString = str()->camel('snake_case_string');
 // Output: 'snakeCaseString'
 ```
 
 ### random()
 The `random()` function is a helper designed to generate a random alphanumeric string of a specified length. This is useful when you need to generate secure random tokens, passwords, or unique identifiers.
+
+Generate a random alphanumeric string of default length 16
 ```php
-// Generate a random alphanumeric string of default length 16
 $randomString = str()->random();
 // Output: 'a1B2c3D4e5F6g7H8'
+```
 
-// Generate a random alphanumeric string of a custom length (e.g., 8)
+Generate a random alphanumeric string of a custom length (e.g., 8)
+```php
 $randomString = str()->random(8);
 // Output: 'Xy7GzH8Q'
 ```
 ### isPalindrome()
 The `isPalindrome()` function is a helper designed to check whether a given string is a palindrome. A palindrome is a word, phrase, or sequence that reads the same backward as forward (ignoring spaces, punctuation, and capitalization).
-```php
-// Check if a string is a palindrome
-$isPalindrome = str()->isPalindrome('racecar'); // Output: true
 
-// Check if a string is not a palindrome
-$isPalindrome = str()->isPalindrome('hello'); // Output: false
+Check if a string is a palindrome
+```php
+$isPalindrome = str()->isPalindrome('racecar'); // Output: true
 ```
+
 ### countWord()
 The `countWord()` function is a helper designed to count the number of words in a given string. This is useful when you need to determine the word count of a sentence, paragraph, or any text input.
-```php
-// Count the number of words in a string
-$wordCount = str()->countWord('This is a test sentence.'); // Output: 5
 
-// Count the number of words in a string with punctuation
+Count the number of words in a string
+```php
+$wordCount = str()->countWord('This is a test sentence.'); // Output: 5
+```
+
+Count the number of words in a string with punctuation
+```php
 $wordCount = str()->countWord('Hello, world!'); // Output: 2
 ```
 
 ### title()
 The `title()` function is a helper designed to convert a given string into title case, where the first letter of each word is capitalized, and the rest of the letters are in lowercase. This is commonly used for formatting titles or headings.
+
+Convert a string to title case
 ```php
-// Convert a string to title case
 $title = str()->title("hello world"); // Returns "Hello World"
 ```
 
 ### slug()
 The `slug()` function is a helper designed to generate a URL-friendly slug from a given string. A slug is typically used in URLs, where spaces and special characters are replaced with hyphens (or another separator), and all letters are converted to lowercase.
+
+Generate a URL-friendly slug
 ```php
-// Generate a URL-friendly slug
 $slug = str()->slug("Hello World!"); // Returns "hello-world"
 ```
 
 The word separator used in the slug. By default, this is a hyphen (-), but you can specify another separator if needed.
 ```php
-// Generate a URL-friendly slug with the default separator (hyphen)
-$slug = str()->slug("Hello World!"); // Returns "hello-world"
-
-// Generate a URL-friendly slug with a custom separator (underscore)
 $slug = str()->slug("Hello World!", '_'); // Returns "hello_world"
 ```
 
 ### contains()
 The `contains()` function is a helper designed to check if a given string (the haystack) contains another string (the needle), performing a case-insensitive search.
+
+Check if a string contains another string (case-insensitive)
 ```php
-// Check if a string contains another string (case-insensitive)
 $contains = str()->contains("Hello World", "world"); // Returns true
 ```
 ### limitWords()
 The `limitWords()` function is a helper designed to limit the number of words in a string. If the string contains more words than the specified limit, the function truncates the string and appends an optional ending suffix (such as ...).
+
+Limit the number of words in a string
 ```php
-// Limit the number of words in a string
 $truncatedString = str()->limitWords("This is a test string", 3);
 // Returns "This is a..."
 ```
@@ -728,6 +749,47 @@ The reverse() function is a helper designed to reverse the characters in a given
 $reversedString = str()->reverse("Hello World");
 // Returns "dlroW olleH"
 ```
+
+### after()
+The `after()` function returns the portion of a string that appears after the first occurrence of a given substring.
+```php
+$text = "Hello, world!";
+$result = str()->after($text, "Hello, ");
+// Returns: "world!"
+```
+If the search term is not found, the original string is returned. If $search is an empty string, the full `$subject` is returned unchanged.
+
+### before()
+The `before()` function returns the portion of a string that appears before the first occurrence of a given substring.
+```php
+$text = "Hello, world!";
+$result = str()->before($text, ", world!");
+// Returns: "Hello"
+```
+
+If the search term is not found, the original string is returned. If $search is an empty string, the full `$subject` is returned unchanged.
+
+### between()
+The `between()` function extracts the substring between two specified values — the first occurrence of `$from` and `$to`.
+```php
+$text = "Welcome [John] to Doppar!";
+$result = str()->between($text, "[", "]");
+// Returns: "John"
+```
+It internally uses the `after()` and `before()` functions to isolate the content between the two markers.
+
+### isJson()
+The `isJson()` function checks whether a given string is a valid JSON structure. It returns true if the string can be successfully parsed as JSON, and false otherwise.
+```php
+$jsonString = '{"name": "Alice", "age": 25}';
+$result = str()->isJson($jsonString);
+// Returns: true
+
+$invalidString = "{name: Alice, age: 25}";
+$result = str()->isJson($invalidString);
+// Returns: false
+```
+
 
 ### extractNumbers()
 The `extractNumbers()` function is a helper designed to extract all numeric digits from a given string. It removes any non-numeric characters, leaving only the digits.
@@ -789,44 +851,4 @@ $highlighted = str()->highlightKeyword(
     "span class='highlight'"
 );
 // Returns: "<span class='highlight'>Doppar</span> is awesome. Learn <span class='highlight'>Doppar</span> now!"
-```
-
-### after()
-The `after()` function returns the portion of a string that appears after the first occurrence of a given substring.
-```php
-$text = "Hello, world!";
-$result = str()->after($text, "Hello, ");
-// Returns: "world!"
-```
-If the search term is not found, the original string is returned. If $search is an empty string, the full `$subject` is returned unchanged.
-
-### before()
-The `before()` function returns the portion of a string that appears before the first occurrence of a given substring.
-```php
-$text = "Hello, world!";
-$result = str()->before($text, ", world!");
-// Returns: "Hello"
-```
-
-If the search term is not found, the original string is returned. If $search is an empty string, the full `$subject` is returned unchanged.
-
-### between()
-The `between()` function extracts the substring between two specified values — the first occurrence of `$from` and `$to`.
-```php
-$text = "Welcome [John] to Doppar!";
-$result = str()->between($text, "[", "]");
-// Returns: "John"
-```
-It internally uses the `after()` and `before()` functions to isolate the content between the two markers.
-
-### isJson()
-The `isJson()` function checks whether a given string is a valid JSON structure. It returns true if the string can be successfully parsed as JSON, and false otherwise.
-```php
-$jsonString = '{"name": "Alice", "age": 25}';
-$result = str()->isJson($jsonString);
-// Returns: true
-
-$invalidString = "{name: Alice, age: 25}";
-$result = str()->isJson($invalidString);
-// Returns: false
 ```

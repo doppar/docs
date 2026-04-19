@@ -260,19 +260,12 @@ In the middleware class, define the handle method and accept the parameters as f
  * @param \Closure(\Phaseolies\Http\Request) $next
  * @return Phaseolies\Http\Response
  */
-public function __invoke(
-    Request $request,
-    Closure $next,
-    string $admin,
-    string $editor,
-    string $publisher): Response
+public function __invoke(Request $request, Closure $next, $admin, $editor, $publisher): Response
 {
     // Parameters received:
     // $admin = 'admin'
     // $editor = 'editor'
     // $publisher = 'publisher'
-
-    // Middleware logic goes here
 
     return $next($request);
 }

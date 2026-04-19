@@ -6,7 +6,7 @@ meta:
     content: date and time handling in doppar
 ---
 
-## Date and Time Handling in Doppar
+## Datetime
 ### Introduction
 Doppar provides a robust and flexible system for working with dates and times, thanks to its integration with the Carbon library. However, understanding how timezones are managed—especially when using functions like `now()` or `Carbon::now()`—can be important when building applications that rely on accurate time data.
 
@@ -31,7 +31,15 @@ When working within Doppar, you have multiple ways to create a Carbon instance r
 use Carbon\Carbon;
 
 Carbon::now();
+```
+
+Using the `now()` helper function:
+```php
 now();
+```
+
+Using the container:
+```php
 app('timezone')->now();
 ```
 All of these methods will return the same result — a Carbon instance with the current date and time.

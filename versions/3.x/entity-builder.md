@@ -826,7 +826,7 @@ Upsert (a combination of Insert and Update) is a database operation that inserts
 
 In SQL terms, this is typically handled using statements like INSERT ... ON `DUPLICATE KEY UPDATE (MySQL)`.
 
-Basic Upsert by Unique Email
+Basic upsert by unique email
 ```php
 $users = [
     [
@@ -841,22 +841,20 @@ $users = [
     ],
 ];
 
-$affectedRows = db()->bucket('users')
-->upsert(
-    $users,
-    "email",  // Unique constraint
-    ["name"], // Only update the "name" column if exists
-    true      // Ignore errors (e.g., duplicate key)
-);
-
-return $affectedRows;
+db()->bucket('users')
+    ->upsert(
+        $users,
+        "email",  // Unique constraint
+        ["name"], // Only update the "name" column if exists
+        true      // Ignore errors (e.g., duplicate key)
+    );
 ```
 
 Result:
 - Inserts new users if the email doesn't exist.
 - Updates only the name if the user with that email already exists.
 
-Upsert with Multiple Unique Keys
+Upsert with multiple unique Keys
 ```php
 $records = [
     [

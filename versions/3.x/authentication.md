@@ -264,7 +264,9 @@ Doppar gives you three equivalent ways to target an actor. All of them resolve t
 Default actor (web) — all three are equivalent
 ```php
 Auth::check();
+
 auth()->check();
+
 auth('web')->check();
 ```
 
@@ -276,13 +278,16 @@ auth('admin')->check();
 Named actor via the Auth facade — explicit fluent form
 ```php
 Auth::actor('admin')->check();
+
 Auth::actor('admin')->user();
+
 Auth::actor('admin')->user()->name;
 ```
 
 Named actor via helper and facade are identical
 ```php
 auth('admin')->user()->name;
+
 Auth::actor('admin')->user()->name;
 ```
 

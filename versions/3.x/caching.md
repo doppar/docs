@@ -53,8 +53,6 @@ All drivers expose the same API. Your application never needs to know
 which driver is active. You can also register a completely custom driver
 — see [Custom Cache Drivers](#custom-cache-drivers) below.
 
----
-
 ## Clearing the Cache via CLI
 
 To purge the entire cache store from the command line:
@@ -356,8 +354,6 @@ $buildId = $store->get('build_id');
 The `CacheStore` constructor accepts any `AdapterInterface`-compatible
 adapter, making it trivially portable to any Symfony Cache-backed
 infrastructure.
-
----
 
 ## Method Reference
 

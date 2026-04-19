@@ -34,6 +34,7 @@ cookie()->store('user_token', 'abc123', ['expires' => time() + 3600]);
 You can also pass a `DateTime` object to set a specific future date and time:
 ```php
 $expireDate = new \DateTime('+1 day');
+
 cookie()->store('user_token', 'abc123', ['expires' => $expireDate]);
 // Expires in 24 hours
 ```
@@ -127,6 +128,7 @@ Accessing cookies in Doppar is simple and can be done using either the Cookie fa
 use Phaseolies\Support\Facades\Cookie;
 
 Cookie::get('user_token');
+
 cookie()->get('user_token');
 ```
 Functionally identical to the facade, but this provides a cleaner syntax especially in more compact or helper-driven code.

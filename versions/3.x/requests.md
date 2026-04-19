@@ -501,12 +501,14 @@ If the input is a comma-separated string, it’s split, trimmed, and filtered in
 
 In Doppar, the `route()` method on the request object allows you to access or compare the current route name. This is useful for conditional logic based on routing, such as determining active navigation states or applying middleware behavior.
 
+Returns the name of the current route as a string:
 ```php
 $request->route();
-// Returns the name of the current route as a string.
+```
 
+Returns true if the current route name is 'dashboard', otherwise `false`:
+```php
 $request->route('dashboard');
-// Returns true if the current route name is 'dashboard', otherwise false.
 ```
 
 ## Accessing `route()` in Odo Templates
@@ -541,68 +543,76 @@ $request->all();
 
 Doppar provides various ways to interact with specific fields name. You can use any of them
 
+Accesses the value of the 'name' field directly
 ```php
 $request->name;
-// Accesses the value of the 'name' field directly.
+```
 
+Equivalent to the above, using the `input()` method
+```php
 $request->input('name', 'default');
-// Equivalent to the above, using the input() method.
+```
 
+Same result, alternative syntax.
+```php
 $request->get('name', 'default');
-// Same result, alternative syntax.
 ```
 
 ### Retrieving Data with Exclusions
 
 Doppar provides `except` method to interact with fields name. You can use like that to exclude some fields from the current requested data.
 
+Returns all data except the 'name' field.
 ```php
 $request->except('name');
-// Returns all data except the 'name' field.
+```
 
+Excludes multiple fields from the result.
+```php
 $request->except('name', 'age');
-// Excludes multiple fields from the result.
 ```
 
 ### Retrieving Specific Fields Only
 
 Doppar provides `only` method to interact with fields name. You can use like that to get only those fields from the current requested data.
 
+Returns only the 'name' field:
 ```php
 $request->only('name');
-// Returns only the 'name' field.
+```
 
+Retrieves just the 'name' and 'age' fields.
+```php
 $request->only(['name', 'age']);
-// Retrieves just the 'name' and 'age' fields.
 ```
 
 ### Checking Field Existence
 
 When handling form submissions or query parameters in Doppar, it's often important to check whether specific fields are present or if the request contains any data at all. The Request class provides intuitive methods for these checks:
 
-Use the has() method to check if a particular field is present in the incoming request data.
+Use the `has()` method to check if a particular field is present in the incoming request data.
 
+Returns true if the 'name' field exists.
 ```php
 $request->has('name');
-// Returns true if the 'name' field exists.
 ```
 
 This is useful for conditional logic or validating optional fields.
 
 The `isEmpty()` method allows you to determine whether the entire request payload is empty.
 
+Returns true if no request data is available
 ```php
 $request->isEmpty();
-// Returns true if no request data is available.
 ```
 
 This is especially helpful for detecting invalid or empty submissions before processing.
 
 You can also use the `hasAny` method to check multiple key existance. The `hasAny` method checks whether at least one of the given input keys exists in the request. This is especially useful when you want to conditionally act if any one of multiple inputs is present.
 
+At least one of the keys exists in the request
 ```php
 if ($request->hasAny('title', 'username')) {
-    // At least one of the keys exists in the request
     return $request->title;
 }
 ```
@@ -623,12 +633,14 @@ After validating form input, you might want to separate valid and invalid data. 
 - `passed():` Returns only the fields that passed validation.
 - `failed():` Returns the fields that failed validation, typically used for error feedback.
 
+Returns only the data that passed validation.
 ```php
 $request->passed();
-// Returns only the data that passed validation.
+```
 
+Returns the data that failed validation checks.
+```php
 $request->failed();
-// Returns the data that failed validation checks.
 ```
 
 ## Accessing Session Data
@@ -643,7 +655,6 @@ Use the following method to access the current session's CSRF token:
 
 ```php
 $request->session()->token();
-// Retrieves the CSRF token stored in the session.
 ```
 
 Use this token to secure form submissions and protect against cross-site request forgery.
@@ -656,7 +667,6 @@ Here’s how you can get a session value by its key:
 
 ```php
 $request->session()->get('key');
-// Returns the value stored in the session under 'key'.
 ```
 
 ### Set Session Data
@@ -667,7 +677,6 @@ Here’s how to set a value in the session:
 
 ```php
 $request->session()->put('key', 'value');
-// Stores 'value' in the session under the key 'key'.
 ```
 
 You can use this to save custom data in the session for later retrieval.
@@ -676,9 +685,9 @@ You can use this to save custom data in the session for later retrieval.
 
 If you need to remove all data from the session—such as during logout or when resetting a user's state—you can use the flush method. This method clears the entire session storage for the current request lifecycle.
 
+Deletes all session data.
 ```php
 $request->session()->flush();
-// Deletes all session data.
 ```
 
 ### Request Path, Host, and Method
@@ -731,16 +740,20 @@ You will get the method like `isPost()`, `isDelete()`, `isPatch()`, `isPut()` et
 
 You can retrieve a request header using the header method on the` Phaseolies\Http\Request` instance in Doppar. If the specified header does not exist in the request, it will return null by default. However, you may also provide a second argument to return a default value if the header is missing.
 
+Returns the value of the `User-Agent` header
 ```php
 $agent = $request->header('User-Agent');
+```
+
+Equivalent to:
+```php
 $agent = $request->headers->get('User-Agent')
-// Returns the value of the 'User-Agent' header
 ```
 
 You can set headers for your current request like
 
 ```php
-$request->headers->set('key','value'); // Set the value to the header
+$request->headers->set('key','value');
 ```
 
 The `hasHeader` method may be used to determine if the request contains a given header:
@@ -803,11 +816,21 @@ if ($request->expectsJson()) {
 }
 ```
 
-There are some methods you can use like
-
+#### Checking if the Request expects JSON. 
+Use this method to determine if the client expects a JSON response.
 ```php
 $request->wantsJson();
+```
+
+#### Checking if the Request is AJAX
+This method checks whether the request was made via an AJAX call (usually identified by the `X-Requested-With: XMLHttpRequest` header).
+```php
 $request->isAjax();
+```
+
+#### Checking if the Request is Secure (HTTPS)
+Use this method to verify if the request was made over a secure `HTTPS` connection.
+```php
 $request->isSecure();
 ```
 
@@ -919,9 +942,14 @@ This will give you the raw query string `'name=mahedi&school=academy'`.
 
 When a user is authenticated (typically via session, token, or doppar flarion), Doppar provides simple methods to retrieve their information through the request object.
 
+Retrieves the authenticated user data:
 ```php
-$request->auth(); // Retrieves the authenticated user data.
-$request->user(); // Retrieves the authenticated user data.
+$request->auth();
+```
+
+Equivalent to `auth()` method:
+```php
+$request->user();
 ```
 
 ## Files

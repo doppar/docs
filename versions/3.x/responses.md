@@ -174,17 +174,29 @@ public function customResponse()
 
 The `ResponseFactory` provides convenient methods for creating different response types:
 
+Create a text response:
 ```php
 #[Route(uri: '/factory-example')]
 public function factoryExample()
 {
-    // Create a text response
     return response()->text('Plain text content', 200);
+}
+```
 
-    // Create a JSON response
+Create a JSON response:
+```php
+#[Route(uri: '/factory-example')]
+public function factoryExample()
+{
     return response()->json(['status' => 'success'], 200);
+}
+```
 
-    // Create an empty response
+Create an empty response
+```php
+#[Route(uri: '/factory-example')]
+public function factoryExample()
+{
     return response()->noContent();
 }
 ```
@@ -270,18 +282,20 @@ public function commonHeaders()
 
 Control the HTTP status code using the second parameter of `response()` or the `setStatusCode()` method:
 
+Using `response()` parameters:
 ```php
 #[Route(uri: '/created')]
 public function resourceCreated()
 {
-    // Using response() parameters
     return response('Resource created', 201);
 }
+```
 
+Using `setStatusCode()`
+```php
 #[Route(uri: '/not-found')]
 public function notFound()
 {
-    // Using setStatusCode()
     return response('Resource not found')
         ->setStatusCode(404);
 }

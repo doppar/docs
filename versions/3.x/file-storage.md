@@ -68,11 +68,14 @@ return Storage::disk('local')->get('profile.png');
 ```
 
 ## Get the uploaded file contents
-To get the uploaded file contents, you can call contents() method, like
+To get the uploaded file contents, you can call `contents()` method, like
 ```php
 Storage::disk('local')->content('product/product.json');
+```
 
-response()->file($pathToFile); // You can use this also
+You can use this also
+```php
+response()->file($pathToFile);
 ```
 
 ## Delete file

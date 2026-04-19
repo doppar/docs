@@ -34,12 +34,6 @@ MAIL_FROM_ADDRESS="hello@example.com"
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
-> Remember, if you update, `config/mail.php` file, don't forget to clear your system cache.
-```bash
-php pool cache:clear
-php pool config:cache // to cache again
-```
-
 Now if you setup with your smtp mail credentials, now you are ready to go.
 
 ## Sending Mail
@@ -62,6 +56,7 @@ By time to time, every Mail has a subject. Doppar allows you to define a Mail su
 ```php
 /**
  * Define mail subject
+ *
  * @return Phaseolies\Support\Mail\Mailable\Subject
  */
 public function subject(): Subject
@@ -77,6 +72,7 @@ Within a mailable class's content method, you may define the view, or which temp
 ```php
 /**
  * Set the message body and data
+ *
  * @return Phaseolies\Support\Mail\Mailable\Content
  */
 public function content(): Content
@@ -170,8 +166,8 @@ class InvoiceMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.order.invoice', // 'resources/views/emails/order/invoice.odo.php'
-            data: $this->data // Passing data will be available in invoice.odo.php, access it via [[ $data ]]
+            view: 'emails.order.invoice',
+            data: $this->data
         );
     }
 
@@ -181,6 +177,8 @@ class InvoiceMail extends Mailable
     }
 }
 ```
+
+> Passing `data` will be available in `resources/views/emails/order/invoice.odo.php`, access it via `[[ $data ]]`
 
 ## Sending Mail with Attachment
 To send mail with attachment, you have to pass data attachment path using attachment method.

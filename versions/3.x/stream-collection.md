@@ -35,10 +35,10 @@ StreamCollection::make(function () {
         yield $i;
     }
 })
-->filter(fn($n) => $n > 2) // Keep only numbers greater than 2
-->map(fn($n) => $n * 2)    // Multiply each remaining number by 2
-->take(2)                  // Take only the first 2 results
-->collect();
+    ->filter(fn($n) => $n > 2)
+    ->map(fn($n) => $n * 2)
+    ->take(2)
+    ->collect();
 ```
 
 This `collect()` method convert the lazy stream into a regular Collection. Even though the source produces 5 values, only the first 4 are processed — just enough to yield 2 results after filtering.
@@ -51,12 +51,12 @@ StreamCollection::make(function () {
     yield ['id' => 2, 'name' => 'Bob', 'age' => 30];
     yield ['id' => 3, 'name' => 'Charlie', 'age' => 24];
 })
-->filter(fn($u) => $u['age'] > 24)
-->map(fn($u) => strtoupper($u['name']))
-->unique()
-->values()
-->take(1)
-->all();
+    ->filter(fn($u) => $u['age'] > 24)
+    ->map(fn($u) => strtoupper($u['name']))
+    ->unique()
+    ->values()
+    ->take(1)
+    ->all();
 ```
 
 Output
