@@ -96,7 +96,7 @@ $response = Agent::using(OpenAI::class)
     ->prompt('Explain quantum computing in simple terms')
     ->send();
 
-echo $response; // Returns the AI-generated explanation
+echo $response;
 ```
 
 ## Pipeline Tasks
@@ -127,7 +127,6 @@ Analyze the emotional tone of text to determine if it's positive, negative, or n
 use Doppar\AI\Pipeline;
 use Doppar\AI\Enum\TaskEnum;
 
-// Basic sentiment analysis
 $result = Pipeline::execute(
     task: TaskEnum::SENTIMENT_ANALYSIS,
     data: 'This movie was terrible and boring.'
@@ -218,13 +217,14 @@ $translated = Agent::using(OpenAI::class)
 // e.g. "Bienvenue sur Doppar !"
 ```
 
-Automatically translate your Doppar translation folder (`/lang/{lang}`) and create a new locale from a controller or service:
+Automatically translate your Doppar translation folder (`/lang/{lang}`) and create a new locale from a controller or service.
+
+This will read all files from `/lang/fr` and create a new `/lang/br` folder:
 
 ```php
 use Doppar\AI\Agent;
 use Doppar\AI\AgentFactory\Agent\Gemini;
 
-// This will read all files from /lang/fr and create a new /lang/br folder
 $files = Agent::using(Gemini::class)
     ->withKey(env('GEMINI_API_KEY'))
     ->model('gemini-2.0-flash')
