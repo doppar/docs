@@ -10,8 +10,6 @@ meta:
 - [What We're Building](#what-were-building)
 - [Setting Up the Project](#setting-up-the-project)
 - [Defining Routes](#defining-routes)
-  - [Web Routes](#web-routes)
-  - [Attribute-Based Routes](#attribute-based-routes)
 - [Creating a Controller](#creating-a-controller)
 - [Working with Views](#working-with-views)
 - [Handling Form Submissions](#handling-form-submissions)
