@@ -31,8 +31,8 @@ Each major version of Doppar receives the following support:
 
 | Version | PHP Version | Release Date     | Bug Fixes Until | Security Fixes Until |
 | ------- | ----------- | ---------------- | --------------- | -------------------- |
-| 3.0.0   | 8.3+        | December 1, 2025 | June 1, 2026    | December 1, 2026     |
-| 4.0.0   | 8.4+        | December 1, 2026 | June 1, 2027    | December 1, 2027     |
+| 3.0.0   | 8.3+        | December 1, 2025 | June 1, 2027    | December 1, 2027     |
+| 4.0.0   | 8.4+        | December 1, 2026 | June 1, 2028    | December 1, 2028     |
 
 ## Doppar v3.0.0 Release Notes (December 1, 2025)
 
