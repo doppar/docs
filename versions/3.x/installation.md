@@ -10,6 +10,7 @@ meta:
   - [Requirements](#requirements)
   - [Environment Setup](#environment-setup)
   - [Creating an Application](#creating-an-application)
+    - [Frontend Setup](#frontend-setup)
     - [Initial Configuration](#initial-configuration)
     - [Databases and Migrations](#databases-and-migrations)
   - [IDE Support](#ide-support)
@@ -26,6 +27,7 @@ To get started with Doppar, you’ll need:
 
 - **[PHP 8.3](https://www.php.net/releases/8.3/en.php) or higher**
 - **[Composer](https://getcomposer.org/download/)** (PHP dependency manager)
+- **[Node.js](https://nodejs.org/) and npm** if you plan to use Doppar's frontend installer with React, Vue, Svelte, Tailwind, Bootstrap, or Vite
 
 >  Doppar is built on modern PHP features and requires `PHP 8.3+` to run correctly. Please make sure you're running the correct version before proceeding.
 
@@ -62,6 +64,55 @@ After you have installed PHP, Composer, you're ready to create a new Doppar appl
 composer create-project doppar/doppar doppar-app
 ```
 
+Once the skeleton has been installed, Doppar will guide you through its frontend setup step automatically. The installer opens a dedicated frontend onboarding flow and asks whether you want Doppar to prepare a client stack for the application.
+
+## Frontend Setup
+
+When the install flow starts, Doppar asks whether you need a frontend setup. If you answer `yes`, the framework continues with an interactive wizard that can scaffold a complete Vite-powered frontend pipeline for your project.
+
+The installer can prepare:
+
+- `React`, `Vue`, `Svelte`, or `Vanilla JavaScript`
+- `Tailwind`, `Bootstrap`, or no CSS framework
+- Optional `TypeScript`
+- Odo layout integration
+- Vite configuration and production build output
+- A ready-to-use `resources/client` directory
+
+If you answer `no`, Doppar skips the frontend scaffolding and keeps the default server-rendered welcome flow intact.
+
+You can always run the installer later if you skipped it during application creation:
+```bash
+php pool frontend:install
+```
+
+If you want Doppar to scaffold the frontend and install the Node dependencies in the same run, use:
+```bash
+php pool frontend:install --install
+```
+
+If frontend files already exist and you want Doppar to regenerate them, use the force option:
+```bash
+php pool frontend:install --force
+```
+
+You can also combine both options when you want to fully rebuild the scaffold and reinstall dependencies:
+```bash
+php pool frontend:install --force --install
+```
+
+Use `--force` carefully. It allows Doppar to overwrite existing generated frontend files such as the client entrypoints, layout shell, Vite config, and related scaffold artifacts.
+
+If you want to remove the generated frontend scaffold later, use:
+```bash
+php pool frontend:uninstall
+```
+
+If you also want Doppar to remove `node_modules` during uninstall, use:
+```bash
+php pool frontend:uninstall --clean-node-modules
+```
+
 ## Starting the Local Development Server
 Once the application has been created, you can start Doppar's local development server using the `server:start` console command.
 
@@ -73,6 +124,15 @@ Start the server. Default port (foreground mode). Runs on the default port 8000 
 ```bash
 php pool server:start
 ```
+
+If you enabled a client framework during installation, start the Vite development server in a separate terminal:
+```bash
+npm install
+
+npm run dev
+```
+
+Then open your Doppar application in the browser. Doppar will load the frontend entry through the Odo layout automatically.
 
 ### Custom port (foreground mode)
 Runs on the specified port if available. If the port is in use, the system will automatically increment the port number until a free one is found (up to 10 attempts).

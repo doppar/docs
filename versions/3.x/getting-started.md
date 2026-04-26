@@ -25,6 +25,13 @@ Doppar was built to fix those walls. Not with workarounds, but with first-princi
 
 What follows are the features that set Doppar apart.
 
+## Frontend Ready
+Doppar ships with a first-class frontend workflow built directly into the framework. Whether you prefer React, Vue, Svelte, or Vanilla JavaScript, Doppar can scaffold the client setup, wire your Odo layout, configure Vite, and prepare your assets for both development and production in one guided flow.
+
+Instead of forcing you to stitch together build tools, entry files, layout integration, and deployment output by hand, Doppar handles the boilerplate for you. Your server-rendered foundation stays intact, while modern client-side interfaces layer in cleanly on top.
+
+With `php pool frontend:install`, you can choose your preferred frontend stack, CSS setup, and TypeScript support, then let Doppar generate the structure, config, and integration automatically. The result is a frontend-ready PHP framework that feels cohesive from the first render to the final build.
+
 ## Ultra-Clean Syntax - Unmatched Clarity
 Doppar is built around one core principle — clarity without compromise. Every class, method, and directive is designed to be instantly understandable and beautifully expressive. Doppar turns complex backend logic into readable, fluent, and elegant code that feels natural to write and effortless to maintain.
 
