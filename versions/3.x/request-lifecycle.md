@@ -3,88 +3,241 @@ title: Request lifecycle
 description: Doppar request lifecycle page
 meta:
   - name: keywords
-    content: request-lifecycle
+    content: request lifecycle, dispatch, terminate, middleware, routing, response, doppar
 ---
 
 ## Request Lifecycle
+
 ### Introduction
-Understanding how a tool operates makes using it much easier and more intuitive. This principle applies just as much to application development as it does to any other tool in the real world. When you comprehend the inner workings of your development tools, you gain confidence and efficiency in using them.
 
-This document aims to provide a high-level overview of how the Doppar framework functions. By familiarizing yourself with its core concepts, you’ll reduce the sense of mystery surrounding it and feel more empowered when building applications. Don’t worry if some of the terminology seems unfamiliar at first—focus on grasping the big picture. As you continue exploring the documentation, your understanding will naturally deepen over time.
+Understanding the request lifecycle makes the framework easier to reason
+about. When you know where the request enters, how it becomes a
+response, and what runs after the response is sent, debugging and
+structuring your application code becomes much more predictable.
 
-### Here’s a Request Lifecycle Graph for the Doppar framework
-```markdown
-┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                                REQUEST LIFECYCLE                                              │
-├───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                                               │
-│  ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐     ┌─────────────────────┐     │
-│  │ 1. Entry Point  │     │ 2. Bootstrapping     │     │ 3. Middleware Stack │     │ 4. Routing &        │     │
-│  │ (public/index)  │────▶│ (Service Container & │────▶│ (Global & Route-    │────▶│ Controller Execution│     │
-│  │                 │     │ Service Providers)   │     │ specific Middleware)│     │                     │     │
-│  └─────────────────┘     └──────────────────────┘     └─────────────────────┘     └─────────────────────┘     │
-│                                                                                          │                    │
-│                                                                                          ▼                    │
-│                                                                                ┌─────────────────────┐        │
-│                                                                                │ 5. Post-Middleware  │        │
-│                                                                                │ (Modify / Process   │        │
-│                                                                                │  Outgoing Response) │        │
-│                                                                                └─────────────────────┘        │
-│                                                                                          │                    │
-│                                                                                          ▼                    │
-│                                                                                ┌─────────────────────┐        │
-│                                                                                │ 6. Response Return  │        │
-│                                                                                │ & Termination (Send)│        │
-│                                                                                └─────────────────────┘        │
-│                                                                                                               │
-│         ▲                                                                                                     │
-│         │                                                                                                     │
-│  ┌─────────────────┐                                                                                          │
-│  │ Web Server      │                                                                                          │
-│  │ (Apache/Nginx)  │                                                                                          │
-│  └─────────────────┘                                                                                          │
-│                                                                                                               │
-│  ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐│
-│  │                                    MIDDLEWARE FLOW (DETAILED REQUEST/RESPONSE)                            ││
-│  └───────────────────────────────────────────────────────────────────────────────────────────────────────────┘│
-│          ▲                                                                                        │           │
-│          │                                                                                        │           │
-│          └───────────────────────────────────────┐      ┌─────────────────────────────────────────┘           │
-│                                                  │      │                                                     │
-│                                                  ▼      ▼                                                     │
-│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌──────────────────┐     ┌──────────┐│
-│  │ Request (HTTP)  │────▶│ Pre-Middleware  │────▶│ Route Matching  │────▶│ Post-Middleware  │────▶│ Response ││
-│  │                 │     │ (CSRF, Auth,    │     │ & Controller    │     │ (Modify Response)│     │ (Send)   ││
-│  │                 │     │ Validation etc.)│     │ Processing      │     │                  │     │          ││
-│  └─────────────────┘     └─────────────────┘     └─────────────────┘     └──────────────────┘     └──────────┘│
-│                                                                                                               │
-└───────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Doppar's HTTP lifecycle has two clear phases:
+request handling and request termination. First, the framework captures
+the incoming request, resolves it through routing and middleware, and
+sends the final response. After that, Doppar can still run registered
+termination callbacks for logging, cleanup, metrics, or other
+post-response work.
+
+## High-Level Flow
+
+### Lifecycle Overview
+
+At a high level, a Doppar web request moves through this flow:
+
+```text
+HTTP Request
+  -> public/index.php
+  -> bootstrap/app.php
+  -> Application::dispatch()
+  -> Application::handle()
+  -> Router and middleware pipeline
+  -> Controller or route closure
+  -> Response preparation and send
+  -> DispatchResult::terminate()
+  -> Application terminating callbacks
 ```
 
-## Lifecycle Overview
-### First Steps
+This split is important. The response is sent before the termination
+callbacks run.
 
-The entry point for all requests to a Doppar application is the public/index.php file. All requests are directed to this file by your web server (Apache / Nginx) configuration. The index.php file doesn't contain much code. Rather, it is a starting point for loading the rest of the framework.
+## Entry Point
 
-The index.php file loads the Composer generated autoloader definition, and then retrieves an instance of the Doppar application from bootstrap/app.php. The first action taken by Doppar itself is to create an instance of the application service container.
-### Second Steps
+### `public/index.php`
 
-At this stage, Doppar initializes its core configuration and loads the service providers along with their registered methods. Once the core setup is complete, Doppar proceeds to load and execute the boot methods of the registered service providers, ensuring that all necessary services are properly initialized and ready for use.
-### Thirds Steps
+Every web request enters through `public/index.php`. Your web server
+points incoming requests to this file, making it the front controller
+for the application.
 
-At this stage, Doppar generate global middleware stack. The method signature for the middleware's __invoke() method is quite simple: it receives a Request and Closer $next and send the Request and Response to the next Request. Feed it HTTP requests and it will return HTTP responses.
-### Final Steps
+The file loads Composer, bootstraps the application, captures the HTTP
+request, dispatches it, and then explicitly completes the termination
+lifecycle:
 
-Once the application has been fully bootstrapped and all service providers have been registered, the request is passed to the router for processing. The router is responsible for directing the request to the appropriate route or controller while also executing any route-specific middleware.
+```php
+use Phaseolies\Http\Request;
 
-Middleware acts as a powerful filtering mechanism for incoming HTTP requests, allowing the application to inspect, modify, or restrict access before reaching the intended destination. For instance, Doppar includes authentication middleware that verifies whether a user is logged in. If the user is not authenticated, they are redirected to the login screen; otherwise, the request proceeds as expected.
+require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../bootstrap/app.php';
 
-After the designated route or controller method processes the request and generates a response, the response begins its journey back through the middleware stack. This allows the application to inspect or modify the outgoing response before it reaches the user.
+$response = $app->dispatch(Request::capture());
 
-Finally, as the response completes its trip through the middleware, the __invoke method returns the response object, which then calls the send method. The send method delivers the response content to the user's web browser, marking the completion of Doppar’s request lifecycle.
-
-Let's see the unidirectional flow of a request in Doppar
-
-```markdown
-HTTP Request → index.php → Bootstrap → Pre Middleware → Router → Controller → Post-Middleware → Response → HTTP Response
+$response->terminate();
 ```
+
+This means Doppar now has an explicit post-response lifecycle step
+instead of ending the process immediately after the response is sent.
+
+## Bootstrapping
+
+### `bootstrap/app.php`
+
+The `bootstrap/app.php` file creates the application instance and
+configures the framework before request handling begins. This is where
+you define base paths, relaxed CSRF paths, and lifecycle hooks such as
+termination callbacks.
+
+Because the application object is built before the request is handled,
+this file is the right place to register logic that should always run at
+the end of a request.
+
+## Request Handling
+
+### Dispatching the Request
+
+When `dispatch()` is called, Doppar resolves the request into a response
+and sends that response to the client.
+
+Internally, `Application::dispatch()`:
+
+1. calls `Application::handle($request)`
+2. lets the router resolve the request
+3. receives the final response from the route or controller
+4. prepares and sends the response
+5. returns a `DispatchResult` instance for termination handling
+
+That returned `DispatchResult` is what makes this front-controller style
+possible:
+
+```php
+$response = $app->dispatch(Request::capture());
+$response->terminate();
+```
+
+## Routing and Middleware
+
+### Request Resolution
+
+Inside `Application::handle()`, Doppar passes the request into the
+router. The router is responsible for matching the request to the
+correct route and running any middleware that belongs to that route or
+the wider HTTP pipeline.
+
+Middleware can inspect or modify the request before your controller
+runs, and it can also inspect or modify the outgoing response on the way
+back out.
+
+In practical terms, this stage is where features such as
+authentication, CSRF validation, request filtering, and response
+transformation usually happen.
+
+## Response Phase
+
+### Sending the Response
+
+Once the controller or route closure returns, Doppar prepares the final
+response and sends it to the client.
+
+This is the point where the browser or API client receives the output.
+For most frameworks, this feels like the end of the request, but Doppar
+now keeps a small lifecycle window open for post-response termination
+work.
+
+## Termination Phase
+
+### Explicit Termination
+
+After the response has already been sent, the returned `DispatchResult`
+can run the application termination lifecycle:
+
+```php
+$response = $app->dispatch(Request::capture());
+$response->terminate();
+```
+
+Calling `terminate()` triggers all callbacks that were registered
+through `Application::terminating(...)`.
+
+If the dispatch result is ignored, Doppar still has a safe fallback that
+ensures termination runs automatically. Even so, the explicit
+`->terminate()` call is the clearest and recommended flow for the front
+controller.
+
+### Using `terminating(...)`
+
+Register a termination callback in `bootstrap/app.php` when you need
+logic to run after the response is sent but before the framework fully
+finishes the request lifecycle.
+
+```php
+use Phaseolies\Http\Request;
+use Phaseolies\Http\Response;
+
+return $app
+    ->withBasePath(basePath: $basePath)
+    ->setRelaxablePaths(relaxablePaths: [
+        // The paths listed below will bypass CSRF token verification.
+    ])
+    ->terminating(function (
+        Request $request,
+        ?Response $response,
+        ?\Throwable $exception = null
+    ) {
+        // Runs after the response is sent, during application termination.
+    })
+    ->configure(app: $app)
+    ->build();
+```
+
+This hook is useful for:
+
+- request-end logging
+- metrics collection
+- cleanup tasks
+- audit writes
+- deferred side effects that should not block the main response body
+
+### Callback Context
+
+Termination callbacks may receive the current request, the resolved
+response, and an exception when the request ended through an HTTP
+exception path.
+
+Typical callback signature:
+
+```php
+->terminating(function (
+    Request $request,
+    ?Response $response,
+    ?\Throwable $exception = null
+) {
+    //
+})
+```
+
+Important behavior to know:
+
+- `$request` is the incoming request that was dispatched
+- `$response` is the resolved response when one exists
+- `$response` may be `null` when the request ends through an HTTP exception path
+- `$exception` is available when termination happens after an exception-based response flow
+
+## Exception Handling
+
+### Requests That End with an HTTP Exception
+
+If request handling throws an `HttpException`, Doppar still sends the
+exception response and returns a `DispatchResult`. That means the
+termination lifecycle still runs, but the callback will receive the
+exception context instead of a normal resolved response.
+
+This keeps termination behavior consistent across both successful and
+exception-driven request endings.
+
+## Summary
+
+### Final Mental Model
+
+The Doppar request lifecycle is best understood like this:
+
+1. The request is captured in `public/index.php`.
+2. The application is bootstrapped from `bootstrap/app.php`.
+3. The request is dispatched through routing and middleware.
+4. The response is prepared and sent to the client.
+5. The dispatch result terminates the lifecycle.
+6. Registered `terminating(...)` callbacks run after the response is sent.
+
+That final termination step is what makes Doppar's current lifecycle
+different from the older "send response and stop immediately" model.
