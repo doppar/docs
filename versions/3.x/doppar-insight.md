@@ -28,17 +28,7 @@ Here is a quick visual look at the main Insight views. These screenshots are loa
 ### Overview Dashboard
 The `Overview` screen combines recent request activity, latency, and error trends into one cross-request dashboard.
 
-![Insight overview dashboard](https://raw.githubusercontent.com/doppar/insight/main/resources/overview.png)
-
-### History Dashboard
-The `History` screen shows route-level request totals, status-code breakdowns, latency graphs, and searchable recent traffic.
-
-![Insight history dashboard](https://raw.githubusercontent.com/doppar/insight/main/resources/history.png)
-
-### Toolbar
-The toolbar stays attached to the current page so you can jump directly into the profiler without leaving the response you are inspecting.
-
-![Insight toolbar](https://raw.githubusercontent.com/doppar/insight/main/resources/toolbar.png)
+![Insight overview dashboard](/insight-profiler.png)
 
 ## Installation
 You may install Doppar Insight via Composer.
@@ -71,7 +61,7 @@ Insight is best suited for development, staging, and short-lived debugging sessi
 
 If you need Insight on a live server, use it as a temporary internal debugging tool only:
 
-- keep `enabled` set to `false` by default
+- keep `enabled` set to `true` by default
 - turn it on only for a short troubleshooting window
 - allow access only from trusted internal or VPN IP addresses
 - avoid exposing the toolbar or history endpoints to public users
@@ -80,9 +70,7 @@ Here is a safer production-style example for `config/insight.php`.
 
 ```php
 return [
-    'enabled' => false,
     'allow_ips' => ['127.0.0.1', '::1'],
-    'retention_days' => 1,
 ];
 ```
 
@@ -92,36 +80,15 @@ After installation, add an application-level exception hook so Insight can store
 Update `app/Http/Exceptions/BeforeExceptionHandler.php` with the following code.
 
 ```php
-<?php
-
-namespace App\Http\Exceptions;
-
-use Throwable;
-use Phaseolies\Error\Contracts\ErrorHandlerInterface;
-use Doppar\Insight\Support\ErrorHistoryRecorder;
-
-class BeforeExceptionHandler implements ErrorHandlerInterface
+/**
+ * Handle logic to be executed before the application processes an exception
+ *
+ * @param Throwable $throwable
+ * @return void
+ */
+public function handle(Throwable $throwable): void
 {
-    /**
-     * Handle logic to be executed before the application processes an exception
-     *
-     * @param Throwable $throwable
-     * @return void
-     */
-    public function handle(Throwable $throwable): void
-    {
-        app(ErrorHistoryRecorder::class)->record($throwable);
-    }
-
-    /**
-     * Determine if this handler should run for the current context
-     *
-     * @return bool
-     */
-    public function supports(): bool
-    {
-        return true;
-    }
+    app(ErrorHistoryRecorder::class)->record($throwable);
 }
 ```
 
