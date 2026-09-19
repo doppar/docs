@@ -25,11 +25,11 @@ Before you can start building with **Doppar**, ensure your local development env
 
 To get started with Doppar, you’ll need:
 
-- **[PHP 8.3](https://www.php.net/releases/8.3/en.php) or higher**
+- **[PHP 8.5](https://www.php.net/releases/8.5/en.php) or higher**
 - **[Composer](https://getcomposer.org/download/)** (PHP dependency manager)
 - **[Node.js](https://nodejs.org/) and npm** if you plan to use Doppar's frontend installer with React, Vue, Svelte, Tailwind, Bootstrap, or Vite
 
->  Doppar is built on modern PHP features and requires `PHP 8.3+` to run correctly. Please make sure you're running the correct version before proceeding.
+>  Doppar is built on modern PHP features and requires `PHP 8.5+` to run correctly. Please make sure you're running the correct version before proceeding.
 
 ## Environment Setup
 
@@ -37,20 +37,20 @@ If you don’t already have **PHP** and **Composer** installed, you can quickly 
 
 macOS
 ```bash
-/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.3)"
+/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.5)"
 ```
 
 Linux
 ```bash
-/bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.3)"
+/bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.5)"
 ```
 
 Windows (PowerShell)
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.3'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
 ```
 
-These scripts will install PHP 8.3 along with Composer in a reliable and clean manner. Always verify installation success by running:
+These scripts will install `PHP 8.5` along with Composer in a reliable and clean manner. Always verify installation success by running:
 
 ```bash
 php -v
@@ -61,10 +61,8 @@ composer -v
 
 After you have installed PHP, Composer, you're ready to create a new Doppar application. Run the following command to create a new Doppar application:
 ```bash
-composer create-project doppar/doppar:^3.0 doppar-app
+composer create-project doppar/doppar doppar-app
 ```
-
-> The `^3.0` constraint pins the install to Doppar 3.x. Omitting it lets Composer resolve the latest stable release (4.x) instead.
 
 Once the skeleton has been installed, Doppar will guide you through its frontend setup step automatically. The installer opens a dedicated frontend onboarding flow and asks whether you want Doppar to prepare a client stack for the application.
 
@@ -177,19 +175,19 @@ php pool server:stop 9000
 
 All configuration settings for the Doppar framework are located in the **config** directory at the root of your application. Each file in this directory is neatly organized by responsibility and fully commented, making it easy to understand and customize the behavior of your application.
 
-Doppar is designed to work with minimal configuration right out of the box. You can begin building your application immediately after installation. However, it's a good idea to explore the `config/app.php` file, as it contains several key settings such as the application name, environment, url, timezone, and locale—which you may want to tailor to match your project’s requirements.
+Doppar is designed to work with minimal configuration right out of the box. You can begin building your application immediately after installation. However, it's a good idea to explore the `runtime/config/app.php` file, as it contains several key settings such as the application name, environment, url, timezone, and locale—which you may want to tailor to match your project’s requirements.
 
 Feel free to browse through the configuration files and adjust the settings to suit your development and deployment needs. With Doppar, flexibility and clarity in configuration are built-in.
 
 ## Environment-Based Configuration
 In Doppar, many configuration values are designed to adapt depending on the environment in which your application is running—whether it's a local development machine, staging server, or a live production system.
 
-To support this flexibility, Doppar uses a **.env** file located at the root of your project. This file allows you to define environment-specific settings such as the database connection, application URL, debug mode, mail credentials, and more.
+To support this flexibility, Doppar uses an **env.toml** file located at the root of your project. This file allows you to define environment-specific settings such as the database connection, application URL, debug mode, mail credentials, and more — written in TOML, so values keep their real type (`APP_DEBUG = false` is an actual boolean, `DB_PORT = 3306` an actual integer, not strings).
 
-Each environment (local, production, etc.) can have its own **.env** file with unique values. This approach makes it easy to manage different configurations without modifying your core configuration files.
+Each environment (local, production, etc.) can have its own **env.toml** file with unique values. This approach makes it easy to manage different configurations without modifying your core configuration files.
 
 <div class="doppar-alert doppar-alert-danger">
-Remember: Never commit your .env file to version control.
+Remember: Never commit your env.toml file to version control.
 Environment files often contain sensitive information like API keys, database passwords, and encryption secrets. Keeping them out of your repository helps protect your application from security breaches.
 </div>
 
@@ -199,22 +197,22 @@ By separating environment settings from your codebase, Doppar ensures a clean, s
 
 Once your Doppar application is up and running, you’ll likely want to connect it to a database to start storing and retrieving data. By default, Doppar is preconfigured to use `SQLite`, offering a lightweight and fast setup.
 
-Doppar support only `MySQL`, `SQLite` and `PostgreSQL`. Simply update the relevant `**DB_**` variables in your **`.env`** file to match your database credentials:
-```bash
-DB_CONNECTION=sqlite
-# DB_HOST=127.0.0.1
-# DB_PORT=3306
-# DB_DATABASE=doppar
-# DB_USERNAME=root
-# DB_PASSWORD=
+Doppar support only `MySQL`, `SQLite` and `PostgreSQL`. Simply update the relevant `**DB_**` variables in your **`env.toml`** file to match your database credentials:
+```toml
+DB_CONNECTION = "sqlite"
+# DB_HOST = "127.0.0.1"
+# DB_PORT = 3306
+# DB_DATABASE = "doppar"
+# DB_USERNAME = "root"
+# DB_PASSWORD = ""
 ```
-Once your **.env** file is configured, you can create and modify your database schema using Doppar’s powerful migration system. Migrations let you version-control your database changes and keep your schema consistent across environments.
+Once your **env.toml** file is configured, you can create and modify your database schema using Doppar’s powerful migration system. Migrations let you version-control your database changes and keep your schema consistent across environments.
 
 To run migrations:
 ```bash
 php pool migrate
 ```
-> 💡 Doppar migrations are stored in the `database/migrations `directory You can create a new migration. See details about [migration](migrations)
+> 💡 Doppar migrations are stored in the `schema/migrations` directory You can create a new migration. See details about [migration](migrations)
 
 ## IDE Support
 Doppar works seamlessly with any code editor or IDE, so you're free to choose the development environment that best fits your workflow.
@@ -228,11 +226,12 @@ Whether you're using Vim, Sublime Text, Emacs, or another editor, Doppar keeps t
 ## What's Next?
 Now that you have created your Doppar application, you may be wondering what to learn next. First, we strongly recommend becoming familiar with how Doppar works by reading the following documentation:
 
-- [Request Lifecycle](/versions/3.x/request-lifecycle)
-- [Configuration](/versions/3.x/configuration)
-- [Directory Structure](/versions/3.x/directory-structure)
-- [System Architecture](/versions/3.x/architecture-concept)
-- [Service Container](/versions/3.x/service-container)
-- [Facades](/versions/3.x/facades)
+- [Launchers](/versions/4.x/launchers)
+- [Container](/versions/4.x/container)
+- [Facades](/versions/4.x/facades)
+- [Configuration](/versions/4.x/configuration)
+- [Directory Structure](/versions/4.x/directory-structure)
+- [System Architecture](/versions/4.x/architecture-concept)
+- [Request Lifecycle](/versions/4.x/request-lifecycle)
 
 How you want to use Doppar will also dictate the next steps on your journey.
