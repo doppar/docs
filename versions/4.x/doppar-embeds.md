@@ -42,7 +42,7 @@ Register the launcher in `runtime/config/app.php`:
 Then publish and run migrations:
 
 ```bash
-php pool vendor:publish --launcher=Doppar\\Embeds\\EmbedsLauncher
+php pool vendor:publish --launcher="Doppar\Embeds\EmbedsLauncher"
 ```
 Then run the migrations:
 

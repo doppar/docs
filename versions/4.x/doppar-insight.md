@@ -47,6 +47,20 @@ php pool vendor:publish --launcher="Doppar\Insight\ProfilerLauncher"
 
 This command publishes `runtime/config/insight.php`. From there you can control whether Insight is enabled and how long request snapshots should be kept on disk.
 
+### Add Middleware
+Next, add `ProfilerMiddleware` to your application's global middleware array, located in `src\Http\Gateway.php`.
+
+```php
+/**
+ * Middleware runs on every request, ahead of any group or route-specific middleware.
+ *
+ * @var array
+ */
+public array $middleware = [
+    \Doppar\Insight\Middleware\ProfilerMiddleware::class,
+];
+```
+
 ## Production Usage
 Insight is best suited for development, staging, and short-lived debugging sessions. Because it can collect request details, exception context, session data, logs, queries, and cross-request history, it should not remain enabled for normal public production traffic.
 
