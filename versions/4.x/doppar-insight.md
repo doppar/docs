@@ -47,20 +47,6 @@ php pool vendor:publish --launcher="Doppar\Insight\ProfilerLauncher"
 
 This command publishes `runtime/config/insight.php`. From there you can control whether Insight is enabled and how long request snapshots should be kept on disk.
 
-### Add Middleware
-Next, add `ProfilerMiddleware` to your application's global middleware array, located in `src\Http\Gateway.php`.
-
-```php
-/**
- * Middleware runs on every request, ahead of any group or route-specific middleware.
- *
- * @var array
- */
-public array $middleware = [
-    \Doppar\Insight\Middleware\ProfilerMiddleware::class,
-];
-```
-
 ## Production Usage
 Insight is best suited for development, staging, and short-lived debugging sessions. Because it can collect request details, exception context, session data, logs, queries, and cross-request history, it should not remain enabled for normal public production traffic.
 
@@ -78,32 +64,6 @@ return [
     'allow_ips' => ['127.0.0.1', '::1'],
 ];
 ```
-
-## Better Error Tracing
-After installation, add an application-level exception hook so Insight can store uncaught exceptions in its request history. This gives you a much better error tracing experience for `4xx` and `5xx` responses, especially when the request does not finish through the normal success path.
-
-Update `src/Http/Exceptions/BeforeExceptionHandler.php` with the following code.
-
-```php
-/**
- * Handle logic to be executed before the application processes an exception
- *
- * @param Throwable $throwable
- * @return void
- */
-public function handle(Throwable $throwable): void
-{
-    app(ErrorHistoryRecorder::class)->record($throwable);
-}
-```
-
-The important line is:
-
-```php
-app(ErrorHistoryRecorder::class)->record($throwable);
-```
-
-That recorder stores the exception as part of Insight history so the `Overview` and `History` dashboards can show failed requests, exception spikes, and route-level error counts.
 
 ## Using the Toolbar
 Insight injects a toolbar into HTML responses so you can inspect the request directly from the page. Click the toolbar button to open the panel and move between the available sections.
