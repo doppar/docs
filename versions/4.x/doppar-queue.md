@@ -551,8 +551,10 @@ Queue::connection('redis')->stats('emails');   // the driver itself
 Within one queue, jobs normally run in the order they arrived. Give a job a priority to let it jump ahead. Higher numbers run first, from `-100` (lowest) to `100` (highest), and the default is `0`. Jobs with the same priority still run oldest first:
 ```php
 (new SendPasswordResetJob($user))->withPriority(90)->dispatch();
-(new SendNewsletterJob($user))->withPriority(-10)->dispatch();
+(new SendNewsletterJob($user))->withPriority(-10)->forceQueue();
 ```
+
+> `dispatch()` queues a job whose class has `#[Queueable]`. To queue a job that does not, use `forceQueue()`.
 
 Or set it on the job:
 ```php
@@ -575,6 +577,7 @@ Use priority to order jobs *inside* a queue, and a queue list to order the queue
 
 Sometimes a second copy of a job is pointless: rebuilding the same report twice, or syncing the same record again while the first sync is still waiting. Override `uniqueId()` to give the job a key. While a job with the same key is waiting or running, dispatching another is refused:
 ```php
+#[Queueable]
 class RebuildReportJob extends Job
 {
     public function __construct(public int $reportId) {}
