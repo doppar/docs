@@ -30,7 +30,7 @@ use Phaseolies\Support\Router\Attributes\Route;
 
 class UserController extends Controller
 {
-    #[Route(uri: 'user', method: 'POST')]
+    #[Route(uri: 'user', methods: ['POST'])]
     public function store(Request $request)
     {
         $name = $request->name;
@@ -94,15 +94,16 @@ This is a powerful utility for sanitizing, formatting, or normalizing request da
 Basic usage example:
 
 ```php
-$processed = $request
-    ->pipeInputs([
-        'name' => 'trim',
-        'email' => 'strtolower',
-    ])
-    ->pipe('username', fn($v) => strtolower($v));
+$processed = $request->pipeInputs([
+    'name' => 'trim',
+    'email' => 'strtolower',
+    'username' => fn($v) => strtolower($v),
+]);
 
 return $processed->all();
 ```
+
+> `pipe()` returns the transformed value, not the request, so it can't be chained after `pipeInputs()`. Use an extra entry in `pipeInputs()` instead.
 
 The `pipeInputs()` method provides a clean and declarative syntax, making it easy to transform request inputs in a readable and maintainable way. By allowing batch processing of multiple fields, it eliminates repetitive code and simplifies input normalization. This approach helps to keep your controller or form logic concise, focusing only on business logic rather than input handling. Additionally, since the method is fully chainable, it fits naturally into fluent request processing workflows, enabling more elegant and expressive code.
 
@@ -122,7 +123,9 @@ Supported Rules
 
 Each rule is applied in the order it’s defined.
 
-See the example of aleaning and preparing input to store Post.
+`cleanse()` returns the cleaned input as an array. It does not modify the request itself. Unknown rule names are ignored.
+
+See the example of cleaning and preparing input to store a Post.
 
 ```php
 $data = $request
@@ -198,7 +201,7 @@ $data = $request
 Post::create($data);
 ```
 
-If either condition fails, an exception is thrown immediately, halting the chain and indicating exactly which key failed.
+If either condition fails, an `InvalidArgumentException` is thrown immediately, halting the chain. The message names the key that failed, for example `Validation failed for title`.
 
 ### Context-Aware Input Processing
 
@@ -328,7 +331,7 @@ Output:
 }
 ```
 
-By default, empty arrays remain unchanged. Set `includeArrays` to true if you want to nullify them.
+The method accepts three optional flags: `includeStrings` (empty strings, default `true`), `includeArrays` (default `false`) and `includeWhitespace` (whitespace-only strings, default `true`). Nested values are processed recursively.
 
 You can fluently combine `nullifyBlanks()` with other methods like `cleanse()`:
 
@@ -406,11 +409,13 @@ class UserDTO {
 }
 ```
 
-If no explicit type is declared, the system will attempt to guess the class name based on the property:
+If no explicit type is declared, the system will attempt to guess the class name based on the property. It looks in the same namespace as the parent DTO and tries `Address`, then `AddressDTO`, and falls back to `stdClass` if none exists:
 
 ```php
-// e.g. 'address' → Address, AddressDTO, etc.
+// e.g. 'address' → App\DTO\Address, App\DTO\AddressDTO, etc.
 ```
+
+If a typed property points to a class that does not exist, a `RuntimeException` is thrown.
 
 You can override this behavior by explicitly setting types in your DTOs.
 
@@ -463,12 +468,12 @@ The `tapInput()` method offers a convenient way to inspect, log, or act on a spe
 Basic Usage
 
 ```php
-$request->tapInput('views', function ($views) {
-    Redis::increment("views:{$views}");
+$request->tapInput('email', function ($email) {
+    Log::info("Newsletter signup attempt: {$email}");
 });
 ```
 
-In this example, you access the views input and increment a Redis counter using its value — all without interrupting your form/request flow.
+In this example, you access the `email` input and write it to the log — all without interrupting your form/request flow. `tapInput()` returns the request, so it can be chained.
 
 ## Conditional Execution with `ifFilled`
 
@@ -484,7 +489,7 @@ $request->ifFilled('slug', function ($slug) use ($post) {
 });
 ```
 
-In this example, only the inputs that are provided (and not empty) are applied to the $post model. This avoids overwriting existing data with null or empty values.
+In this example, only the inputs that are provided (and not empty) are applied to the $post model. This avoids overwriting existing data with null or empty values. An input is considered filled unless it is missing, `null`, `''`, `[]`, `'0'` or `0` (the check uses PHP's `empty()`).
 
 ## Convert Input to Array
 
@@ -504,7 +509,7 @@ If the input is a comma-separated string, it’s split, trimmed, and filtered in
 
 In Doppar, the `route()` method on the request object allows you to access or compare the current route name. This is useful for conditional logic based on routing, such as determining active navigation states or applying middleware behavior.
 
-Returns the name of the current route as a string:
+Returns the name of the current route as a string, or `null` if the current route has no name:
 ```php
 $request->route();
 ```
@@ -556,7 +561,7 @@ Equivalent to the above, using the `input()` method
 $request->input('name', 'default');
 ```
 
-Same result, alternative syntax.
+`get()` is a lower-level lookup. It checks route parameters first, then the query string, then the request body, and returns the first match. Prefer `input()` when you only want the request input.
 ```php
 $request->get('name', 'default');
 ```
@@ -595,12 +600,12 @@ When handling form submissions or query parameters in Doppar, it's often importa
 
 Use the `has()` method to check if a particular field is present in the incoming request data.
 
-Returns true if the 'name' field exists.
+Returns true if the 'name' field exists and is not an empty string.
 ```php
 $request->has('name');
 ```
 
-This is useful for conditional logic or validating optional fields.
+A field that is present but submitted as an empty string (`''`) is treated as missing. This is useful for conditional logic or validating optional fields.
 
 The `isEmpty()` method allows you to determine whether the entire request payload is empty.
 
@@ -629,19 +634,21 @@ $request->is('/user/*');
 // Matches routes like /user/profile, /user/settings, etc.
 ```
 
+The pattern is matched against the full request URI (including the leading `/` and any query string), so start your pattern with `/`.
+
 ## Accessing Validation Results
 
 After validating form input, you might want to separate valid and invalid data. Doppar provides two handy methods for this:
 
 - `passed():` Returns only the fields that passed validation.
-- `failed():` Returns the fields that failed validation, typically used for error feedback.
+- `failed():` Returns the validation errors, typically used for error feedback.
 
 Returns only the data that passed validation.
 ```php
 $request->passed();
 ```
 
-Returns the data that failed validation checks.
+Returns the validation errors.
 ```php
 $request->failed();
 ```
@@ -699,7 +706,7 @@ The `Phaseolies\Http\Request` instance provides a variety of methods for examini
 
 ### Retrieving the Request Path
 
-The path method returns the request's path information. So, if the incoming request is targeted at http://example.com/foo/bar, the path method will return `foo/bar`:
+The `getPath` method returns the request's path information. So, if the incoming request is targeted at http://example.com/foo/bar, the `getPath` method will return `/foo/bar`:
 
 ```php
 $uri = $request->getPath();
@@ -726,7 +733,7 @@ $request->scheme();
 
 ## Retrieving the Request Method
 
-The method method will return the HTTP verb for the request. You may use the isMethod method to verify that the HTTP verb matches a given string:
+The `method()` method returns the HTTP verb in lowercase, while `getMethod` returns it in uppercase. You may use the `isGet`, `isPost`, `isPut`, `isPatch`, `isDelete` and `isHead` methods to verify that the HTTP verb matches:
 
 ```php
 $method = $request->method(); // return 'get'
@@ -741,16 +748,16 @@ You will get the method like `isPost()`, `isDelete()`, `isPatch()`, `isPut()` et
 
 ## Request Headers
 
-You can retrieve a request header using the header method on the` Phaseolies\Http\Request` instance in Doppar. If the specified header does not exist in the request, it will return null by default. However, you may also provide a second argument to return a default value if the header is missing.
+You can retrieve a request header using the `header` method on the `Phaseolies\Http\Request` instance in Doppar. If the specified header does not exist in the request, it will return `null`.
 
 Returns the value of the `User-Agent` header
 ```php
 $agent = $request->header('User-Agent');
 ```
 
-Equivalent to:
+The `header` method does not accept a default value. If you need one, use the header bag directly:
 ```php
-$agent = $request->headers->get('User-Agent')
+$agent = $request->headers->get('User-Agent', 'unknown');
 ```
 
 You can set headers for your current request like
@@ -819,8 +826,8 @@ if ($request->expectsJson()) {
 }
 ```
 
-#### Checking if the Request expects JSON. 
-Use this method to determine if the client expects a JSON response.
+#### Checking if the Request wants JSON
+Use this method to determine if the client's preferred (first) `Accept` type is JSON.
 ```php
 $request->wantsJson();
 ```
@@ -856,7 +863,7 @@ $request->mergeIfMissing([
 ]);
 ```
 
-If `language` or `theme` were not included in the request, this method injects them with default values.
+If `language` or `theme` were not included in the request, this method injects them with default values. Because it relies on `has()`, a key submitted as an empty string is also treated as missing and will be replaced by the default.
 
 ### Retrieving Old Input
 
@@ -874,10 +881,16 @@ To retrieve cookie values, Doppar provides a clean and simple API. Here's how yo
 
 ### Retrieving Cookies From Requests
 
-To retrieve a cookie value from the request, use the cookie method on an `Phaseolies\Http\Request` instance:
+To retrieve a cookie value from the request, use the `cookies` bag on a `Phaseolies\Http\Request` instance:
 
 ```php
 $value = $request->cookies->get('name');
+```
+
+To retrieve all cookies as an array, call the `cookie()` method:
+
+```php
+$cookies = $request->cookie();
 ```
 
 You can check request cookie existance using `hasCookie` method like that
@@ -910,16 +923,15 @@ This allows you to target individual values without loading the entire array.
 
 ## Query String
 
-When handling GET requests in Doopar, you often need to access the query parameters (data appended to the URL after a ?). Doopar provides several methods via the Request object to easily work with these.
+When handling GET requests in Doppar, you often need to access the query parameters (data appended to the URL after a ?). Doppar provides several methods via the Request object to easily work with these.
 
 ```php
-$queryString = $request->query();
+$queryParams = $request->query();
 ```
 
 Retrieve all query parameters from the current request as an associative array.
 
-Retrieve the value of a specific query parameter using its key. assume example url is `http://example.com/search?name=mahedi&school=academy
-`
+Retrieve the value of a specific query parameter using its key. Assume the example URL is `http://example.com/search?name=mahedi&school=academy`
 
 ```php
 $name = $request->query('name'); // returns 'mahedi'
@@ -933,13 +945,13 @@ $city = $request->query('city', 'unknown');
 
 returns 'unknown' if 'city' is not present.
 
-Returns the entire query string as a raw string, similar to $\_SERVER['QUERY_STRING'].
+Returns the entire query string as a normalized string, or `null` if there is no query string. Unlike `$_SERVER['QUERY_STRING']`, the key/value pairs are sorted alphabetically.
 
 ```php
 $queryString = $request->getQueryString();
 ```
 
-This will give you the raw query string `'name=mahedi&school=academy'`.
+For the example URL above, this returns `'name=mahedi&school=academy'`. For `?school=academy&name=mahedi` it returns the same string, because the keys are sorted.
 
 ## Get Authenticated User
 
