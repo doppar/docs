@@ -42,6 +42,27 @@ php pool route:cache
 ```
 It's important to ensure that all of your routes are working correctly before caching them. If there are any issues or syntax errors in your route definitions, the command will fail and output the relevant error.
 
+### Action Plan Cache
+> Available from v4.2.0
+
+Resolving a controller action means reading its attributes (`#[Resolver]`, `#[Transaction]`, `#[Bind]`, `#[BindPayload]`, `#[Model]`), its constructor and its parameter types. Doing that with the Reflection API on every request is wasted work, because none of it changes between requests.
+
+Doppar reads each action once and keeps the result as plain data, called an *action plan*. The router then resolves the arguments from the plan without touching Reflection or instantiating an attribute. Only what genuinely depends on the request still runs on every request: container bindings, `make()`, model lookup and payload validation.
+
+`php pool route:cache` compiles the plans of all your routes, together with the route cache, into `storage/framework/cache/actions.php`. It is a plain PHP file, so opcache keeps it in shared memory. `php pool route:clear` removes it.
+
+```bash
+php pool route:cache
+```
+
+You never have to think about it:
+
+- Without a compiled file, each action is planned lazily on its first dispatch and remembered for the rest of the process. In long-running workers that is once per action for the life of the worker.
+- A compiled file written by a different Doppar release, or one that is corrupt, is ignored and the plan is rebuilt by Reflection. It can never make a request fail.
+- Behavior is identical with and without the compiled file.
+
+Run `route:cache` on every deployment, exactly as before. If you change a controller's parameters or attributes, re-run it (or `route:clear`) like any other route change.
+
 ## Clear Route Cache
 The `route:clear` command is used to remove the route cache file. This is useful when you have made changes to your application's routes and want to ensure the framework uses the updated definitions.
 
