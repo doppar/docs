@@ -99,6 +99,12 @@ $schedule->command('report:generate monthly --format=pdf')
 ```
 In this example, `monthly` is a positional argument and `--format=pdf` is a named option. Doppar correctly parses and passes each token as a separate argument to the command handler.
 
+Wrap a value that contains spaces in quotes, exactly as you would in a shell. It is passed to the command as one argument:
+```php
+$schedule->command('mail:send --subject="Weekly report" --note=\'Sent by cron\'')
+    ->weeklyOn(1, '08:00');
+```
+
 ## Every-Second Scheduling
 The `everySecond()` method schedules the command to run once every second, providing the highest possible execution frequency within Doppar's task scheduler. Second-based schedules require the cron daemon to be running (see [Managing the Cron Daemon](#managing-the-cron-daemon)).
 ```php
@@ -291,13 +297,16 @@ $schedule->command("user:sync")->cron("*/15 * * * *")->noOverlap(20);
 ```
 Doppar also performs a live PID check when evaluating an existing lock. If the process that created the lock is no longer running, the lock is treated as stale, cleaned up, and a new run is allowed — even before the expiry time.
 
+Lock files live in your application's own `storage/schedule` directory, so two applications on the same server that schedule the same command (a queue worker, for example) never block each other. Checking for a running copy and taking the lock happen as one step, so two scheduler runs that start at the same instant cannot both start the task. A run that skips a task because it is locked leaves the lock alone.
+
 ## Background Tasks
 By default, when multiple tasks are scheduled to run at the same time, they execute sequentially in the order they are defined inside `schedule()`. This means a long-running task can delay all tasks that follow it. Use `inBackground()` to make a command run asynchronously, allowing subsequent tasks to start without waiting for it to complete.
 ```php
 $schedule->command("user:sync")->cron("*/15 * * * *")->inBackground();
 ```
 When a command runs in the background, Doppar:
-- Spawns a separate OS process for the command
+- Spawns a separate OS process for the command and returns straight away, so `cron:run` never waits for it
+- Runs it from your application root with the same PHP binary as the scheduler, whatever directory cron started in
 - Captures its PID and records process metadata
 - Chains a `cron:finish` callback to handle lock release and exit-code reporting once the process ends
 
@@ -440,7 +449,7 @@ Add the following entry to your server's crontab. This runs the Doppar scheduler
 ```
 
 ### Daemon Mode for Second-Based Scheduling (triggered via cron)
-If you prefer to have the system cron manage the daemon, add this entry instead. The `--daemon` flag is ignored if the daemon is already running, so this is safe to leave in the crontab.
+If you prefer to have the system cron manage the daemon, add this entry instead. Only one daemon ever runs: if one is already running, the new process prints a message and exits, so this is safe to leave in the crontab. If the daemon is killed, the next cron tick starts a new one.
 ```bash
 * * * * * cd /path-to-your-project && php pool cron:run --daemon >> /dev/null 2>&1
 ```
@@ -460,3 +469,31 @@ php pool cron:daemon status     # Show PID, uptime, and log info
 ```
 
 This approach replaces OS-level cron entirely and gives you a reliable, self-contained scheduling engine built directly into Doppar.
+
+### Exit Status and Monitoring
+`php pool cron:run` exits with a non-zero status when a scheduled task could not be started or exited with an error, and prints why. With `>> /dev/null 2>&1` in your crontab nothing is shown, so check `storage/schedule` and your application log, or chain a monitoring ping that only fires on success:
+```bash
+* * * * * cd /path-to-your-project && php pool cron:run >> /dev/null 2>&1 && curl -fsS https://example.com/ping/your-check > /dev/null
+```
+A task that runs in the background reports its own exit code through `cron:finish` into its log file.
+
+## Setting Up on Your Host
+The scheduler only needs a way to run `php pool cron:run` every minute. The details differ by host.
+
+### Linux Servers and VPS
+Edit the crontab of the user that owns the application (`crontab -e`) and add the entry from [Standard Minute-Based Scheduling](#standard-minute-based-scheduling-using-system-cron). Scheduled commands run with the same PHP binary as the `cron:run` process itself, not the first `php` on the cron `PATH`, so the PHP version you call in the crontab is the one your tasks use.
+
+Make sure `storage/` is writable by that user: locks, logs and the daemon PID file are written to `storage/schedule`.
+
+### cPanel
+1. Open **Cron Jobs** in cPanel and choose **Once Per Minute (* * * * *)**.
+2. Use the full path to the PHP version your application needs, followed by the full path to `pool`:
+```bash
+/opt/cpanel/ea-php85/root/usr/bin/php /home/USERNAME/your-project/pool cron:run >> /dev/null 2>&1
+```
+Replace `ea-php85` with the version you use (check **MultiPHP Manager**, or run `ls /opt/cpanel` in Terminal), and the path with your application's real location. You do not need `cd`: scheduled commands, including background ones, always run from the application root.
+
+Things worth knowing on shared hosting:
+- **Use minute-based schedules.** cPanel cron cannot run more often than once a minute, and many hosts end long-running processes. `everySecond()` and the other second-based schedules need the daemon, which shared hosting may not allow to stay up.
+- **Long-running commands.** A command that never ends, such as `queue:run` without limits, will be ended by the host. Schedule it with a limit instead, for example `queue:run --limit=50 --timeout=55`, and add `->noOverlap()` so a slow run is not doubled up.
+- **Disabled PHP functions.** Many hosts list `shell_exec`, `exec` or `proc_open` in `disable_functions`. Doppar copes with this: background tasks try `shell_exec`, then `exec`, then `proc_open`; foreground tasks use `proc_open`, then `exec`. If every one of them is disabled, tasks run inside the `cron:run` process itself, and `inBackground()` tasks run one after another instead of in parallel (a warning says so). Everything still runs, but a slow task now delays the ones after it.
