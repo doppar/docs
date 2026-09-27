@@ -58,6 +58,22 @@ Now run migrate command to migrate `personal_access_token` table
 php pool migrate
 ```
 
+## Configure the API authentication actor
+
+Flarion resolves token owners from the dedicated `api` authentication actor in `runtime/config/auth.php`. Add the actor to the application's auth configuration:
+
+```php
+'actors' => [
+    // Other actors...
+    'api' => [
+        'model'       => App\Models\User::class,
+        'session_key' => 'api_user',
+    ],
+],
+```
+
+The configured model must extend `Phaseolies\Auth\Authable`. The `session_key` is required by Doppar's actor configuration; Flarion's personal access tokens remain stateless.
+
 ## API Token Authentication
 Flarion allows you to issue API tokens / personal access tokens that may be used to authenticate API requests to your application. When making requests using API tokens, the token should be included in the Authorization header as a `Bearer token`.
 
@@ -67,10 +83,10 @@ To begin issuing tokens for users, your User model should use the `Doppar\Flario
 
 namespace App\Models;
 
-use Phaseolies\Database\Entity\Model;
+use Phaseolies\Auth\Authable;
 use Doppar\Flarion\Tokenable;
 
-class User extends Model
+class User extends Authable
 {
     use Tokenable;
 }
@@ -97,6 +113,20 @@ foreach ($user->tokens as $token) {
     // ...
 }
 ```
+
+## Rotate Tokens
+
+Use `rotateToken` to replace an existing token while preserving its name, abilities, and expiration time. The old token is deleted after the replacement is created, so it can no longer authenticate requests:
+
+```php
+$oldToken = $user->tokens()->where('id', $tokenId)->first();
+
+$newToken = $user->rotateToken($oldToken);
+
+return ['token' => $newToken->plainTextToken];
+```
+
+The token must belong to the user. Flarion throws an `InvalidArgumentException` when a token owned by another user is supplied. The method accepts a `Doppar\Flarion\PersonalAccessToken` instance, such as the result of `tokens()` or `currentAccessToken()`.
 
 ## Token Abilities
 Flarion allows you to assign "abilities" to tokens. Abilities serve a similar purpose as OAuth's "scopes". You may pass an array of string `abilities` as the third argument to the `createToken` method:
