@@ -16,7 +16,7 @@ A Presenter acts as a presentation layer between your application’s data and i
 
 Because the response structure is defined separately from the underlying model, changes to your internal data structure do not necessarily have to affect your API contract. Presenters can also help prevent sensitive or unnecessary attributes from being exposed and provide a centralized place for transformations such as date formatting, computed values, and nested resources.
 
-Doppar’s Presenter system is built around two core components: `Presenter`, which represents a single resource, and `PresenterBundle`, which handles collections of resources and can optionally provide features such as lazy serialization and pagination. Together, they provide a flexible foundation for building consistent, maintainable, and efficient API responses throughout your application.
+Doppar’s Presenter system is built around two core components: `Presenter`, which represents a single resource, and `PresenterBundle`, which handles collections of resources, iterable access, and pagination. Together, they provide a flexible foundation for building consistent and maintainable API responses throughout your application.
 
 ## Create Presenter
 Doppar makes it easy to create a new Presenter class using the built-in pool command:
@@ -218,7 +218,7 @@ You can also instantiate your presenter directly using the `make()` method on th
 ```php
 UserPresenter::make(User::find(1));
 ```
-> ⚠️ Keep in mind: when you use this approach, you cannot chain methods like `except()`, `only()`, etc.
+> Note: when you use this approach, you cannot chain methods like `except()`, `only()`, etc.
 
 ## Presenter Bundle
 Presenter bundle wraps a collection of resources, applying a Presenter to each and optionally handling pagination. The bundle in Doppar is designed to wrap a collection of models and apply a presenter to each item. This allows you to transform collections of data consistently, with support for pagination, selective fields, lazy serialization, and preserving keys.
@@ -230,16 +230,49 @@ You can wrap a collection of models and specify a presenter class:
 ```php
 UserPresenter::bundle(User::all());
 ```
-In this example, each User in the collection is transformed by UserPresenter, and the resulting bundle can be directly returned in a JSON response
+In this example, each User in the collection is transformed by UserPresenter. Return the bundle directly from a controller; Doppar resolves the `JsonSerializable` bundle into a JSON response:
 
-## Lazy Serialization
-By default, a `PresenterBundle` eagerly transforms all items in the collection when serializing. However, for large datasets, this can be resource-intensive. Enabling lazy serialization defers the transformation of each item until it is actually needed, improving performance and reducing memory usage.
-
-You can enable lazy serialization by calling the `lazy()` method on your bundle:
 ```php
-UserPresenter::bundle(User::all())->lazy()
+public function index()
+{
+    return UserPresenter::bundle(User::all())
+        ->only(['user_id', 'name']);
+}
 ```
-When lazy serialization is enabled, the bundle uses a generator internally to `yield` each transformed item one at a time. This is particularly useful for API endpoints that return large collections, as it avoids loading all transformed data into memory at once.
+
+For a paginated query, use the same API. Pagination metadata is added automatically:
+
+```php
+public function index()
+{
+    return UserPresenter::bundle(User::query()->paginate(15))
+        ->only(['user_id', 'name']);
+}
+```
+
+## Streaming Large Collections
+Normal API endpoints should return the bundle directly. The framework serializes it to a collection:
+
+```php
+return UserPresenter::bundle(User::all())
+    ->only(['user_id', 'name']);
+```
+
+For very large responses, use Doppar’s streamed JSON response with a query stream. This keeps the database processing and HTTP output incremental:
+
+```php
+$users = User::query()->stream(100, function ($user) {
+    return (new UserPresenter($user))
+        ->only(['user_id', 'name'])
+        ->jsonSerialize();
+});
+
+return response()->streamJson(['data' => $users]);
+```
+
+`toIterable()` is available when application code needs to iterate over an already-created bundle, but it is not normally needed in a controller. `User::all()` has already loaded all users; use `query()->stream()` when the source itself must be memory-efficient.
+
+The `lazy()` method remains available for compatibility. JSON serialization still produces a normal array, so it does not turn a regular API response into an HTTP stream.
 
 ## Excluding Fields from a Bundle
 Sometimes you may want to omit certain fields from all items in a collection. The `except()` method allows you to specify which fields should be excluded when the `PresenterBundle` serializes each resource
@@ -252,31 +285,17 @@ In this example, the `user_id` and `name` fields will be removed from every user
 The `only()` method allows you to include a limited set of fields for every resource in the bundle. This is especially useful when you want to reduce payload size or return only relevant data to clients.
 ```php
 UserPresenter::bundle(User::all())
-        ->lazy()
         ->only(['user_id', 'name']);
 ```
-This combination is ideal for APIs where you need selective and efficient serialization of large collections.
-
-Here’s a clean diagram for comparing `only()`, `except()`, and `lazy()`:
-| Method     | Purpose                                                                      | Example Usage                       | Notes                                                                        |
-| ---------- | ---------------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------- |
-| `only()`   | Include only the specified fields in the output                              | `->only(['user_id', 'name'])`       | Filters each resource to return just these fields.                           |
-| `except()` | Exclude specified fields from the output                                     | `->except(['email', 'created_at'])` | Removes fields from each resource while keeping all others.                  |
-| `lazy()`   | Use generator-based serialization for better performance with large datasets | `->lazy()`                          | Serializes resources on-demand, reducing memory usage for large collections. |
+This combination is useful when you need a small, consistent payload. For large datasets, use pagination or the streamed query example above.
 
 ## Pagination with Bundle
-When working with paginated collections, you can wrap the paginated data in a `PresenterBundle` and return a structured response with metadata:
+When working with paginated collections, return the bundle directly. Doppar adds the `data` and `meta` structure automatically:
 ```php
-UserPresenter::bundle(User::oldest('id')->paginate(6))
-        ->except('email')
-        ->lazy()
-        ->toPaginatedResponse()
+return UserPresenter::bundle(User::oldest('id')->paginate(6));
 ```
 
-Here
-
-- `lazy()` ensures resources are serialized on-demand, improving performance for large datasets.
-- `toPaginatedResponse()` returns an array containing both the serialized data and pagination metadata (current page, total items, per page, URLs, etc.).
+Here, The returned bundle contains both serialized `data` and pagination `meta` (current page, total items, per page, URLs, etc.).
 
 You don’t need to manually extract the data or metadata; `PresenterBundle` handles it automatically.
 
