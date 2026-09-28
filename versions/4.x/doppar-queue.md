@@ -6,7 +6,6 @@ meta:
     content: queue manager
 ---
 
- - [Features](#features)
  - [Installation](#installation)
  - [Upgrading to v4.1.0](#upgrading-to-v410)
  - [Quick Start](#quick-start)
@@ -31,37 +30,6 @@ A queue is a background job processing system that allows tasks to run asynchron
 > **Doppar Queue v4.1.0** turns the queue into a driver-based system. Jobs can now be stored in **Redis** as well as the database, and the queue gains job priorities, unique jobs, retry backoff, automatic recovery of jobs from crashed workers, and more. Everything that is new in v4.1.0 is marked **Available from v4.1.0** throughout this page. Existing code keeps working — see [`Upgrade to v4.1.0`](#upgrade-to-v410)
 
 Doppar queue system offers robust features including multiple queue support for organizing jobs by priority or category, automatic retry logic with configurable attempts and delays, and comprehensive failed job tracking for easier debugging. It supports delayed execution for scheduling jobs in the future, graceful shutdown handling to safely stop workers, and built-in memory management that automatically restarts workers when limits are exceeded.
-
-## Features
-The Doppar Framework queue system is designed to handle background tasks efficiently with reliability and scalability in mind. Its feature set ensures smooth job processing, better performance, and full control over how tasks are executed. See the features of doppar queue.
-
-| Feature                               | Description                                                                                   |
-| ------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Multiple Queue Support**            | Organize jobs by priority and type.                                                           |
-| **Automatic Retry Logic**             | Configurable retry attempts with delays.                                                      |
-| **Failed Job Tracking**               | Store and analyze failed jobs for debugging.                                                  |
-| **Delayed Execution**                 | Schedule jobs for future execution.                                                           |
-| **Graceful Shutdown**                 | Handle SIGTERM and SIGINT signals safely.                                                     |
-| **Memory Management**                 | Automatic worker restart when memory limits are exceeded.                                     |
-| **Job Serialization**                 | Safely serialize complex job data for storage in queues.                                      |
-| **Fluent API**                        | Fluent syntax for job dispatching and chaining.                                               |
-| **Custom Failure Callbacks**          | Handle job failures gracefully at the job or chain level.                                     |
-| **Job Chaining**                      | Execute multiple jobs sequentially, where each job runs only after the previous one succeeds. |
-| **Chain-Level Callbacks**             | Define `then()` and `catch()` handlers for entire job chains.                                 |
-| **Per-Job Execution Timeouts**        | Define maximum execution time per job using the `#[Queueable(timeout:)]` attribute.           |
-| **Static and Instance Dispatching**   | Dispatch jobs via static methods or directly from job instances.                              |
-| **Synchronous Job Execution**         | Optionally execute jobs immediately using `dispatchSync()`.                                   |
-| **Worker Options**                    | Configure queue workers with `--queue`, `--sleep`, `--memory`, `--timeout`, and `--limit`.    |
-| **Queue Drivers** *(v4.1.0)*          | Store jobs in the database, in Redis, or in memory, and add your own driver.                  |
-| **Multiple Connections** *(v4.1.0)*   | Use several backends side by side and choose one per job, per worker, or per command.         |
-| **Job Priority** *(v4.1.0)*           | Run urgent jobs first within a queue, with `withPriority()` or `#[Queueable(priority:)]`.     |
-| **Priority Queue Lists** *(v4.1.0)*   | A worker can drain several queues in strict order: `--queue=high,default,low`.                |
-| **Unique Jobs** *(v4.1.0)*            | Refuse a duplicate of a job that is already waiting or running.                               |
-| **Retry Backoff** *(v4.1.0)*          | Wait longer after each failed attempt, e.g. `[10, 60, 300]` seconds.                          |
-| **Crash Recovery** *(v4.1.0)*         | A job held by a worker that died is handed to another worker when its lease expires.          |
-| **Automatic Lease Renewal** *(v4.1.0)*| Jobs with a timeout keep their lease while they run, so a long job is never run twice at once.|
-| **Bulk Dispatching** *(v4.1.0)*       | Push many jobs at once with `Queue::pushMany()`.                                              |
-| **Queue Statistics** *(v4.1.0)*       | Read ready, delayed, and running counts per queue with `Queue::stats()`.                      |
 
 ## Installation
 You may install Doppar Queue via the composer require command:
@@ -119,8 +87,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // One Schema::table() call per column: SQLite only runs the first
-        // statement of a batch.
         Schema::table('queue_jobs', function (Blueprint $table) {
             $table->smallInteger('priority')->default(0);
         });
@@ -133,8 +99,6 @@ return new class extends Migration
             $table->string('unique_key', 191)->nullable();
         });
 
-        // A UNIQUE constraint cannot be added through ALTER TABLE on every
-        // database, but a unique index can.
         db()->execute('CREATE UNIQUE INDEX queue_jobs_unique_key_unique ON queue_jobs (unique_key)');
     }
 
