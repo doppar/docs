@@ -160,7 +160,7 @@ To allow users to override or customize the package’s views, you can make them
 public function launch()
 {
     $this->publishes([
-        __DIR__ . '/views' => resource_path('views/vendor/flarion'),
+        __DIR__ . '/views' => template_path('views/vendor/flarion'),
     ], 'views');
 }
 ```
