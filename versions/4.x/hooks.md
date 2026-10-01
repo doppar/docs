@@ -8,27 +8,10 @@ meta:
 
 - [Introduction](#introduction)
 - [Supported Events](#supported-events)
-- [Hook Registration Formats](#hook-registration-formats)
 - [Array Property Hooks](#array-property-hooks)
-  - [Inline Callback](#inline-callback)
-  - [Class-Based Handler](#class-based-handler)
-  - [Conditional Hook](#conditional-hook)
-  - [Multiple Events in One Array](#multiple-events-in-one-array)
 - [Attribute Based Hooks](#attribute-based-hooks)
-  - [Basic Usage](#basic-usage)
-  - [Multiple Events on One Method](#multiple-events-on-one-method)
-  - [Multiple Hook Methods on One Model](#multiple-hook-methods-on-one-model)
-  - [Conditional Attribute Hook](#conditional-attribute-hook)
-  - [Mixing Attribute and Array Hooks](#mixing-attribute-and-array-hooks)
 - [Lifecycle Events In Depth](#lifecycle-events-in-depth)
-  - [booting and booted](#booting-and-booted)
-  - [before_created and after_created](#beforecreated-and-aftercreated)
-  - [before_updated and after_updated](#beforeupdated-and-afterupdated)
-  - [before_deleted and after_deleted](#beforedeleted-and-afterdeleted)
 - [Accessing Model State Inside Hooks](#accessing-model-state-inside-hooks)
-  - [Reading Attributes](#reading-attributes)
-  - [Detecting Changes](#detecting-changes)
-  - [Mutating Attributes](#mutating-attributes)
 - [Skipping Hooks](#skipping-hooks)
 - [Execution Order](#execution-order)
 - [Important Constraints](#important-constraints)
@@ -41,9 +24,6 @@ Model Hooks in Doppar provide a clean, expressive way to respond to lifecycle ev
 Hooks are the right place for cross-cutting concerns that belong close to the model but should not live inside your controllers or service classes.
 
 Doppar allows two independent ways to define hooks on a model, and both can be used together on the same model:
-
-- **Array property** — the `$hooks` array defined on the model class, supporting inline callbacks, class-based handlers, and conditional execution
-- **Attributes** — `#[Hook(...)]` placed directly above model methods, keeping the hook definition co-located with its implementation
 
 ## Supported Events
 
@@ -59,17 +39,6 @@ Every hook is tied to one of the following eight lifecycle events:
 | `after_updated` | Immediately after an existing record has been successfully updated. |
 | `before_deleted` | Just before a DELETE query runs on the record. |
 | `after_deleted` | Immediately after a record has been removed from the database. |
-
-
-## Hook Registration Formats
-
-Doppar gives you two formats. You can use either one alone, or both together on the same model.
-
-**Format 1 — Array property.** Define a `$hooks` array on the model. Each key is an event name, the value is the handler. Useful when you want to keep hook definitions centralised at the top of the model, or when using standalone hook classes.
-
-**Format 2 — PHP Attribute.** Place `#[Hook('event_name')]` directly above any public or protected method. The method becomes the handler. Useful when you want the hook logic visible exactly where the method is defined.
-
-Both formats support all eight lifecycle events, conditional execution, and every feature described in this document.
 
 ## Array Property Hooks
 
