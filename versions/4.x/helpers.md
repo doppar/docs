@@ -15,7 +15,7 @@ While many of these functions are used internally by the framework itself, they 
 From accessing configuration values to generating routes and handling authentication, Doppar's helpers make your development workflow faster and cleaner.
 
 ## Core Helpers
-[`db()`](#db), [`throttle()`](#throttle), [`env()`](#env), [`app()`](#app), [`resolve()`](#resolve), [`ddd()`](#ddd), [`is_auth()`](#is-auth), [`config()`](#config), [`cookie()`](#cookie), [`csrf_token()`](#csrf-token), [`bcrypt()`](#bcrypt), [`old()`](#old), [`fake()`](#fake), [`route()`](#route), [`session()`](#session), [`url()`](#url), [`request()`](#request), [`response()`](#response), [`view()`](#view), [`redirect()`](#redirect), [`back()`](#back), [`tap()`](#tap)
+[`db()`](#db), [`throttle()`](#throttle), [`env()`](#env), [`app()`](#app), [`resolve()`](#resolve), [`ddd()`](#ddd), [`is_auth()`](#is-auth), [`config()`](#config), [`cookie()`](#cookie), [`csrf_token()`](#csrf-token), [`bcrypt()`](#bcrypt), [`old()`](#old), [`fake()`](#fake), [`route()`](#route), [`session()`](#session), [`url()`](#url), [`request()`](#request), [`response()`](#response), [`view()`](#view), [`redirect()`](#redirect), [`back()`](#back), [`tap()`](#tap), [`with()`](#with), [`blank()`](#blank), [`filled()`](#filled), [`rescue()`](#rescue), [`retry()`](#retry), [`benchmark()`](#benchmark)
 ## Path Helpers
 
 [`base_path()`](#base-path), [`base_url()`](#base-url), [`storage_path()`](#storage-path), [`public_path()`](#public-path), [`template_path()`](#template-path), [`config_path()`](#config-path), [`schema_path()`](#database-path)
@@ -378,6 +378,104 @@ return $tag; // Returns the updated model instance
 ```
 
 This pattern ensures that you can modify a value and still work with the original object without needing an extra line for returning it.
+
+### with()
+The `with()` helper passes a value through a callback and returns the callback's result. Unlike `tap()`, which always returns the original value, `with()` returns whatever the callback returns. If no callback is given, the value is returned unchanged.
+```php
+$total = with($order, fn($order) => $order->price * $order->quantity);
+
+with(5);                      // 5
+with(5, fn($n) => $n * 2);    // 10
+```
+
+### blank()
+The `blank()` helper determines if a value is "blank". It is a safer alternative to `empty()`, because `0`, `0.0`, `'0'` and `false` are **not** blank.
+
+The following are blank: `null`, empty or whitespace-only strings, empty arrays and empty `Countable` objects.
+```php
+blank('');            // true
+blank('   ');         // true
+blank(null);          // true
+blank([]);            // true
+
+blank('a');           // false
+blank(0);             // false
+blank('0');           // false
+blank(false);         // false
+```
+
+### filled()
+The `filled()` helper is the inverse of `blank()`.
+```php
+if (filled($request->input('name'))) {
+    // name was provided
+}
+
+filled('');           // false
+filled(0);            // true
+```
+
+### rescue()
+The `rescue()` helper runs a callback and returns a default value if it throws, instead of letting the exception bubble up. The exception is written to the log unless you pass `report: false`.
+```php
+$config = rescue(fn() => json_decode($raw, flags: JSON_THROW_ON_ERROR), []);
+```
+
+The default can also be a closure. It receives the exception, and its return value is used.
+```php
+$price = rescue(
+    fn() => $api->fetchPrice($sku),
+    fn(Throwable $e) => $cachedPrice
+);
+
+// Do not log the exception
+$value = rescue(fn() => risky(), 'fallback', report: false);
+```
+Only use `rescue()` for work where a fallback is genuinely acceptable, since it swallows the failure.
+
+### retry()
+The `retry()` helper runs a callback up to a given number of attempts and retries when it throws. If every attempt fails, the last exception is rethrown. The callback receives the current attempt number, starting at 1.
+
+Parameters
+- **times:** The maximum number of attempts. Must be at least 1.
+- **callback:** The work to run. Receives the attempt number.
+- **sleepMs:** Milliseconds to wait between attempts, or a closure that receives the attempt number and returns the delay (for backoff). Defaults to `0`.
+- **when (optional):** A callback that receives the exception. Return `false` to stop retrying and rethrow immediately.
+
+```php
+$response = retry(3, fn() => $client->post($url, $payload), 200);
+
+// Exponential backoff: 100ms, 200ms, 400ms
+$response = retry(4, fn($attempt) => $client->get($url), fn($attempt) => 100 * (2 ** ($attempt - 1)));
+
+// Only retry on timeouts
+$response = retry(
+    5,
+    fn() => $client->get($url),
+    500,
+    fn(Throwable $e) => $e instanceof TimeoutException
+);
+```
+This is especially useful inside `chunk()` / `chunkById()` callbacks that call external services.
+
+### benchmark()
+The `benchmark()` helper runs a callback once and reports how long it took and how much memory it used. It returns an array:
+
+| Key | Description |
+| --- | --- |
+| `result` | The value returned by your callback |
+| `time_ms` | Elapsed time in milliseconds |
+| `memory_bytes` | Change in memory usage after the callback ran |
+| `peak_memory_bytes` | Peak additional memory used while the callback ran |
+
+```php
+$report = benchmark(function () {
+    User::query()->chunk(500, fn($users) => null);
+});
+
+echo "{$report['time_ms']} ms, peak {$report['peak_memory_bytes']} bytes";
+```
+It is handy for comparing approaches, for example `chunk()` against `cursor()` on a large table. Any exception thrown by the callback is not caught.
 
 ### base_path()
 The `base_path()` function is a helper used to retrieve the base path of the application, with an optional path appended to it. It provides an easy way to get the root directory of your application, and optionally append additional subdirectories or files to the base path.
