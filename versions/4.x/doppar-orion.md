@@ -248,7 +248,7 @@ use Doppar\Orion\Support\Facades\Process;
 
 [$first, $second, $third] = Process::asConcurrently([
     'ls -la',
-    'ls -la ' . database_path(),
+    'ls -la ' . schema_path(),
     'ls -la ' . storage_path(),
 ], __DIR__);
 
