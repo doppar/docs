@@ -106,9 +106,10 @@ Schema::table('users', function (Blueprint $table) {
 > **Note:** The `after()` modifier is not supported by PostgreSQL. When used with 
 > a PostgreSQL connection, it will be silently ignored.
 
-> **Warning:** When adding columns to an existing table, you must use the `after()` 
-> method. Adding multiple columns in a single migration without `after()` may not 
-> execute correctly.
+You may add several columns, indexes, drops and renames in a single `Schema::table()` 
+call. Each generated statement is executed separately, so this works the same on 
+every driver. See [`Modifying Columns`](#modifying-columns), [`Dropping and Renaming Columns`](#dropping-and-renaming-columns) 
+and [`Indexes`](#indexes) below.
 
 ## Running a Specific Migration
 
@@ -232,6 +233,17 @@ $table->double('coefficient', 15, 8); // higher precision float
 $table->decimal('amount', 10, 2);   // exact numeric, recommended for currency
 ```
 
+### Auto-Incrementing Keys
+
+Besides `id()` and `bigIncrements()`, smaller auto-incrementing primary keys are available. 
+They are unsigned on MySQL and map to `SERIAL` / `SMALLSERIAL` on PostgreSQL.
+```php
+$table->increments('id');         // INT UNSIGNED
+$table->tinyIncrements('id');     // TINYINT UNSIGNED
+$table->smallIncrements('id');    // SMALLINT UNSIGNED
+$table->mediumIncrements('id');   // MEDIUMINT UNSIGNED
+```
+
 ### Boolean
 
 Boolean columns store binary true/false values and are commonly used for feature 
@@ -348,6 +360,38 @@ Bit flag column, useful for compact storage of multiple boolean flags
 $table->bit('flags', 8);
 ```
 
+ULID stored as CHAR(26)
+```php
+$table->ulid('reference');
+```
+
+Common helper columns
+```php
+$table->rememberToken();                 // nullable VARCHAR(100) remember_token
+$table->softDeletes();                   // nullable deleted_at timestamp
+$table->softDeletes('removed_at');       // custom column name
+$table->softDeletesTz();                 // timezone aware variant
+$table->nullableTimestamps();            // alias of timestamps()
+```
+
+Polymorphic relation columns. `morphs()` creates `{name}_type` and `{name}_id` together 
+with a composite index on both:
+```php
+$table->morphs('taggable');
+$table->nullableMorphs('taggable');
+$table->uuidMorphs('taggable');
+$table->ulidMorphs('taggable');
+```
+
+### Fractional Seconds Precision
+
+`timestamp`, `timestampTz`, `dateTime`, `dateTimeTz`, `time`, `timeTz` and `timestamps()` 
+accept an optional precision (MySQL and PostgreSQL):
+```php
+$table->timestamp('processed_at', 3);   // TIMESTAMP(3)
+$table->timestamps(6);
+```
+
 ### Spatial / GIS Types
 
 Spatial columns store geometric and geographic data for use with GIS (Geographic 
@@ -393,11 +437,179 @@ Add a plain (non-unique) index to improve query performance
 $table->string('slug')->index();
 ```
 
-Position the column immediately after another column (MySQL only).
+Give the index or unique constraint a custom name
+```php
+$table->string('slug')->index('posts_slug_lookup');
+$table->string('email')->unique('users_email_uq');
+```
+
+Add a full text or spatial index on a single column
+```php
+$table->text('body')->fullText();
+$table->point('location')->spatialIndex();
+```
+
+Position the column immediately after another column, or first in the table (MySQL only).
 ```php
 $table->string('company')->after('email');
+$table->string('uuid')->first();
 ```
->  Silently ignored on PostgreSQL
+>  Silently ignored on PostgreSQL and SQLite
+
+Add a comment to the column (MySQL and PostgreSQL, ignored on SQLite)
+```php
+$table->integer('votes')->comment('Total votes received');
+```
+
+Mark a numeric column `UNSIGNED` (MySQL only, ignored elsewhere)
+```php
+$table->integer('votes')->unsigned();
+```
+
+Use the current time as the default, and optionally refresh it on every update (`useCurrentOnUpdate` is MySQL only)
+```php
+$table->timestamp('created_at')->useCurrent();
+$table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+```
+
+Make an integer column auto-incrementing (it must also be a key on MySQL)
+```php
+$table->integer('sequence')->autoIncrement()->unique();
+```
+
+Set the character set (MySQL only) and collation
+```php
+$table->string('code')->charset('utf8mb4')->collation('utf8mb4_bin');
+```
+
+Generated columns, calculated by the database from other columns
+```php
+$table->integer('price');
+$table->integer('price_with_tax')->storedAs('price * 1.2');   // stored on disk
+$table->integer('price_double')->virtualAs('price * 2');      // computed on read
+```
+> Generated columns cannot have a default value. `storedAs()` cannot be added to an existing table on SQLite.
+
+Hide the column from `SELECT *` (MySQL 8+ only)
+```php
+$table->string('internal_notes')->nullable()->invisible();
+```
+
+Explicitly make a column `NOT NULL` again, for example when modifying it
+```php
+$table->string('title')->nullable(false);
+```
+
+## Modifying Columns
+
+Use `change()` inside `Schema::table()` to alter an existing column. Every attribute 
+of the column must be restated: anything you do not declare (such as `nullable()` 
+or `default()`) is reset.
+```php
+Schema::table('posts', function (Blueprint $table) {
+    $table->string('title', 100)->nullable()->change();
+});
+```
+
+> **Note:** `change()` is supported on MySQL (`MODIFY COLUMN`) and PostgreSQL 
+> (`ALTER COLUMN`). SQLite cannot modify columns, so a `RuntimeException` is thrown. 
+> On SQLite, create a new table, copy the data, and drop the old table instead.
+
+## Dropping and Renaming Columns
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->dropColumn('legacy');                  // one column
+    $table->dropColumn(['phone', 'fax']);          // several columns
+    $table->renameColumn('name', 'full_name');
+});
+```
+
+Helpers for the common column groups
+```php
+$table->dropTimestamps();            // created_at and updated_at
+$table->dropSoftDeletes();           // deleted_at (pass a name for a custom column)
+$table->dropRememberToken();
+$table->dropMorphs('taggable');      // columns and their composite index
+$table->dropConstrainedForeignId('user_id');   // foreign key and column
+```
+
+The same operations are available directly on the `Schema` facade:
+```php
+Schema::dropColumns('users', ['phone', 'fax']);
+Schema::renameColumn('users', 'name', 'full_name');
+```
+
+> **Note:** SQLite refuses to drop a column that is indexed, unique, or part of a 
+> primary or foreign key. Drop the index first.
+
+## Indexes
+
+Besides the column modifiers above, indexes can be declared at table level. This is 
+required for composite indexes (spanning several columns).
+```php
+Schema::table('posts', function (Blueprint $table) {
+    $table->index('slug');
+    $table->index(['author_id', 'published_at']);              // composite
+    $table->index('slug', 'posts_slug_lookup');                // custom name
+    $table->index('payload', null, 'hash');                    // algorithm (MySQL / PostgreSQL)
+    $table->unique(['author_id', 'slug']);
+    $table->fullText('body');                                  // MySQL and PostgreSQL
+    $table->spatialIndex('location');                          // MySQL and PostgreSQL
+    $table->primary(['post_id', 'tag_id']);                    // composite primary key
+});
+```
+
+`index()` returns an object you can chain: `$table->index(['a', 'b'])->name('my_idx')->algorithm('hash');`
+
+When no name is given, one is generated: `idx_{table}_{columns}` for indexes and 
+`{table}_{columns}_unique`, `_fulltext`, `_spatial` for the others (shortened with 
+a hash if longer than 63 characters).
+
+### Dropping Indexes
+
+Pass the index name, or the same column array used to create it:
+```php
+Schema::table('posts', function (Blueprint $table) {
+    $table->dropIndex('posts_slug_lookup');
+    $table->dropIndex(['author_id', 'published_at']);
+    $table->dropUnique(['author_id', 'slug']);
+    $table->dropFullText(['body']);
+    $table->dropSpatialIndex(['location']);
+    $table->dropPrimary();
+    $table->renameIndex('old_name', 'new_name');   // not supported on SQLite
+});
+```
+
+### Driver Notes
+
+| Feature | MySQL | PostgreSQL | SQLite |
+|---|---|---|---|
+| Composite index / unique | Yes | Yes | Yes (unique is created as a unique index) |
+| Full text index | `FULLTEXT` | GIN `to_tsvector('english', ...)` | Not supported |
+| Spatial index | `SPATIAL` | GiST | Not supported |
+| Add / drop primary key on existing table | Yes | Yes | Not supported |
+| Rename index | Yes | Yes | Not supported |
+
+## Table Options
+
+Set options on the blueprint inside `Schema::create()`:
+```php
+Schema::create('posts', function (Blueprint $table) {
+    $table->engine('InnoDB');              // MySQL
+    $table->charset('utf8mb4');            // MySQL
+    $table->collation('utf8mb4_unicode_ci'); // MySQL
+    $table->comment('Blog posts');         // MySQL and PostgreSQL
+    $table->id();
+});
+```
+
+Create a temporary table that is dropped when the connection closes:
+```php
+Schema::create('scratch', function (Blueprint $table) {
+    $table->temporary();
+    $table->id();
+});
+```
 
 ## Checking If a Table Exists
 
@@ -411,6 +623,24 @@ use Phaseolies\Support\Facades\Schema;
 if (Schema::hasTable('users')) {
     // The table exists — safe to proceed
 }
+```
+
+## Inspecting the Schema
+
+Besides `hasTable()`, the schema builder can check columns and indexes:
+```php
+Schema::hasColumn('users', 'email');                 // bool
+Schema::hasColumns('users', ['email', 'name']);      // bool, true only if all exist
+Schema::getColumnListing('users');                   // ['id', 'name', 'email', ...]
+Schema::hasIndex('users', 'users_email_unique');     // by name
+Schema::hasIndex('users', ['email']);                // by column list
+```
+
+## Renaming and Dropping Tables with Schema
+```php
+Schema::rename('posts', 'articles');
+Schema::drop('articles');            // fails if the table does not exist
+Schema::dropIfExists('articles');
 ```
 
 ## Dropping and Truncating Tables
@@ -483,6 +713,20 @@ Schema::create('posts', function (Blueprint $table) {
 });
 ```
 
+Fluent definition with `foreignId()` and `constrained()`. The referenced table is 
+guessed from the column name (`user_id` → `users`, `category_id` → `categories`); 
+pass a table and column to override it. Call `nullable()` before `constrained()`.
+```php
+Schema::create('posts', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('editor_id')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('owner_id')->constrained('people', 'pk');
+});
+```
+
+`foreignUuid()` and `foreignUlid()` work the same way for UUID and ULID keys.
+
 Explicit definition — full control over column and reference
 ```php
 use App\Models\User;
@@ -493,6 +737,29 @@ Schema::create('posts', function (Blueprint $table) {
     $table->foreign('user_id')->references('id')->on('users');
 });
 ```
+Composite foreign keys and custom constraint names
+```php
+$table->foreign(['tenant_id', 'user_id'])
+    ->references(['tenant_id', 'id'])
+    ->on('users')
+    ->name('fk_posts_tenant_user');
+```
+
+### Dropping Foreign Keys
+
+Pass the constraint name, or the column array (resolved to `fk_{table}_{columns}`):
+```php
+Schema::table('posts', function (Blueprint $table) {
+    $table->dropForeign(['user_id']);
+    $table->dropForeign('fk_posts_tenant_user');
+    $table->dropConstrainedForeignId('editor_id');   // constraint and column
+});
+```
+
+> **SQLite:** foreign keys are written inside `CREATE TABLE` because SQLite cannot add 
+> them afterwards. Adding or dropping a foreign key on an existing SQLite table throws 
+> a `RuntimeException`; declare it in the original create migration instead.
+
 ### Cascade Actions
 
 Cascade actions define what happens to related rows when a referenced record is 
@@ -520,6 +787,13 @@ $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
 $table->foreign('user_id')->references('id')->on('users')->cascadeOnUpdate();
 $table->foreign('user_id')->references('id')->on('users')->restrictOnUpdate();
 $table->foreign('user_id')->references('id')->on('users')->nullOnUpdate();
+$table->foreign('user_id')->references('id')->on('users')->noActionOnDelete();
+$table->foreign('user_id')->references('id')->on('users')->noActionOnUpdate();
+```
+
+The same methods are available after `constrained()`:
+```php
+$table->foreignId('user_id')->constrained()->cascadeOnDelete()->cascadeOnUpdate();
 ```
 
 ## Running Migrations on a Specific Connection
