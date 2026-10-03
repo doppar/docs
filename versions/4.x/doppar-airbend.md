@@ -9,9 +9,9 @@ meta:
 ## Airbend
 
 ### Introduction
-Doppar Airbend is a high-performance, real-time broadcasting component of the Doppar PHP Framework, engineered to deliver seamless WebSocket-based event broadcasting, robust channel authorization, and comprehensive performance monitoring. Designed for modern, scalable web applications, Airbend allows developers to build interactive and collaborative features—such as live notifications, chat systems, dashboards, and multiplayer experiences—directly within the Doppar ecosystem.
+Doppar Airbend is a high-performance, real-time broadcasting component of the Doppar PHP Framework, engineered to deliver seamless WebSocket-based event broadcasting and robust channel authorization. Designed for modern, scalable web applications, Airbend allows developers to build interactive and collaborative features—such as live notifications, chat systems, dashboards, and multiplayer experiences—directly within the Doppar ecosystem.
 
-Airbend is highly configurable, offering schema-driven validation and caching mechanisms for robust configuration management. It also includes a comprehensive metrics and monitoring suite, allowing teams to track connection states, message flows, memory usage, and performance statistics in real time. With built-in CLI commands, PHP attributes for declarative event broadcasting, and a developer-friendly facade interface, Doppar Airbend empowers developers to implement real-time features with minimal overhead while maintaining full control over the broadcasting pipeline.
+Airbend is highly configurable, offering schema-driven validation and caching mechanisms for robust configuration management. With built-in CLI commands, PHP attributes for declarative event broadcasting, and a developer-friendly facade interface, Doppar Airbend empowers developers to implement real-time features with minimal overhead while maintaining full control over the broadcasting pipeline.
 
 ### System Requirements
 Before installing and running Doppar Airbend, ensure your system meets the following prerequisites:
@@ -70,11 +70,12 @@ The Workerman driver runs a dedicated WebSocket server using the Workerman PHP l
 Add the following variables to your `env.toml` file:
 ```toml
 BROADCAST_DRIVER = "workerman"
+WEBSOCKET_INTERNAL_HOST = "127.0.0.1"
 WEBSOCKET_INTERNAL_PORT = 6002
 WEBSOCKET_APP_SECRET = "custom_app_secret"
 ```
 
-Here `WEBSOCKET_INTERNAL_PORT` Internal port used by the Workerman WebSocket server.
+Here `WEBSOCKET_INTERNAL_HOST` and `WEBSOCKET_INTERNAL_PORT` set where the internal broadcast server listens. It binds to loopback by default and only accepts messages signed with `WEBSOCKET_APP_SECRET`. See [`Security and Production`](#security-and-production).
 
 > Switching drivers only requires updating the `env.toml` file and restarting your application
 
@@ -602,225 +603,28 @@ roomChannel.listen('*', (event, data) => {
 });
 ```
 
-## Metrics Collector
+## Security and Production
+Airbend is hardened for production use. A few rules are enforced by the server so you do not have to remember them.
 
-Doppar Airbend includes a comprehensive metrics collection system that automatically tracks connection states, message flows, channel activity, performance metrics, and error rates. The `MetricsCollector` provides real-time insights into your WebSocket server's health and performance, making it easier to monitor, debug, and optimize your broadcasting infrastructure.
+### App secret
+Private and presence channel signatures and internal broadcasts are signed with `WEBSOCKET_APP_SECRET`.
 
-The metrics collector operates as a singleton instance, ensuring consistent metric tracking across your application. It integrates seamlessly with Redis for persistent storage, allowing metrics to be shared across multiple server instances in distributed deployments.
+- An empty secret is always rejected.
+- The shipped placeholder (`doppar-app-secret`) is only accepted when `APP_ENV` is `local`, `development` or `testing`. In any other environment `php pool websocket:start` refuses to start until you set a unique secret.
 
-### Available Metrics
-
-The metrics collector tracks the following categories of data:
-
-#### Connection Metrics
-- **Total Connections**: Cumulative count of all connections since server start
-- **Active Connections**: Current number of connected clients
-- **Failed Connections**: Number of connection attempts that failed
-
-#### Message Metrics
-- **Sent Messages**: Total number of messages sent to clients
-- **Received Messages**: Total number of messages received from clients
-- **Failed Messages**: Number of messages that failed to send
-
-#### Channel Metrics
-- **Subscriptions**: Total number of channel subscriptions
-- **Unsubscriptions**: Total number of channel unsubscriptions
-- **Broadcasts**: Total number of events broadcasted to channels
-
-#### Performance Metrics
-- **Memory Usage**: Tracks current and peak memory consumption (last 100 records)
-- **Response Times**: Tracks operation response times for various operations (last 100 records)
-
-#### Error Metrics
-- **Connection Errors**: Number of connection-related errors
-- **Broadcast Errors**: Number of broadcast operation failures
-- **Authentication Errors**: Number of authentication failures
-
-### Accessing Metrics
-
-You can retrieve metrics using the `MetricsCollector` class. The collector automatically tracks all relevant events throughout the WebSocket server lifecycle.
-
-#### Get All Metrics
-
-To retrieve all collected metrics:
-
-```php
-use Doppar\Airbend\Monitoring\MetricsCollector;
-
-$metrics = MetricsCollector::getMetrics();
-
-// Returns an array with:
-// - connections: ['total' => int, 'active' => int, 'failed' => int]
-// - messages: ['sent' => int, 'received' => int, 'failed' => int]
-// - channels: ['subscriptions' => int, 'unsubscriptions' => int, 'broadcasts' => int]
-// - performance: ['memory_usage' => array, 'response_times' => array]
-// - errors: ['connection_errors' => int, 'broadcast_errors' => int, 'authentication_errors' => int]
+```toml
+WEBSOCKET_APP_SECRET = "a-long-random-string"
 ```
 
-#### Get Specific Metric Category
+### Internal broadcast server (Workerman driver)
+The Workerman driver sends events from your application to the WebSocket server over an internal TCP port.
 
-To retrieve metrics for a specific category:
+- The internal server binds to `127.0.0.1` by default. Change `WEBSOCKET_INTERNAL_HOST` only when your application runs on another machine, and then firewall the port.
+- Every message is signed with the app secret and expires after 5 minutes, so an unsigned or replayed message is rejected and nothing is delivered.
+- `broadcast()` now throws when the internal server rejects or cannot receive a message. `BroadcastManager` logs it with the channel and event name.
 
-```php
-$connectionMetrics = MetricsCollector::getMetricCategory('connections');
-// Returns: ['total' => int, 'active' => int, 'failed' => int]
+### Client events (whispers)
+A client can only whisper to a private or presence channel it is subscribed to, and the event name must start with `client-`. Server events such as `doppar:member_removed` can no longer be spoofed from the browser, and any other unknown event name is rejected.
 
-$messageMetrics = MetricsCollector::getMetricCategory('messages');
-// Returns: ['sent' => int, 'received' => int, 'failed' => int]
-
-$channelMetrics = MetricsCollector::getMetricCategory('channels');
-// Returns: ['subscriptions' => int, 'unsubscriptions' => int, 'broadcasts' => int]
-```
-
-### Performance Statistics
-
-The metrics collector provides detailed performance statistics, including response time analysis and memory usage tracking.
-
-#### Get Performance Stats
-
-```php
-$performanceStats = MetricsCollector::getPerformanceStats();
-
-// Returns:
-// [
-//     'response_times' => [
-//         'count' => int,        // Number of recorded response times
-//         'avg' => float,        // Average response time in seconds
-//         'min' => float,        // Minimum response time in seconds
-//         'max' => float,        // Maximum response time in seconds
-//     ],
-//     'memory' => [
-//         'current_mb' => float,  // Current memory usage in MB
-//         'peak_mb' => float,    // Peak memory usage in MB
-//         'recent_mb' => float,  // Most recent recorded memory usage in MB
-//     ]
-// ]
-```
-
-#### Get Metrics Summary
-
-For quick overviews and logging, you can retrieve a concise summary:
-
-```php
-$summary = MetricsCollector::getSummary();
-
-// Returns:
-// [
-//     'connections' => int,              // Active connections
-//     'total_messages' => int,           // Total sent + received messages
-//     'error_rate' => float,             // Error rate percentage
-//     'avg_response_time_ms' => float,  // Average response time in milliseconds
-//     'memory_usage_mb' => float,        // Current memory usage in MB
-// ]
-```
-
-### Manual Metric Recording
-
-While the metrics collector automatically tracks most events, you can manually record custom metrics if needed:
-
-Record Connection Events
-
-```php
-// Record a successful connection
-MetricsCollector::recordConnection('connect');
-
-// Record a disconnection
-MetricsCollector::recordConnection('disconnect');
-
-// Record a failed connection attempt
-MetricsCollector::recordConnection('failed');
-```
-
-Record Message Events
-
-```php
-// Record sent messages (count defaults to 1)
-MetricsCollector::recordMessage('sent');
-MetricsCollector::recordMessage('sent', 5); // Record 5 messages
-
-// Record received messages
-MetricsCollector::recordMessage('received');
-
-// Record failed messages
-MetricsCollector::recordMessage('failed');
-```
-
-Record Channel Events
-
-```php
-// Record a subscription
-MetricsCollector::recordChannel('subscription');
-
-// Record an unsubscription
-MetricsCollector::recordChannel('unsubscription');
-
-// Record a broadcast
-MetricsCollector::recordChannel('broadcast');
-MetricsCollector::recordChannel('broadcast', 3); // Record 3 broadcasts
-```
-
-Record Errors
-
-```php
-// Record connection errors
-MetricsCollector::recordError('connection');
-
-// Record broadcast errors
-MetricsCollector::recordError('broadcast');
-
-// Record authentication errors
-MetricsCollector::recordError('authentication');
-```
-
-### Performance Timing
-
-The metrics collector can track the duration of operations for performance analysis:
-
-```php
-// Start timing an operation
-MetricsCollector::startTiming();
-
-// Perform your operation
-// ... your code here ...
-
-// End timing and record (returns elapsed time in seconds)
-$elapsed = MetricsCollector::endTiming('operation_name');
-```
-
-The timing data is automatically included in performance statistics and can be retrieved via `getPerformanceStats()`.
-
-### Memory Usage Tracking
-
-Memory usage is automatically tracked when you call `getMetrics()`, but you can also manually record memory snapshots:
-
-```php
-MetricsCollector::recordMemoryUsage();
-```
-
-This records the current memory usage, peak memory usage, and timestamp. The collector maintains the last 100 memory usage records.
-
-### Resetting Metrics
-
-To reset all collected metrics (useful for testing or periodic resets):
-
-```php
-MetricsCollector::reset();
-```
-
-This will:
-- Reset all counters to zero
-- Clear performance timing records
-- Clear memory usage history
-- Clear all Redis-stored metrics
-
-**Note**: Use this carefully in production, as it will permanently delete all historical metrics data.
-
-### Redis Integration
-
-The metrics collector automatically integrates with Redis when available, providing:
-
-- **Persistent Storage**: Metrics are stored in Redis with a 1-hour TTL, allowing metrics to persist across server restarts
-- **Distributed Metrics**: In multi-server deployments, metrics are aggregated across all instances
-- **Atomic Operations**: Counter increments are performed atomically to ensure accuracy in concurrent environments
-
-If Redis is unavailable, the metrics collector will continue to function using in-memory storage only. Metrics will be lost on server restart if Redis is not configured.
+### Limits
+Each message is limited to 64 KB, a connection can join at most 100 channels, and channel names may only contain letters, numbers and `_ - = @ , . ; :` (up to 200 characters). A malformed message gets a `doppar:error` reply and never affects other connected clients.
