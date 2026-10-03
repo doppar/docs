@@ -51,8 +51,91 @@ $result = Process::ping('ls -la')->execute();
 return $result->getError();
 ```
 
+## Writing Commands
+A command can be a string or an array of arguments.
+
+A string is split into the program and its arguments the way a shell reads quotes, but it is **never run through a shell**. Words are separated by whitespace, and quotes keep what is inside them together:
+```php
+Process::ping('git commit -m "fix the bug"')->execute();     // ['git', 'commit', '-m', 'fix the bug']
+Process::ping("printf '%s|%s' 'a b' c")->execute();           // ['printf', '%s|%s', 'a b', 'c']
+```
+
+Because there is no shell, nothing in the command is interpreted. `$HOME`, `*`, `~`, `;`, `|` and `>` are ordinary characters of an argument:
+```php
+Process::ping('echo $HOME')->execute()->getOutput();   // "$HOME\n", the variable is not expanded
+```
+
+Use an array when an argument contains spaces or characters you would rather not quote. Each element is passed to the program exactly as it is:
+```php
+Process::ping(['git', 'commit', '-m', 'fix the bug'])->execute();
+```
+
+The rules for strings are:
+- Whitespace separates arguments, and several spaces in a row do not create empty arguments.
+- Single quotes keep everything inside them as it is.
+- Double quotes keep everything as it is, except `\"` and `\\`.
+- Outside quotes, a backslash escapes a space, a quote or another backslash. Anywhere else it is a normal character, so Windows paths such as `C:\tools\php` work.
+- `""` is an empty argument.
+
+A command with a quote that is never closed throws an `InvalidArgumentException` before anything runs.
+
+> If you need pipes, redirects or variables, run the shell yourself and pass your script as one argument: `['sh', '-c', 'ls | wc -l']`. Never build that script from user input.
+
+## Inspecting the Result
+The result returned by `execute()` and `waitForCompletion()` tells you what happened:
+```php
+$result = Process::ping('ls -la')->execute();
+
+$result->getOutput();       // the standard output
+$result->getError();        // the error output
+$result->getExitCode();     // 0 on success, -1 when the process has no exit code (for example it is still running)
+$result->wasSuccessful();   // true when the exit code is 0
+$result->failed();          // true when it ran and did not succeed
+$result->timedOut();        // true when it was stopped for exceeding its timeout
+$result->getSignal();       // the signal that ended it, or null
+$result->getCommandLine();  // the command that ran
+$result->getDuration();     // how long it ran, in seconds
+$result->getExitCodes();    // [0]; for a pipeline, the exit code of each command
+```
+
+Read the output as lines or as JSON:
+```php
+$result = Process::ping('composer show --format=json')->execute();
+
+$result->json();                          // the decoded output
+$result->json('installed.0.name');        // one value, dot notation allowed
+$result->json('missing.key', 'default');  // a default when it is not there
+
+Process::ping('git status --short')->execute()->lines();   // ['M  src/a.php', '?? b.php']
+```
+
+`json()` throws a `JsonException` when the output is not valid JSON, and `lines()` returns an empty array when there is no output.
+
+## Throwing on Failure
+A failed command does not throw by default. Call `throw()` to turn a failure into an exception, so it cannot be ignored:
+```php
+Process::ping('composer install')->execute()->throw();
+```
+
+`throw()` returns the result when the command succeeded, so you can keep chaining:
+```php
+$output = Process::ping('git rev-parse HEAD')->execute()->throw()->getOutput();
+```
+
+For a single process it throws Symfony's `ProcessFailedException`, whose message contains the command, the exit code and the output. For a pipeline it throws a `RuntimeException` with the same information. `throwIf()` only throws when a condition holds:
+```php
+$result->throwIf(fn ($result) => $result->getExitCode() !== 2);   // exit code 2 is allowed
+```
+
 ## Command Injection Protection
 Doppar Orion takes command injection seriously and includes built-in safeguards to prevent dangerous or malformed command execution.
+
+Commands given to `ping`, to a pipeline's `add` and to a pool's `add` are checked. A command, or an argument of an array command, is rejected when it contains `;`, `|`, `&`, a backtick, `$(`, `${`, `<`, `>`, a line break or a NUL byte.
+
+On top of that, none of these commands are run through a shell, so even a character that is not on the list cannot start another command.
+
+> If an argument legitimately needs one of those characters, such as the PHP code in `php -r 'echo 1;'`, pass it as an array to `ProcessService::create([...])`. That entry point does not check the command, so only use it for commands you wrote yourself, never for user input.
+
 #### Example: Unsafe Command
 ```php
 use Doppar\Orion\Support\Facades\Process;
@@ -60,9 +143,7 @@ use Doppar\Orion\Support\Facades\Process;
 $result = Process::ping('rm -rf /; echo "hacked"')->execute();
 ```
 
-> [!CAUTION]
-> InvalidArgumentException <br>
-> Potential command injection detected: rm -rf /; echo "hacked"
+> InvalidArgumentException Potential command injection detected: `rm -rf /; echo "hacked"`
 
 ## Handling Process Output
 In some cases, you may wish to interact with the output of a process in real time—such as streaming logs to the browser or logging incremental output to a file. You can accomplish this by using the withOutputHandler method before executing the process.
@@ -81,7 +162,9 @@ return $result;
 ```
 The output handler will be called for every chunk of output as it becomes available, making it ideal for long-running or verbose commands.
 
-> ℹ️ The $type parameter will be either 'stdout' or 'stderr', allowing you to distinguish between normal and error output.
+> ℹ️ The $type parameter will be either `'out'` or `'err'`, allowing you to distinguish between normal and error output.
+
+The handler also works with asynchronous processes. It receives the output while the process runs, and you can give `waitForCompletion()` a handler of its own for the output that arrives while you wait.
 
 This provides you with fine-grained control over how process output is handled in real time—without having to wait for the process to finish.
 
@@ -105,7 +188,7 @@ Output has been disabled..`
 Use this option when you want performance over verbosity.
 
 ## Command Pipelines
-Doppar allows you to run multiple commands as a pipeline, passing the output of one command directly into the next—just like using pipes (|) in the terminal. To accomplish this, use the pipeline method followed by one or more add calls to define the sequence.
+Doppar allows you to run multiple commands as a pipeline, passing the output of one command into the next, as the pipe (|) does in a terminal. To accomplish this, use the pipeline method followed by one or more add calls to define the sequence.
 ```php
 use Doppar\Orion\Support\Facades\Process;
 
@@ -118,9 +201,39 @@ if ($result->wasSuccessful()) {
     // The pipeline executed successfully.
 }
 ```
-Each add method represents a step in the pipeline. The output of the previous command is passed as input to the next. This allows you to chain together complex shell behavior in a safe and structured way.
+Each add method represents a step in the pipeline. The output of the previous command is passed as input to the next. Commands are read like any other command (see [`Writing Commands`](#writing-commands)): quotes work, and there is no shell, so nothing in a command is expanded or interpreted.
 
-> ✅ Unlike raw shell piping (|), Doppar securely manages the execution of each step to prevent injection and isolate command logic.
+> ✅ Because each step is run as its own process and never through a shell, a command cannot start another one, whatever it contains.
+
+The result describes the whole pipeline:
+```php
+$result = Process::pipeline()
+    ->add('ls /var/www /nonexistent')
+    ->add('sort')
+    ->execute();
+
+$result->getOutput();      // the output of the last command
+$result->getError();       // the error output of every command, in order
+$result->getExitCode();    // 0, or the exit code of the last command that failed
+$result->getExitCodes();   // one exit code per command: [2, 0]
+$result->getCommandLine(); // 'ls /var/www /nonexistent | sort'
+$result->getDuration();    // seconds
+```
+
+A failure early in the pipeline is not hidden by a later command that succeeds: the exit code is the one of the last command that failed, like a shell with `set -o pipefail`. Call `$result->throw()` to turn a failure into an exception.
+
+Options apply to every command in the pipeline:
+```php
+Process::pipeline()
+    ->inDirectory(base_path())
+    ->withEnvironment(['LANG' => 'C'])
+    ->withTimeout(30)      // seconds for each command; no timeout by default
+    ->add('cat storage/logs/app.log')
+    ->add('grep ERROR')
+    ->execute();
+```
+
+A command that runs longer than its timeout is stopped and a `Symfony\Component\Process\Exception\ProcessTimedOutException` is thrown.
 
 You can check if the entire pipeline was successful using the wasSuccessful() method.
 
@@ -150,6 +263,25 @@ $result = $process->waitForCompletion();
 
 // Inspect result if needed
 dd($result);
+```
+
+`waitForCompletion()` enforces the timeout. If you only poll `isRunning()` in a loop, nothing stops the process when its timeout passes, so call `verifyTimeout()` in the loop (see [`Timeout Verification`](#timeout-verification)).
+
+### Stopping a Process
+An asynchronous process can be stopped or signalled while it runs:
+```php
+$process = Process::ping('bash import.sh')->asAsync();
+
+$process->getPid();            // the process id, or null once it has ended
+$process->signal(15);          // send a signal (15 is SIGTERM)
+$process->stop(10);            // ask it to end, and kill it if it is still running after 10 seconds
+```
+
+`stop()` returns the exit code. `isRunning()` and `getPid()` on a process that was never started throw a `LogicException` that says to call `execute()` or `asAsync()` first, and the same goes for the other methods that need a started process.
+
+To look at an asynchronous process without waiting for it, use `result()`. Its exit code is `-1` until the process has finished:
+```php
+$result = $process->result();
 ```
 
 ## Async Process with Output Monitoring
@@ -188,8 +320,31 @@ $process->until(function (string $type, string $output) {
 ```
 The callback receives the output type (stdout or stderr) and the latest output chunk. Returning true from the callback signals Doppar to stop waiting. The process continues running asynchronously until the condition is satisfied.
 
+## Timeouts
+A process is stopped when it runs longer than 60 seconds, and so is each process in a pool. A pipeline has no limit unless you set one. Change the limit with `withTimeout()`, which accepts whole or fractional seconds:
+```php
+Process::ping('bash import.sh')->withTimeout(300)->execute();
+Process::ping('ping-service')->withTimeout(0.5)->execute();
+```
+
+Remove the limit when a command is meant to run for as long as it needs:
+```php
+Process::ping('bash import.sh')->withoutTimeout()->execute();
+```
+`withTimeout(null)` and `withTimeout(0)` do the same.
+
+An idle timeout stops a process that produces no output for too long, however long it has been running:
+```php
+Process::ping('bash import.sh')
+    ->withTimeout(600)
+    ->withIdleTimeout(30)
+    ->execute();
+```
+
+When a timeout is exceeded, a `Symfony\Component\Process\Exception\ProcessTimedOutException` is thrown. It extends `RuntimeException`, so `catch (\Exception $e)` still catches it.
+
 ## Timeout Verification
-When running asynchronous processes, it’s important to enforce time limits to avoid runaway commands. Doppar provides the verifyTimeout() method, which you can call periodically to check if the process has exceeded its timeout and throw an exception if so.
+When running asynchronous processes, it’s important to enforce time limits to avoid runaway commands. Polling `isRunning()` does not stop a process that is over its limit, so Doppar provides the verifyTimeout() method, which you can call periodically to check if the process has exceeded its timeout, stop it, and throw an exception if so.
 ```php
 use Doppar\Orion\Support\Facades\Process;
 
@@ -216,7 +371,7 @@ try {
 #### How It Works
 - withTimeout(seconds) defines the maximum allowed execution time.
 - Calling verifyTimeout() checks if the timeout has been exceeded.
-- If the process runs longer than allowed, verifyTimeout() throws an exception which you can catch and handle gracefully.
+- If the process runs longer than allowed, verifyTimeout() stops it and throws a `ProcessTimedOutException`, which you can catch and handle gracefully.
 
 > This pattern helps ensure your app remains responsive and avoids stuck or long-running processes.
 
@@ -267,7 +422,7 @@ use Doppar\Orion\Support\Facades\Process;
 
 $pool = Process::pool()
     ->withConcurrency(3) // Run up to 3 processes simultaneously
-    ->inDirectory(_DIR__)
+    ->inDirectory(__DIR__)
     ->withOutputHandler(function ($result) {
         echo "Process completed with exit code: " . $result->getExitCode() . "\n";
     });
@@ -283,9 +438,29 @@ dd($results);
 ```
 #### Key Features
 - `withConcurrency(int)` controls how many processes run at once.
-- `withOutputHandler(callable)` receives the result of each completed process.
-- `add(string)` queues commands to run in the pool.
+- `withOutputHandler(callable)` receives the result of each process once, as it finishes.
+- `withTimeout(seconds)` limits how long each process may run.
+- `withEnvironment(array)` and `inDirectory(string)` apply to every process. The working directory is optional.
+- `add(string|array)` queues commands to run in the pool.
 - `start()` begins processing all queued commands.
-- `waitForAll()` blocks until all commands finish and returns their results.
+- `waitForAll()` blocks until all commands finish and returns their results, keyed by the order they were added.
 
 This approach is ideal for batch jobs that benefit from parallelism but require resource control and real-time feedback.
+
+#### Timeouts in a Pool
+Each process in a pool may run for 60 seconds by default. A process that exceeds its timeout is stopped, its result reports `timedOut()` and `failed()`, and the output handler is called for it like for any other. The other processes carry on, and the slot it used is given to the next command, so one hung command cannot hold up the pool.
+```php
+$results = Process::pool()
+    ->withTimeout(30)
+    ->add('bash import-1.sh')
+    ->add('bash import-2.sh')
+    ->waitForAll();
+
+foreach ($results as $result) {
+    if ($result->timedOut()) {
+        // this command took longer than 30 seconds and was stopped
+    }
+}
+```
+
+Every result also knows how long its command ran: `$result->getDuration()`.
