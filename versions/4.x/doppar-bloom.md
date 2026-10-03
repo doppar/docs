@@ -81,6 +81,24 @@ foreach ($emails as $email) {
 Bloom::key("email")->add('nure@doppar.com');
 ```
 
+### Adding Many Items
+`addMany()` sends all the items in as few Redis round trips as possible, which is much faster than calling `add()` in a loop. Every item is validated first, so an invalid item rejects the whole batch before anything is written.
+```php
+Bloom::key('email')->addMany(['a@doppar.com', 'b@doppar.com', 'c@doppar.com']);
+```
+
+### Add and Check in One Step
+`add()` and `addMany()` return whether the item was **probably already present**, so you can add and check without a separate `has()` call.
+```php
+if (Bloom::key('email')->add($email)) {
+    // probably seen before
+} else {
+    // definitely new
+}
+
+$seen = Bloom::key('email')->addMany($emails); // [false, true, false, ...] in input order
+```
+
 ## Checking Membership
 After adding items, you can check whether an item is in the filter using `has()`. This operation is very fast, but remember: it may return true for items not actually added (false positives), but it will never return false for items that were added.
 
@@ -94,6 +112,12 @@ if(Bloom::key("email")->has('aliba@doppar.com')){
 if(Bloom::key("email")->has('not_in_list@test.com')){
    // false → this email was never added
 }
+```
+
+### Checking Many Items
+```php
+$results = Bloom::key('email')->hasMany(['aliba@doppar.com', 'not_in_list@test.com']);
+// [true, false] in input order
 ```
 
 ## Clearing Data
@@ -126,3 +150,55 @@ dd(Bloom::key('email')->has('random@other.com'));
 ```
 
 > 💡 The probability of false positives increases as the filter gets more “full.” You can control this trade-off by adjusting filter size and number of hash functions in configuration.
+
+## Sizing a Filter
+`Bloom::optimalConfig()` calculates the `size` and `num_hashes` for the number of items you expect and the false positive rate you accept, ready to paste into a key's configuration.
+```php
+Bloom::optimalConfig(1_000_000, 0.01);
+// ['size' => 9585059, 'num_hashes' => 7]
+```
+
+## Filter Statistics
+`stats()` shows how full a filter is, so you can resize it before the false positive rate grows.
+```php
+Bloom::key('email')->stats();
+// [
+//     'size' => 9585059,
+//     'num_hashes' => 7,
+//     'bits_set' => 4120331,
+//     'fill_ratio' => 0.43,
+//     'estimated_items' => 650000,
+//     'estimated_false_positive_rate' => 0.0033,
+// ]
+```
+
+> 💡 The estimates assume `indexing => 'v2'`. Counting the bits scans the whole filter on the Redis server, so use `stats()` for monitoring, not on every request.
+
+## Key Configuration
+A key in `runtime/config/bloom.php` only needs the settings that differ from `default`:
+```php
+'keys' => [
+    'user_emails' => [
+        'size' => 9585059,
+        'num_hashes' => 7,
+        'indexing' => 'v2',
+        'prefix' => 'bloom:',
+    ],
+],
+```
+
+### Indexing
+`indexing` controls how a hash becomes a bit position.
+
+| Value | Meaning |
+| ----- | ------- |
+| `legacy` (default) | The original calculation. It keeps filters that already hold data working, but with an even `size` about 75% of the bits are used by half of the hashes, so the false positive rate is roughly **double** what `size` and `num_hashes` predict. |
+| `v2` | Uniform positions. The false positive rate matches the formula. |
+
+Use `v2` for every new filter. **Never switch a filter that already holds data**: its items would be looked up at different bits and `has()` would return `false` for items that were added. Call `clear()` and add the items again.
+
+### Key Prefix
+`prefix` is prepended to the Redis key of the filter, for example `bloom:`. Without a prefix, a filter named `users` shares its Redis key with anything else called `users`, and `clear()` would delete it. Changing the prefix later points the filter at a different, empty key.
+
+## Redis Connection
+Doppar Bloom stores its bits in the Redis connection of the default cache store, so the default cache driver must be `redis` with the phpredis extension installed. Any other cache driver throws a `BloomPersistenceException` that explains this.
