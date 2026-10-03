@@ -52,6 +52,23 @@ For example:
 - `throttle:5,1 – 5` requests per minute
 - `throttle:100,60 – 100` requests per hour
 
+## How Limits Are Counted
+Every client has its own counter. Doppar identifies a client by the authenticated user when there is one, and by the IP address otherwise.
+
+The limit itself is part of the counter, so routes with different limits do not affect each other:
+```php
+Route::post('login', [LoginController::class, 'login'])->middleware(['throttle:5,1']);
+Route::get('api/posts', [PostController::class, 'index'])->middleware(['throttle:100,1']);
+```
+
+Here a client can call `api/posts` 100 times a minute without using up any of the 5 login attempts. Routes that use exactly the same limit, such as several routes with `throttle:60,1`, share one counter for each client.
+
+The limit is checked before your controller runs. A request that is over the limit is answered with `429 Too Many Requests` and never reaches your code, so a throttled login attempt is not evaluated and a throttled form does not write to the database.
+
+The window starts with the first request and ends after the number of minutes you set. The reset time does not move while the window is open, and once it ends the client starts again with a full allowance.
+
+> **Note:** Counters are stored in your cache, so they live in the store that is your default cache driver. With the `array` driver they only last for the current request, so use `file` or `redis` where limits must hold across requests.
+
 ## Throttle Attribute
 Doppar provides a modern, type-safe `#[Throttle]` attribute for applying rate limits directly to controller methods. This approach offers better IDE support, autocomplete, and a cleaner syntax compared to middleware or route parameters.
 
@@ -137,7 +154,7 @@ throttle()->hit($key, 600);
 The above example will do `3` attempts per `10` minutes. The throttle key should uniquely identify the action you want to limit.
 
 ## Response Headers
-When a rate limit is enforced, Doppar automatically includes helpful headers in the response:
+When a rate limit is enforced, Doppar automatically includes helpful headers in the response. `X-RateLimit-Reset` is the time the current window ends, and it stays the same for every request in that window:
 ```php
 X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 45
