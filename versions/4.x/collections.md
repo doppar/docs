@@ -67,7 +67,7 @@ $products = collect([
 $allProducts = $products->all();
 ```
 
-#### Output
+Output
 ```json
 [
     {
@@ -96,7 +96,7 @@ $tasks = collect([
 $firstTask = $tasks->first();
 ```
 
-#### Output
+Output
 ```json
 {
     "id": 1,
@@ -105,6 +105,25 @@ $firstTask = $tasks->first();
 ```
 
 If the collection is empty, `first()` will safely return `null`:
+
+You can pass a callback to get the first item that passes a test, and a default for when nothing does. The callback receives the item and its key:
+```php
+$numbers = collect([1, 2, 3, 4]);
+
+$numbers->first(fn($n) => $n > 2);                  // 3
+$numbers->first(fn($n) => $n > 9, 'none');          // 'none'
+$numbers->first(fn($n) => $n > 9, fn() => 'lazy');  // 'lazy' (a Closure default is called)
+```
+
+### `last()`
+The `last()` method works the same way from the other end. Without arguments it returns the last item, or `null` for an empty collection:
+```php
+$numbers = collect([1, 2, 3, 4]);
+
+$numbers->last();                          // 4
+$numbers->last(fn($n) => $n < 4);          // 3
+$numbers->last(fn($n) => $n > 9, 'none');  // 'none'
+```
 
 ### `pluck()`
 The `pluck()` method retrieves all values for a given key from the collection items. It is very useful when you need a simple array of values from a specific field across all items.
@@ -138,6 +157,19 @@ print_r($namesById);
 
 Internally, pluck() iterates over each item, retrieving the value for the given key (and optionally using another key as the resulting array’s keys), making it concise and readable.
 
+Use dot notation to reach into nested arrays and objects:
+```php
+$orders = collect([
+    ['id' => 1, 'customer' => ['name' => 'Alice', 'address' => ['city' => 'Paris']]],
+    ['id' => 2, 'customer' => ['name' => 'Bob', 'address' => ['city' => 'Oslo']]],
+]);
+
+$orders->pluck('customer.name');                // ['Alice', 'Bob']
+$orders->pluck('customer.address.city', 'id');  // [1 => 'Paris', 2 => 'Oslo']
+```
+
+A path that does not exist gives `null`. Dot notation works the same on objects, models and `ArrayAccess` values, and it is available wherever a method takes a key: `sortBy()`, `groupBy()`, `keyBy()`, `unique()`, `duplicates()`, `sum()`, `min()`, `max()`, `firstWhere()` and the `where*` methods. A key that really contains a dot, such as `'a.b'`, is tried as it is first.
+
 ### `groupBy()`
 The `groupBy()` method groups the collection’s items by the value of a specified key.
 
@@ -154,7 +186,7 @@ $users = collect([
 $grouped = $users->groupBy('role');
 ```
 
-#### Output
+Output
 ```json
 {
 "admin":
@@ -205,6 +237,35 @@ The `sortByDesc()` method sorts the collection in descending order by the given 
 $sorted = $users->sortByDesc('age');
 ```
 This method behaves exactly like `sortBy()`, but reverses the order.
+
+Sort by a nested value with dot notation:
+```php
+$sorted = $users->sortBy('profile.city');
+```
+
+To sort by several keys, pass an array. Items that tie on the first key are ordered by the next one:
+```php
+$users = collect([
+    ['name' => 'Charlie', 'age' => 30],
+    ['name' => 'Alice', 'age' => 25],
+    ['name' => 'Bob', 'age' => 28],
+    ['name' => 'Dana', 'age' => 30],
+]);
+
+$users->sortBy(['age', 'name']);
+// Alice (25), Bob (28), Charlie (30), Dana (30)
+```
+
+Give each key its own direction as a `[key, direction]` pair, written `'asc'` or `'desc'`:
+```php
+$users->sortBy([['age', 'desc'], ['name', 'asc']]);
+// Charlie (30), Dana (30), Bob (28), Alice (25)
+```
+
+The list may also contain callbacks. The sort is stable, so items that tie on every key keep their original order. The sort flags work as well, for example a case-insensitive text sort:
+```php
+$users->sortBy(['name'], SORT_STRING | SORT_FLAG_CASE);
+```
 
 ### `chunk()`
 The `chunk()` method breaks the collection into multiple smaller collections of a given size. It returns a new collection, where each item is an array representing a chunk.
@@ -360,7 +421,7 @@ $uppercased = $users->map(fn($user) => [
 return $uppercased;
 ```
 
-#### Output
+Output
 ```json
 [
     {
@@ -391,8 +452,32 @@ $names = $users->map->name;
 
 This makes data transformation in Doppar collections both expressive and concise.
 
+### Higher-Order Access
+The same shortcut works for many other methods. Read a property, or call a method on each item, without writing a closure:
+```php
+$users->filter->isActive();    // keep the users for whom isActive() is true
+$users->filter->active;        // keep the users whose active property is truthy
+$users->reject->active;        // the opposite
+$users->sum->points;           // total of the points property
+$users->max->age;
+$users->sortBy->age;
+$users->groupBy->country;
+$users->each->save();          // call save() on every item that has it
+```
+
+They chain like any other call:
+```php
+$names = $users->filter->isActive()->map->name;
+```
+
+This is available for `map`, `each`, `filter`, `reject`, `sum`, `avg`, `min`, `max`, `sortBy`, `sortByDesc`, `groupBy`, `keyBy`, `unique`, `every`, `some` and `flatMap`.
+
+> **Note:** If the collection has a key with the same name as one of these methods (other than `map` and `each`), `$collection->filter` returns that value instead of the shortcut.
+
 ## Advanced Grouping & Keying
 When working with collections, organizing data efficiently is key to writing clean, maintainable code. Doppar Collections provide powerful methods like `groupBy()` and `keyBy()` (underlying implementations: `mapAsGroup()` and `mapAsKey()`) that allow you to categorize, transform, and index your data in flexible ways.
+
+> **Note:** A string you pass to `groupBy()`, `keyBy()`, `sortBy()` and the other key-based methods is always the name of a key, even when it is also the name of a PHP function such as `date` or `count`. To compute the key yourself, pass a closure.
 
 With these methods, you can:
 - Group items by a property, computed value, or custom logic.
@@ -672,7 +757,7 @@ $users = collect([
 return $users->filter(fn($user) => $user['active']);
 ```
 
-##### Output
+Output
 ```json
 [
     {
@@ -686,6 +771,21 @@ return $users->filter(fn($user) => $user['active']);
         "active": true
     }
 ]
+```
+
+Without a callback, `filter()` removes every "falsy" item (`null`, `false`, `0`, `''` and `[]`):
+```php
+collect([0, 1, null, 'a', false, '', []])->filter();
+
+// [1, 'a']
+```
+
+### `reject()`
+The `reject()` method is the opposite of `filter()`. It keeps the items for which the callback returns `false`:
+```php
+collect([1, 2, 3, 4])->reject(fn($n) => $n % 2 === 0);
+
+// [1, 3]
 ```
 
 ## `each()`
@@ -704,14 +804,14 @@ $users->each(function ($user, $index) {
 });
 ```
 
-##### Output
+Output
 ```php
 User #0: Alice
 User #1: Bob
 User #2: Charlie
 ```
 
-#### With early termination:
+With early termination:
 ```php
 $users->each(function ($user) {
     echo $user['name'] . PHP_EOL;
@@ -767,7 +867,7 @@ $fruits->push('Cherry');
 return $fruits->all();
 ```
 
-##### Output
+Output
 ```php
 [
     "Apple",
@@ -827,12 +927,20 @@ return $uniqueUsers->all();
 ```
 Internally, this method builds a set of serialized values (optionally using strict comparison) to track which items have already been included. This makes it flexible and robust when dealing with arrays, objects, and mixed types.
 
+The key may use dot notation, as in `unique('profile.city')`.
+
+By default the comparison is loose, so `'1'`, `1` and `true` count as the same value. Different numbers always stay different, including decimals such as `1.5` and `1.2`. Pass `true` as the second argument to compare strictly:
+```php
+collect([1, '1', 1.5, 1.2])->unique();         // [1, 1.5, 1.2]
+collect([1, '1'])->unique(null, true);         // [1, '1']
+```
+
 
 ## `flatten()`
 The `flatten()` method reduces a multi-dimensional collection into a single-level array. It recursively merges nested arrays or collections into one flat structure.
 
 You can optionally specify the `$depth` to control how deep the flattening should go. By default, it flattens all levels.
-##### Example – Fully flatten:
+Example – Fully flatten:
 ```php
 $nested = collect([
     [1, 2],
@@ -859,7 +967,7 @@ $flat = $limited->flatten(1);
 print_r($flat->all());
 ```
 
-##### Output
+Output
 ```php
 Array
 (
@@ -878,7 +986,7 @@ Array
 ## `pluck()` with `flatten()` and `unique()`
 The combination of `pluck()`, `flatten()`, and `unique()` allows you to efficiently extract and deduplicate deeply nested data structures within a collection. This is particularly useful when working with `Entity relationships` or nested arrays, such as retrieving a list of unique post titles from a collection of users, each having multiple posts.
 
-##### Example
+Example
 ```php
 User::query()
     ->pluck('posts')  // Extract the 'posts' array from each user
@@ -893,17 +1001,145 @@ Users → [Posts, Posts, Posts] → Flatten → [Post1, Post2, Post3...] → Uni
 ```
 This technique showcases the power and expressiveness of Doppar collections when working with nested and relational data.
 
+## Searching, Slicing and Conditions
+The following methods cover everyday tasks that would otherwise need a closure or a loop.
+
+### `firstWhere()`
+The `firstWhere()` method returns the first item whose value for a key matches. With one argument it checks that the value is truthy, with two it checks equality, and with three it compares with an operator (`=`, `==`, `===`, `!=`, `<>`, `!==`, `<`, `>`, `<=`, `>=`):
+```php
+$users = collect([
+    ['name' => 'Alice', 'age' => 30, 'active' => true],
+    ['name' => 'Bob', 'age' => 25, 'active' => false],
+]);
+
+$users->firstWhere('active');          // Alice
+$users->firstWhere('age', 25);         // Bob
+$users->firstWhere('age', '>=', 30);   // Alice
+$users->firstWhere('age', 99);         // null
+```
+
+### `whereIn()`, `whereNotIn()`, `whereNull()` and `whereNotNull()`
+Filter by the value of a key:
+```php
+$users->whereIn('age', [25, 30]);
+$users->whereNotIn('name', ['Bob']);
+$users->whereNotNull('email');
+$users->whereNull('deleted_at');
+```
+
+`whereIn()` and `whereNotIn()` compare loosely. Pass `true` as the third argument to compare strictly.
+
+### `every()` and `some()`
+`every()` is true when all items pass the test, and `some()` is true when at least one does:
+```php
+$ages = collect([18, 25, 40]);
+
+$ages->every(fn($age) => $age >= 18);   // true
+$ages->some(fn($age) => $age > 30);     // true
+```
+
+`every()` returns `true` for an empty collection and `some()` returns `false`.
+
+### `search()`
+The `search()` method returns the key of a value, or of the first item that passes a test, and `false` when there is none:
+```php
+$fruits = collect(['a' => 'apple', 'b' => 'banana']);
+
+$fruits->search('banana');                          // 'b'
+$fruits->search(fn($fruit) => str_starts_with($fruit, 'a'));  // 'a'
+$fruits->search('cherry');                          // false
+```
+
+Pass `true` as the second argument for a strict comparison. A string is always searched for as a value, never called as a function.
+
+### `skip()` and `slice()`
+```php
+$numbers = collect([1, 2, 3, 4, 5]);
+
+$numbers->skip(2);        // [3, 4, 5]
+$numbers->slice(1, 2);    // [2, 3]
+$numbers->slice(-2);      // [4, 5]
+```
+
+### `reverse()`, `keys()`, `only()` and `except()`
+```php
+collect([1, 2, 3])->reverse();                       // [3, 2, 1]
+collect(['a' => 1, 'b' => 2])->keys();               // ['a', 'b']
+collect(['a' => 1, 'b' => 2, 'c' => 3])->only(['a', 'c']);   // ['a' => 1, 'c' => 3]
+collect(['a' => 1, 'b' => 2, 'c' => 3])->except(['a']);      // ['b' => 2, 'c' => 3]
+```
+
+### `merge()` and `concat()`
+`merge()` combines the collection with other collections, arrays or iterators into a new one. Numeric keys are renumbered, and a string key from a later one replaces an earlier one. `concat()` always adds the values at the end:
+```php
+collect([1, 2])->merge([3], collect([4]));      // [1, 2, 3, 4]
+collect(['a' => 1])->merge(['a' => 2]);         // ['a' => 2]
+collect([1, 2])->concat([3, 4]);                // [1, 2, 3, 4]
+```
+
+### Adding Items
+Append with `push()`, `add()` or the array syntax:
+```php
+$items = collect([1]);
+
+$items->push(2);
+$items->add(3);
+$items[] = 4;
+
+// [1, 2, 3, 4]
+```
+
+### `collapse()` and `flatMap()`
+`collapse()` joins an array of arrays (or collections) into a single level. `flatMap()` maps every item and collapses the result:
+```php
+collect([[1, 2], [3], [4]])->collapse();                    // [1, 2, 3, 4]
+collect(['ab', 'c'])->flatMap(fn($text) => str_split($text));  // ['a', 'b', 'c']
+```
+
+### `countBy()`
+The `countBy()` method counts how often each value occurs and returns an array. Without an argument it counts the items themselves; pass a key or a callback to count something else:
+```php
+collect(['a', 'b', 'a'])->countBy();                          // ['a' => 2, 'b' => 1]
+$users->countBy('age');                                       // [30 => 1, 25 => 1]
+collect([1, 2, 3])->countBy(fn($n) => $n % 2 ? 'odd' : 'even');  // ['odd' => 2, 'even' => 1]
+```
+
+### `implode()`
+Join the items into a string, or one key of each item:
+```php
+collect([1, 2, 3])->implode(', ');      // '1, 2, 3'
+$users->implode(', ', 'name');          // 'Alice, Bob'
+```
+
+### `median()`
+The `median()` method returns the middle value, ignoring `null` values, or `null` when there are none. Pass a key to take the values from each item:
+```php
+collect([5, 1, 3])->median();      // 3
+collect([1, 2, 3, 4])->median();   // 2.5
+$users->median('age');
+```
+
+### `when()` and `unless()`
+Run a callback only when a condition holds, so a chain does not have to be broken with an `if`:
+```php
+$users = collect($rows)
+    ->when($request->has('active'), fn($users) => $users->filter->active)
+    ->unless($request->has('all'), fn($users) => $users->take(10));
+```
+
+The condition can be a closure, which receives the collection. A third argument runs when the condition is not met. If the callback returns nothing, the collection itself is passed on.
+
 ## `withMemoryUsage()`
 The `withMemoryUsage()` method provides insight into PHP memory usage at the time the method is called. It helps with profiling, debugging, and performance monitoring, especially during collection-heavy operations.
 
 You can choose to return the memory usage as a formatted string (default) or as a detailed array of metrics.
 
-##### Example – Default (string output):
+Example – Default (string output):
 ```php
 $collection = collect(range(1, 10000));
 
 echo $collection->withMemoryUsage();
 ```
 
-##### Output:
+Output:
 > Memory usage: 1.5 MB, Peak: 2 MB

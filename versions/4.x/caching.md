@@ -31,6 +31,45 @@ CACHE_DRIVER = "redis"
 CACHE_PREFIX = "myapp_"
 ```
 
+### Store Options
+
+Each entry in `stores` accepts a few options besides `driver`:
+
+| Option    | Applies To | Description                                                  |
+|-----------|------------|--------------------------------------------------------------|
+| `ttl`     | any store  | Seconds an item lives when you do not pass a TTL. Omit it for no expiry |
+| `prefix`  | any store  | Key prefix for this store, instead of the global `prefix`    |
+| `options` | `redis`    | `options.parameters.password` and `options.parameters.database` |
+
+```php
+'stores' => [
+    'redis' => [
+        'driver' => 'redis',
+        'connection' => env('REDIS_URL', 'redis://127.0.0.1:6379'),
+        'options' => [
+            'parameters' => [
+                'password' => env('REDIS_PASSWORD', null),
+                'database' => env('REDIS_DB', 0),
+            ],
+        ],
+        'ttl' => 3600,
+    ],
+],
+```
+
+A password or database written in the `connection` URL
+(`redis://:secret@host:6379/2`) takes precedence over
+`options.parameters`.
+
+The default `ttl` applies to `set()`, `setMultiple()`, `add()` and
+`stash()` when you do not pass one. It never applies to `forever()` or
+`stashForever()`, which stay cached until you remove them.
+
+> **Note:** The prefix is also the cache's namespace in the backend, so
+> Doppar replaces any character other than letters, digits, `-`, `+`,
+> `_` and `.` with `_`. An empty prefix is replaced with `doppar_cache_`,
+> so clearing the cache can never remove keys that do not belong to it.
+
 ## Supported Drivers
 
 Doppar ships with four first-class cache backends out of the box:
@@ -55,6 +94,14 @@ php pool cache:clear
 
 This is useful during deployments, after configuration changes, or
 whenever stale cached data should be discarded.
+
+To clear only one store from your `caching.stores` config, pass `--store`.
+This leaves the files in `storage/framework/cache` alone:
+```bash
+php pool cache:clear --store=redis
+```
+
+An unknown store name stops with `Cache store [name] is not defined.`
 
 ## Basic Operations
 
@@ -122,8 +169,9 @@ Cache::set('username', 'Alice', 60);
 The third argument is the TTL in seconds. You may also pass a
 `\DateInterval` instance.
 
-If you omit the TTL, the active adapter's default lifetime is used.
-For truly indefinite storage, use `forever()`.
+If you omit the TTL, the store's `ttl` option is used, or the item does
+not expire when the store has none. For truly indefinite storage, use
+`forever()`.
 
 ### Retrieving an Item
 
@@ -154,6 +202,13 @@ if (Cache::has('username')) {
 }
 ```
 
+`missing()` is the opposite check:
+```php
+if (Cache::missing('username')) {
+    // Key does not exist or has expired
+}
+```
+
 ### Deleting an Item
 
 Delete a cached value when you need to invalidate a single key
@@ -168,6 +223,21 @@ present:
 ```php
 Cache::forget('username');
 ```
+
+### Retrieve and Delete
+
+Use `pull()` to read a value and remove it in one step, for example for
+one-time tokens:
+```php
+$token = Cache::pull('email.verify.' . $user->id);
+```
+
+With a default
+```php
+$token = Cache::pull('email.verify.' . $user->id, 'expired');
+```
+
+If the key is missing, the default is returned and nothing is deleted.
 
 ## Working with Multiple Items
 
@@ -283,12 +353,20 @@ Cache::forever('feature_flags', $flags);
 ```
 
 The value remains until you explicitly delete it or clear the cache
-namespace.
+namespace. This holds even when the store has a default `ttl`, such as
+the `3600` of the Redis store above.
 
 ## Stash Helpers
 
 The `stash` family wraps the common pattern of "get the cached value or
 compute and store it on a miss".
+
+The cached value is read once, so it cannot expire between a check and
+a read. When several requests miss the same key at the same time, the
+built-in drivers run the callback once and the others wait for its
+result, which protects a slow query from a stampede. This lock works per
+server. A callback that throws caches nothing, and a callback that
+returns `null` or `false` caches that value.
 
 ### `stash()` — Cache with TTL
 
@@ -349,6 +427,83 @@ $results = Cache::stashWhen(
 
 When `condition` is `false`, the callback still runs, but nothing is
 written to cache.
+
+## Using Multiple Stores
+
+Every store in `caching.stores` is available, not only the default one.
+Ask for it by name with `store()`:
+```php
+Cache::store('redis')->set('report', $report, 600);
+
+$report = Cache::store('redis')->get('report');
+```
+
+`store()` without a name returns the default store, and every store
+keeps its own `ttl` and `prefix`:
+```php
+Cache::store('file')->forever('settings', $settings);
+Cache::store('array')->set('request.scratch', $value);
+```
+
+Asking for a store that is not configured throws
+`Cache store [name] is not defined.`
+
+## Cache Tags
+
+Tags group cache items so that you can remove a whole group at once,
+without knowing every key in it. Call `tags()` with one tag or a list
+and use the result like the cache:
+```php
+Cache::tags(['users', 'reports'])->set('report.monthly', $report, 600);
+
+Cache::tags('users')->set('user.1', $user);
+
+$user = Cache::tags('users')->get('user.1');
+```
+
+Remove everything that carries a tag with `flush()`:
+```php
+Cache::tags('users')->flush();
+```
+
+`flush()` removes every item that has *any* of the tags you pass. In the
+example above, `report.monthly` is removed too, because it also carries
+the `users` tag. Items that carry none of those tags are not touched.
+
+The tagged cache offers these methods:
+
+| Method                                | Description                                    |
+|---------------------------------------|------------------------------------------------|
+| `set(key, value, ttl?)`               | Store an item with the tags                    |
+| `forever(key, value)`                 | Store an item with no expiry                   |
+| `get(key, default?)`                  | Retrieve an item                               |
+| `has(key)`                            | Check whether an item exists                   |
+| `pull(key, default?)`                 | Retrieve and remove an item                    |
+| `delete(key)` / `forget(key)`         | Remove one item                                |
+| `stash(key, ttl, callback)`           | Get, or compute and cache with the tags        |
+| `stashForever(key, callback)`         | Get, or compute and cache until flushed        |
+| `flush()`                             | Remove every item with any of the tags         |
+
+Caching a query and invalidating it when the data changes:
+```php
+$users = Cache::tags('users')->stash('users.active', 600, fn() => User::where('active', true)->get());
+
+// later, when a user changes
+Cache::tags('users')->flush();
+```
+
+A few things to know:
+
+- Tagged items are kept apart from plain ones. Read them back through
+  `tags()`, not through `Cache::get()`. A plain `Cache::set('key')` and a
+  tagged `key` are two different items.
+- Tags group items for flushing, they do not scope keys. Writing the same
+  key under two different tags replaces the item, so give keys distinct
+  names such as `user.1` and `post.1`.
+- `Cache::clear()` removes tagged items as well.
+- Tags work with the `file`, `redis`, `array` and `apc` drivers, and with
+  custom drivers whose adapters support namespaces. Otherwise `tags()`
+  throws `This cache store does not support tags.`
 
 ## Atomic Locks
 
@@ -502,6 +657,13 @@ throttling middleware built on the same limiter service.
 The `ThrottleRequests` middleware uses this limiter internally and adds
 `X-RateLimit-*` headers to the response.
 
+The limit is checked before your controller runs, so a request that is
+over the limit never reaches it. Each client (the user, or the IP address
+for guests) has a separate counter for each limit: `throttle:5,1` and
+`throttle:100,1` do not use each other's allowance, while two routes with
+the same `throttle:60,1` share one. See
+[`rate limiting`](rate-limiting) for the details.
+
 ## Inspecting the Active Adapter
 
 To confirm which cache adapter is currently active:
@@ -519,8 +681,9 @@ Symfony\Component\Cache\Adapter\RedisAdapter {#...}
 ## Notes on Clear Behavior
 
 `Cache::clear()` clears the keys owned by the current cache
-prefix/namespace. It does not flush every key from a shared Redis
-database or shared filesystem cache root.
+prefix/namespace, including tagged items. It does not flush every key
+from a shared Redis database or shared filesystem cache root, and it
+cannot, because the prefix is never empty.
 
 ## Custom Cache Drivers
 
@@ -588,6 +751,10 @@ facade.
 | `decrement(key, value?)`                    | `int\|false`         | Decrement a numeric value; preserves TTL                |
 | `add(key, value, ttl?)`                     | `bool`               | Store only if key does not already exist                |
 | `forever(key, value)`                       | `bool`               | Store without expiration                                |
+| `pull(key, default?)`                       | `mixed`              | Retrieve a value and remove it                          |
+| `missing(key)`                              | `bool`               | Check whether a key is absent                           |
+| `store(name?)`                              | `CacheStore`         | Use another store from `caching.stores`                 |
+| `tags(names)`                               | `TaggedCache`        | Get a cache whose items carry tags                      |
 | `stash(key, ttl, callback)`                 | `mixed`              | Get or compute-and-cache with TTL                       |
 | `stashForever(key, callback)`               | `mixed`              | Get or compute-and-cache indefinitely                   |
 | `stashWhen(key, callback, condition, ttl?)` | `mixed`              | Conditionally get or compute-and-cache                  |

@@ -80,6 +80,8 @@ Doppar discovers all commands in `app/Schedule/Commands` automatically at boot t
 ## Auto-Registration
 There is no manual registration step in Doppar. When Pool boots, it scans `app/Schedule/Commands`, resolves every command class through the service container, and makes them available to the CLI. This means you can create a command file and run it right away without touching any configuration file.
 
+Only concrete command classes are registered. Helper classes, traits, interfaces and abstract base classes that live in the same directory are ignored, so you can keep shared code next to your commands. If a command cannot be built, for example because its constructor throws, Pool skips that one command, prints `Skipped command [App\Schedule\Commands\YourCommand]: reason` and keeps every other command working.
+
 ## Command Arguments
 Arguments are positional values the user passes after the command name. You declare them inside `$name` using curly braces.
 
@@ -106,6 +108,38 @@ php pool mail:send pending
 # Without argument (status will be null)
 php pool mail:send
 ```
+
+### Argument with a Default Value
+Place a default after `=` to make the argument optional and give it a value when it is omitted:
+```php
+protected $name = 'mail:send {status=pending}';
+```
+```bash
+# $this->argument('status') returns "pending"
+php pool mail:send
+
+# $this->argument('status') returns "failed"
+php pool mail:send failed
+```
+
+### Array Arguments
+Add `*` after the argument name to accept several values. The argument is then returned as an array:
+```php
+protected $name = 'mail:attach {files*}';
+```
+```bash
+php pool mail:attach report.pdf invoice.pdf
+```
+```php
+$files = $this->argument('files'); // ["report.pdf", "invoice.pdf"]
+```
+
+With `*` at least one value is required. Use `?*` to make it optional, in which case an empty array is returned when no value is passed:
+```php
+protected $name = 'mail:attach {files?*}';
+```
+
+> **Note:** An array argument must be the last argument, and an argument that is required cannot follow an optional one. An array argument cannot have a default value.
 
 ## Command Options
 Options are named flags prefixed with `--`. Unlike arguments, options can appear in any order and are always optional unless your logic enforces them.
@@ -144,6 +178,49 @@ protected $name = 'mail:send {status} {--limit=100}';
 ```
 If the user does not pass `--limit`, `$this->option('limit')` returns `"100"`.
 
+### Option Shortcuts
+Give an option a one-letter shortcut by writing it before the name, as `-x|--name`:
+```php
+protected $name = 'mail:send {status} {-F|--force} {-l|--limit=100}';
+```
+```bash
+php pool mail:send pending -F -l 25
+```
+
+### Array Options
+Add `=*` to make an option repeatable. Each use of the option adds one value:
+```php
+protected $name = 'mail:send {status} {--tag=*}';
+```
+```bash
+php pool mail:send pending --tag=newsletter --tag=urgent
+```
+```php
+$tags = $this->option('tag'); // ["newsletter", "urgent"]
+```
+
+When the option is not passed, an empty array is returned.
+
+### Negatable Options
+Add `!` after the option name to accept both the option and its opposite. For `{--cache!}` the user can pass `--cache` or `--no-cache`:
+```php
+protected $name = 'mail:send {status} {--cache!}';
+```
+```bash
+php pool mail:send pending --cache      # $this->option('cache') returns true
+php pool mail:send pending --no-cache   # $this->option('cache') returns false
+php pool mail:send pending              # $this->option('cache') returns null
+```
+
+Because the option is `null` when neither is passed, you can tell "not specified" apart from an explicit choice. To give it a default instead, add `=true` or `=false`:
+```php
+protected $name = 'mail:send {status} {--cache!=true}';
+```
+```bash
+php pool mail:send pending              # $this->option('cache') returns true
+php pool mail:send pending --no-cache   # $this->option('cache') returns false
+```
+
 ### Combining Arguments and Options
 You can mix multiple arguments and options freely:
 ```php
@@ -152,6 +229,22 @@ protected $name = 'mail:send {status} {--limit=100} {--force}';
 ```bash
 php pool mail:send pending --limit=25 --force
 ```
+
+Every kind of input can be used in one signature:
+```php
+protected $name = 'deploy
+                  {env=staging : The environment to deploy to}
+                  {services?* : Limit the deploy to these services}
+                  {--tag=* : Labels to attach to the release}
+                  {--cache!=true : Warm the cache after deploying}
+                  {-F|--force : Skip the confirmation}';
+```
+```bash
+php pool deploy production api web --tag=v2 --no-cache -F
+```
+
+### Invalid Definitions
+A definition that Pool cannot understand throws an error when the command is loaded, instead of being ignored. The message names the command class and the definition, for example `Invalid definition "{--bad option}" in the signature of [App\Schedule\Commands\MailSend]`.
 
 ## Command Input Descriptions
 Attach a human-readable description to any argument or option by appending `:` followed by the description text. Doppar displays these descriptions in the command's `--help` output. For long signatures, break across lines for readability.
@@ -290,6 +383,14 @@ public function handle(): int
     return Command::SUCCESS;
 }
 ```
+
+## Handling Exceptions
+When `handle()` throws, Doppar logs the exception and then reports it as it is, with its original class and the file and line where it was thrown. Run the command with `-v` to see the stack trace, or `-vvv` for the full detail:
+```bash
+php pool mail:send pending -v
+```
+
+If writing to the log fails, the original exception is still the one you see. To stop a command cleanly without an exception, return `Command::FAILURE` from `handle()`.
 
 ## Console Output Helpers
 Doppar provides a set of output helper methods to write formatted messages to the console.

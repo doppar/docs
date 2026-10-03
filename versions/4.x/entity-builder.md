@@ -41,6 +41,13 @@ db()->bucket('post')->get();
 ```
 This simple and expressive syntax leverages the Entity Builder, allowing you to construct queries fluently while maintaining Doppar’s consistency and performance across different database drivers.
 
+Or you can use facades like this way
+```php
+use Phaseolies\Support\Facades\DB;
+
+DB::bucket('post')->get();
+```
+
 ### Expending Queries
 While the `get()` method retrieves all records from a specified table, Entity Builder allows you to extend and refine your queries with powerful, chainable methods — giving you full control over the data you fetch.
 ```php

@@ -84,6 +84,36 @@ Run migrations on a specific database connection:
 php pool migrate --connection=mysql
 ```
 
+Each migration is reported with the time it took:
+```text
+  2025_04_19_184307_create_users_table ................ 12ms DONE
+  2025_04_19_184412_create_posts_table ................ 8ms DONE
+```
+
+### Batches
+
+Migrations that run together share a **batch** number, which is what 
+[`migrate:rollback`](#rolling-back-migrations) reverts. Pass `--step` to give every 
+migration its own batch, so each one can be rolled back on its own:
+```bash
+php pool migrate --step
+```
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--connection=` | Run on a specific database connection |
+| `--path=` | Run a single migration file |
+| `--step` | Give every migration its own batch |
+| `--pretend` | Print the SQL without running it. See [`Previewing the SQL`](#previewing-the-sql) |
+| `--seed` | Run `db:seed` after migrating |
+| `--force` | Skip the confirmation prompt in production |
+
+> **Note:** In production (`app.env` is `production` or not set) the command asks for 
+> confirmation before it runs. Without a terminal, such as in a deploy script, it 
+> refuses unless you pass `--force`.
+
 ## Adding Columns to an Existing Table
 
 As your application evolves, you will often need to add new columns to tables that 
@@ -127,6 +157,132 @@ Run a specific migration on a specific connection:
 php pool migrate --connection=mysql --path=/your_migration_file.php
 ```
 
+## Rolling Back Migrations
+
+Roll back the last batch of migrations:
+```bash
+php pool migrate:rollback
+```
+
+This runs the `down()` method of every migration in the most recent batch, newest 
+first, and removes their records so they can be run again.
+
+Roll back a specific number of migrations, regardless of batch:
+```bash
+php pool migrate:rollback --step=2
+```
+
+Roll back one specific batch:
+```bash
+php pool migrate:rollback --batch=1
+```
+
+Roll back every migration:
+```bash
+php pool migrate:reset
+```
+
+> **Note:** Before anything is reverted, every migration to roll back is looked up 
+> on disk. If the file of one of them no longer exists, the command stops with an 
+> error and nothing is rolled back.
+
+> **Note:** Batches are assigned when migrations run. Migrations that ran before 
+> this behaviour was introduced each have their own batch, so rolling them back 
+> goes one migration at a time.
+
+## Migration Status
+
+See which migrations have run, in which batch, when, and how long they took:
+```bash
+php pool migrate:status
+```
+```text
++--------------------------------------+---------+-------+---------------------+------+
+| Migration                            | Status  | Batch | Ran at              | Time |
++--------------------------------------+---------+-------+---------------------+------+
+| 2025_04_19_184307_create_users_table | Ran     | 1     | 2025-04-19 18:43:07 | 12ms |
+| 2025_04_20_091500_create_posts_table | Pending | -     | -                   | -    |
++--------------------------------------+---------+-------+---------------------+------+
+```
+
+Show only the pending migrations:
+```bash
+php pool migrate:status --pending
+```
+
+With `--pending` the command exits with status `1` when anything is pending, which 
+makes it usable as a check in CI or a deploy script. Use `--json` for 
+machine-readable output.
+
+### Modified and missing migrations
+
+The status also warns about migrations that no longer match what was run:
+
+| Status | Meaning |
+| --- | --- |
+| `Ran (modified)` | The migration file changed after it ran |
+| `Ran (file missing)` | The migration ran, but its file is gone |
+
+Changes to line endings are ignored when comparing files. Migrations that ran 
+before this feature existed have no recorded checksum and are never reported as 
+modified.
+
+> **Note:** The `migrations` table gets three nullable columns (`checksum`, 
+> `execution_time` and `ran_at`) the first time you migrate after upgrading. This 
+> happens automatically.
+
+## Previewing the SQL
+
+Add `--pretend` to see the SQL a migration or rollback would run, without changing 
+the database:
+```bash
+php pool migrate --pretend
+php pool migrate:rollback --pretend
+```
+```text
+  2025_04_19_184307_create_users_table
+    CREATE TABLE `users` (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, ...);
+```
+
+> **Note:** `--pretend` captures statements issued through the schema builder and 
+> `DB::execute()`. Statements sent through `DB::statement()` are not captured.
+
+## Transactions
+
+On PostgreSQL and SQLite, each migration runs inside a transaction together with its 
+record in the `migrations` table. If a migration fails halfway, nothing it did is 
+kept, and you can fix it and run it again.
+
+MySQL commits schema changes implicitly, so migrations cannot be wrapped there and 
+run without a transaction.
+
+Some statements cannot run inside a transaction, for example PostgreSQL's 
+`CREATE INDEX CONCURRENTLY`. A migration can opt out:
+```php
+return new class extends Migration
+{
+    public bool $withinTransaction = false;
+
+    public function up(): void
+    {
+        //
+    }
+
+    public function down(): void
+    {
+        //
+    }
+};
+```
+
+## Concurrent Runs
+
+On MySQL and PostgreSQL, running or rolling back migrations takes a database lock. If 
+two deployments start at the same time, the second one stops with the message 
+`Another migration process is already running` instead of running the same 
+migrations twice. The lock is released automatically when the command finishes. 
+SQLite has a single writer and is not locked.
+
 ## Refreshing Migrations
 
 The `migrate:fresh` command is a powerful tool for resetting your entire database 
@@ -143,6 +299,39 @@ Refresh a specific database connection:
 ```bash
 php pool migrate:fresh --connection=mysql
 ```
+
+Run the seeders afterwards:
+```bash
+php pool migrate:fresh --seed
+```
+
+`migrate:refresh` is the gentler option. It rolls back your migrations with their 
+`down()` methods and runs them again, so tables that are not managed by your 
+migrations are left alone:
+```bash
+php pool migrate:refresh
+```
+
+Roll back and re-run only the last few migrations:
+```bash
+php pool migrate:refresh --step=3
+```
+
+To drop every table without running any migration:
+```bash
+php pool db:wipe
+```
+
+| Command | Effect |
+| --- | --- |
+| `migrate:fresh` | Drops all tables, then runs every migration |
+| `migrate:refresh` | Rolls back with `down()`, then runs every migration |
+| `migrate:reset` | Rolls back every migration |
+| `db:wipe` | Drops all tables |
+
+> **Warning:** `migrate:fresh`, `migrate:refresh`, `migrate:reset` and `db:wipe` are 
+> destructive. They always ask for confirmation, in every environment. Pass `--force` 
+> to skip the question; without a terminal they refuse to run unless you do.
 
 ## Column Types
 

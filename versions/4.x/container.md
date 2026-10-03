@@ -386,6 +386,50 @@ $dependencies = $this->app->resolveMethodDependencies(
 );
 ```
 
+### Temporary Overrides
+The `using` method replaces one or more bindings only while a callback runs, then puts every one of them back exactly as it was. The original binding, and any instance that had already been resolved, are restored even when the callback throws.
+```php
+$result = $this->app->using([
+    Mailer::class => new FakeMailer(),
+], function () {
+    // Everything resolved in here receives the FakeMailer
+    return app(Mailer::class)->send($message);
+});
+
+// Mailer is back to the real implementation here
+```
+
+The callback receives the container, and its return value is returned from `using`. Several bindings can be overridden at once, and scopes can be nested.
+
+Each override is applied according to its type:
+
+| Value | Behavior |
+| --- | --- |
+| A `Closure` | Used as a factory. It is called once and the result is shared for the whole callback |
+| A class name | Built by the container the first time it is resolved |
+| Anything else | Used as is: an object, a string, an array or a number |
+
+```php
+$this->app->using([
+    PaymentGateway::class => StripeSandboxGateway::class, // built by the container
+    'clock' => fn() => new FrozenClock('2025-01-01'),     // factory
+    'feature.beta' => true,                               // value
+], function () {
+    //
+});
+```
+
+A binding that did not exist before the call is removed again afterwards.
+
+> **Note:** To override a key with a `Closure` itself rather than a factory, return it from a factory: `fn() => $closure`.
+
+> **Note:** Services that were resolved before the call and stored a dependency keep that dependency. Only things resolved inside the callback see the override.
+
+This is useful in tests, and in long-running processes such as queue workers, where a permanent override would leak into the next job or request. For example, to run a task as a different tenant:
+```php
+$this->app->using(['tenant' => $tenant], fn() => $job->handle());
+```
+
 ### Checking Container State
 Check if a binding exists
 ```php

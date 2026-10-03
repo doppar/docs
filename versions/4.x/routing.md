@@ -264,6 +264,177 @@ public function home(): Response
 ```
 This approach eliminates the need to manually specify middleware for simple throttling needs.
 
+## Route Parameter Constraints
+By default a route parameter matches any single URI segment, so `user/{id}` also matches `/user/abc`. You may restrict the format of a parameter with a regular expression, so your controller method never receives a value in the wrong format.
+
+When the URI does not match the constraint, the route is skipped. Doppar tries the next route, and returns a 404 response if none matches.
+
+### Constraining a Parameter
+Pass the `where` argument to the `#[Route]` attribute. It accepts an array of parameter name and regular expression pairs:
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Phaseolies\Support\Router\Attributes\Route;
+
+class UserController extends Controller
+{
+    #[Route(uri: 'user/{id}', where: ['id' => '[0-9]+'])]
+    public function show(string $id)
+    {
+        // Handles GET /user/42, but not /user/abc
+    }
+}
+```
+
+### Constraining Several Parameters
+Add one entry for each parameter you want to constrain:
+```php
+#[Route(uri: 'posts/{id}/{slug}', where: ['id' => '[0-9]+', 'slug' => '[a-z-]+'])]
+public function show(string $id, string $slug)
+{
+    // Handles GET /posts/3/hello-world
+}
+```
+
+Parameters without an entry keep matching any segment.
+
+### Inline Constraints
+You may also write the constraint inside the URI, after a colon:
+```php
+#[Route(uri: 'user/{id:[0-9]+}')]
+public function show(string $id)
+{
+    //
+}
+
+#[Route(uri: 'archive/{year:[0-9]{4}}')]
+public function archive(string $year)
+{
+    //
+}
+```
+
+This is the same as the `where` argument. If you use both for the same parameter, `where` wins.
+
+### Combining with Other Route Options
+`where` works together with every other argument of the attribute. When the route has several HTTP methods, the constraint applies to each of them:
+```php
+#[Route(
+    uri: 'user/{id}',
+    name: 'user.show',
+    methods: ['GET', 'DELETE'],
+    middleware: ['auth'],
+    where: ['id' => '[0-9]+']
+)]
+public function show(string $id)
+{
+    //
+}
+```
+
+Route names, middleware and rate limits keep working as usual, and `route('user.show', 5)` still generates `/user/5`.
+
+It also works with a class-level `#[Mapper]` prefix:
+```php
+#[Mapper(prefix: 'user')]
+class UserController extends Controller
+{
+    #[Route(uri: '/{id}', where: ['id' => '[0-9]+'])]
+    public function show(string $id)
+    {
+        // Handles GET /user/42
+    }
+}
+```
+
+And with [`route model binding`](#route-model-binding):
+```php
+#[Route('/profile/{user}', methods: ['GET'], where: ['user' => '[0-9]+'])]
+public function show(#[Model] User $user)
+{
+    // /profile/5 loads the user,
+    // /profile/abc is a 404 and never queries the database
+}
+```
+
+### Common Formats
+Here are expressions for the formats you will need most often:
+
+| Format | Expression |
+| --- | --- |
+| Digits only | `[0-9]+` |
+| Letters only | `[a-zA-Z]+` |
+| Letters and digits | `[a-zA-Z0-9]+` |
+| URL slug | `[a-z0-9-]+` |
+| Four digit year | `[0-9]{4}` |
+| UUID | `[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}` |
+| ULID | `[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}` |
+| One of a list | `draft\|published\|archived` |
+
+```php
+#[Route(uri: 'orders/{uuid}', where: ['uuid' => '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'])]
+public function show(string $uuid)
+{
+    //
+}
+
+#[Route(uri: 'posts/{status}', where: ['status' => 'draft|published|archived'])]
+public function index(string $status)
+{
+    // Only /posts/draft, /posts/published and /posts/archived
+}
+```
+
+### Same URI, Different Values
+Because a route that fails its constraint is skipped, you can use the same URI shape for different kinds of values:
+```php
+#[Route(uri: 'posts/{id}', where: ['id' => '[0-9]+'])]
+public function show(string $id)
+{
+    // /posts/12
+}
+
+#[Route(uri: 'posts/{slug}')]
+public function showBySlug(string $slug)
+{
+    // /posts/hello-world
+}
+```
+
+### Global Constraints
+If a parameter should always have the same format across your application, define it once instead of repeating it on every route. Call `Route::pattern` at the top of your route file:
+```php
+use Phaseolies\Support\Facades\Route;
+
+Route::pattern('id', '[0-9]+');
+```
+
+Doppar loads the route files before it registers attribute routes, so every attribute route with an `{id}` parameter is constrained:
+```php
+#[Route(uri: 'user/{id}')]
+public function show(string $id)
+{
+    // id must be digits
+}
+```
+
+A constraint written on the route always wins over a global one:
+```php
+#[Route(uri: 'tag/{id}', where: ['id' => '[a-z]+'])]
+public function tag(string $id)
+{
+    // id must be letters here
+}
+```
+
+Learn more about [`file-based route parameter constraints`](#file-based-route-parameter-constraints).
+
+> **Note:** Slashes are allowed inside a constraint, for example `where: ['path' => '.+\.(png|jpg)']`. Curly braces are only allowed as quantifiers such as `{4}` or `{1,3}`; nesting them any deeper is rejected. An invalid regular expression, or a constraint on a parameter the URI does not have, throws an exception when your routes are registered, not when the route is first requested.
+
+Constraints are kept when you [`cache your routes`](#route-caching).
+
 ## Domain-Restricted Routing
 Doppar's routing system supports domain-based route matching, allowing you to restrict specific routes to particular hostnames or subdomains. This is particularly useful for multi-tenant applications, API versioning across subdomains, or separating admin panels from public-facing websites.
 
@@ -590,6 +761,107 @@ Route::get('posts/{post}/comments/{comment}', function (
 });
 ```
 Route parameters in Doppar are defined by wrapping the parameter name in curly braces `{}` and should consist of alphabetic characters. You may also use underscores `(_)` in the parameter names. These parameters are automatically passed into your route callbacks or controller methods based on their position in the route `—` the actual variable names in the callback or method signature do not need to match the parameter names in the route.
+
+## File-Based Route Parameter Constraints
+By default a route parameter matches any single URI segment, so `user/{id}` also matches `/user/abc`. In file-based routes you may restrict the format of a parameter by chaining the `where` method onto the route. When the URI does not match, the route is skipped. Doppar tries the next route, and returns a 404 response if none matches.
+
+> 💡 Using attributes? See [`route parameter constraints`](#route-parameter-constraints) in attribute based routing.
+
+### The where Method
+The `where` method accepts the parameter name and a regular expression:
+```php
+use Phaseolies\Support\Facades\Route;
+
+Route::get('user/{id}', [UserController::class, 'show'])
+    ->where('id', '[0-9]+');
+```
+
+Pass an array to constrain several parameters at once:
+```php
+Route::get('posts/{id}/{slug}', [PostController::class, 'show'])
+    ->where(['id' => '[0-9]+', 'slug' => '[a-z-]+']);
+```
+
+### Inline Constraints
+You may also write the constraint inside the URI, after a colon:
+```php
+Route::get('user/{id:[0-9]+}', [UserController::class, 'show']);
+
+Route::get('archive/{year:[0-9]{4}}', [ArchiveController::class, 'index']);
+```
+
+This is the same as calling `where`. If you use both for the same parameter, `where` wins.
+
+### Helper Methods
+For the most common formats you may use a helper instead of writing the expression:
+
+| Method | Matches |
+| --- | --- |
+| `whereNumber('id')` | Digits only |
+| `whereAlpha('name')` | Letters only |
+| `whereAlphaNumeric('code')` | Letters and digits |
+| `whereUuid('id')` | A UUID |
+| `whereUlid('id')` | A ULID |
+| `whereIn('status', ['draft', 'published'])` | One of the listed values |
+
+```php
+Route::get('user/{id}', [UserController::class, 'show'])->whereNumber('id');
+
+Route::get('orders/{uuid}', [OrderController::class, 'show'])->whereUuid('uuid');
+
+Route::get('posts/{status}', [PostController::class, 'index'])
+    ->whereIn('status', ['draft', 'published']);
+```
+
+The number, alpha and alphanumeric, UUID and ULID helpers also accept an array of parameter names:
+```php
+Route::get('compare/{a}/{b}', [CompareController::class, 'index'])->whereNumber(['a', 'b']);
+```
+
+### Combining with Other Route Options
+`where` can be chained in any order with `name`, `middleware` and `domain`:
+```php
+Route::get('user/{id}', [UserController::class, 'show'])
+    ->name('user.show')
+    ->middleware('auth')
+    ->whereNumber('id');
+```
+
+Route names and middleware keep working as usual, and `route('user.show', 5)` still generates `/user/5`.
+
+It also works inside route groups:
+```php
+Route::group(['prefix' => 'admin'], function () {
+    Route::get('users/{id}', [UserController::class, 'show'])->whereNumber('id');
+});
+```
+
+### Same URI, Different Values
+Because a route that fails its constraint is skipped, you can use the same URI shape for different kinds of values:
+```php
+Route::get('posts/{id}', [PostController::class, 'show'])->whereNumber('id');
+Route::get('posts/{slug}', [PostController::class, 'showBySlug']);
+```
+
+### Global Constraints
+If a parameter should always have the same format, define it once with `Route::pattern` instead of repeating it on every route:
+```php
+Route::pattern('id', '[0-9]+');
+
+Route::get('user/{id}', [UserController::class, 'show']);   // id must be digits
+Route::get('order/{id}', [OrderController::class, 'show']); // id must be digits
+```
+
+`Route::pattern` only affects the routes defined after it, so call it at the top of your route file. Attribute-based routes are covered too, because Doppar registers them after the route files. A constraint written on the route always wins over a global one:
+```php
+Route::get('tag/{id}', [TagController::class, 'show'])->where('id', '[a-z]+');
+```
+
+> **Note:** Slashes are allowed inside a constraint, for example `->where('path', '.+\.(png|jpg)')`. Curly braces are only allowed as quantifiers such as `{4}` or `{1,3}`; nesting them any deeper is rejected.
+
+> **Note:** An invalid regular expression, or a constraint on a parameter the route does not have, throws an exception when the route is defined, not when it is first requested.
+
+Constraints are kept when you [`cache your routes`](#route-caching).
 
 ## Named Routes
 Doppar support convenient naming route structure. Named routes allow the convenient generation of URLs or redirects for specific routes. You may specify a name for a route by chaining the name method onto the route definition:
