@@ -472,7 +472,7 @@ Same as timestamps() but with timezone awareness
 $table->timestampsTz();
 ```
 
-Adds a nullable deleted_at column for soft deletion
+Adds a nullable deleted_at column for soft deletion. See [Soft Deletes](/versions/4.x/soft-deletes) for how to use it with models.
 ```php
 $table->softDeletes();
 ```
