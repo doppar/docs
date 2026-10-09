@@ -469,6 +469,34 @@ The orWhereIn() method filters records where a column's value optionally matches
 User::orWhereIn('id', [1, 2, 4])->get();
 ```
 
+### whereNotIn()
+The whereNotIn() method filters records where a column's value does not match any value in the given array.
+```php
+User::whereNotIn('id', [1, 2, 4])->get();
+```
+This retrieves all users except those with id values of 1, 2, or 4. Values are bound as query parameters, and the column is qualified with the table name, so the method is safe to use together with `join()`.
+
+If the array is empty, nothing is excluded and every row matches.
+```php
+User::whereNotIn('id', [])->get(); // all users
+```
+
+### orWhereNotIn()
+The orWhereNotIn() method adds a `NOT IN` condition joined to the previous conditions with `OR`.
+```php
+User::where('id', 1)
+    ->orWhereNotIn('id', [1, 2, 3])
+    ->get();
+```
+This retrieves user 1, plus every user whose id is not 1, 2, or 3.
+
+Both methods can also be used inside a nested condition or a `present()` callback:
+```php
+Post::query()
+    ->present('comments', fn($query) => $query->whereNotIn('status', ['spam', 'hidden']))
+    ->get();
+```
+
 ### whereBetween()
 The whereBetween() method in Doppar lets you filter records where a column’s value falls within a specified range. It’s particularly useful for working with numeric values or date/time columns, such as filtering records created within a certain time frame.
 
