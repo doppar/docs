@@ -3,7 +3,7 @@ title: Model Hooks
 description: Lifecycle hooks for Doppar ORM models
 meta:
 - name: keywords
-  content: Model Hooks, Lifecycle, before_created, after_created, before_updated, after_updated, before_deleted, after_deleted, booting, booted
+  content: Model Hooks, Lifecycle, before_created, after_created, before_updated, after_updated, before_deleted, after_deleted, before_restored, after_restored, booting, booted
 ---
 
 - [Introduction](#introduction)
@@ -27,7 +27,7 @@ Doppar allows two independent ways to define hooks on a model, and both can be u
 
 ## Supported Events
 
-Every hook is tied to one of the following eight lifecycle events:
+Every hook is tied to one of the following ten lifecycle events:
 
 | Event | When it fires |
 |---|---|
@@ -38,7 +38,9 @@ Every hook is tied to one of the following eight lifecycle events:
 | `before_updated` | Just before an existing record is updated. Attribute mutations made here are persisted. |
 | `after_updated` | Immediately after an existing record has been successfully updated. |
 | `before_deleted` | Just before a DELETE query runs on the record. |
-| `after_deleted` | Immediately after a record has been removed from the database. |
+| `after_deleted` | Immediately after a record has been removed from the database, or soft-deleted on a `#[SoftDeletes]` model. |
+| `before_restored` | Just before a soft-deleted record is restored. `#[SoftDeletes]` models only. |
+| `after_restored` | Immediately after a soft-deleted record has been restored. `#[SoftDeletes]` models only. |
 
 ## Array Property Hooks
 
@@ -1034,6 +1036,46 @@ public static function cleanupRelatedAssets(Model $model): void
 
 > `before_deleted` and `after_deleted` are only triggered when deleting via the model instance's `delete()` method. They are not triggered by `Post::query()->where('id', $id)->delete()`.
 
+On a model marked `#[SoftDeletes]`, `delete()` soft-deletes the record and these hooks still fire. They also fire for `forceDelete()`. Call `$this->isForceDeleting()` inside the hook to tell a permanent delete from a soft one.
+
+### before_restored and after_restored
+
+These events exist only on models marked `#[SoftDeletes]`. `before_restored` fires just before a soft-deleted record is restored with `restore()`, and `after_restored` fires once the soft delete column has been cleared. Throwing an exception in `before_restored` stops the restore.
+
+```php
+<?php
+
+namespace App\Models;
+
+use Phaseolies\Database\Entity\Attributes\Hook;
+use Phaseolies\Database\Entity\Attributes\SoftDeletes;
+use Phaseolies\Database\Entity\Model;
+
+#[SoftDeletes]
+class Post extends Model
+{
+    protected $table     = 'posts';
+    protected $creatable = ['title', 'slug', 'body', 'status'];
+
+    #[Hook('before_restored')]
+    public function preventRestoreIfArchived(): void
+    {
+        if ($this->status === 'archived') {
+            throw new \RuntimeException("Post #{$this->id} is archived and cannot be restored.");
+        }
+    }
+
+    #[Hook('after_restored')]
+    public function refreshCache(): void
+    {
+        Cache::delete('posts.all');
+        Cache::delete('posts.latest');
+    }
+}
+```
+
+> `before_restored` and `after_restored` are only triggered by the model instance's `restore()` method. They are not triggered by `Post::query()->where('id', $id)->restore()`. See [Soft Deletes](/versions/4.x/soft-deletes) for the full soft delete API.
+
 ## Accessing Model State Inside Hooks
 
 Inside any hook you have full access to the model's current state, its original state before the operation began, and which attributes have changed.
@@ -1174,6 +1216,12 @@ User::withoutHook()->updateOrCreate(
     ['email' => 'user@example.com'],
     ['name'  => 'Updated Name', 'role' => 'admin']
 );
+```
+
+#### Skip hooks on restore
+
+```php
+Post::withoutHook()->withTrashed()->find($id)->restore();
 ```
 
 #### Skip hooks on delete

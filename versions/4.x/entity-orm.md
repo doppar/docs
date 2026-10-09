@@ -1938,6 +1938,9 @@ User::query()
     ->delete();
 ```
 
+### Soft Deleting Models
+If a model is marked with the `#[SoftDeletes]` attribute, `delete()`, `purge()` and bulk deletes stamp a `deleted_at` column instead of removing the rows, and trashed rows are excluded from every query. See [Soft Deletes](/versions/4.x/soft-deletes) for the full API, including `withTrashed()`, `onlyTrashed()`, `restore()` and `forceDelete()`.
+
 ## Aggregation
 The Doppar ORM provides a rich set of aggregation functions that allow you to perform statistical and summary operations directly through your model queries. These methods help extract meaningful insights from your data without writing raw SQL, making your code clean, expressive, and efficient.
 

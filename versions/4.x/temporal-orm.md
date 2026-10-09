@@ -153,7 +153,7 @@ For each temporal model, Doppar creates a history table with the following colum
 |--------|------|-------------|
 | `history_id` | auto-increment integer | Unique identifier for each history row |
 | `record_id` | integer | The primary key of the original record |
-| `action` | varchar(10) | One of: `created`, `updated`, `deleted` |
+| `action` | varchar(10) | One of: `created`, `updated`, `deleted`, `restored` |
 | `valid_from` | high-precision datetime | When this state became current (microsecond precision) |
 | `snapshot` | JSON / JSONB / TEXT | The full row state at the time of the write |
 | `changed_cols` | JSON / JSONB / TEXT | (updates only) Array of column names that changed |
@@ -243,7 +243,7 @@ Call `->history()` on any loaded model instance to retrieve its full chronologic
 $contract = Contract::find(42);
 
 foreach ($contract->history() as $entry) {
-    echo $entry->__action;       // 'created' | 'updated' | 'deleted'
+    echo $entry->__action;       // 'created' | 'updated' | 'deleted' | 'restored'
     echo $entry->__valid_from;   // '2024-01-15 09:23:11.482910+00'
     echo $entry->__history_id;   // 3
     echo $entry->status;         // value at that point in time
@@ -264,7 +264,7 @@ Each history entry carries these read-only virtual properties:
 | Property | Type | Description |
 |----------|------|-------------|
 | `__history_id` | int | The row's ID in the history table |
-| `__action` | string | `created`, `updated`, or `deleted` |
+| `__action` | string | `created`, `updated`, `deleted`, or `restored` (soft-deletable models only) |
 | `__valid_from` | string | High-precision timestamp of when this state was recorded |
 | `__changed_cols` | array\|null | Columns that changed (updates only, `null` otherwise) |
 | `__actor` | mixed\|null | PK of the user who triggered the change (requires `trackActor: true`) |
@@ -279,6 +279,7 @@ foreach ($contract->history() as $entry) {
         'created' => 'Contract was created',
         'updated' => 'Contract was updated — changed: ' . implode(', ', $entry->__changed_cols ?? []),
         'deleted' => 'Contract was deleted',
+        'restored' => 'Contract was restored',
     };
 
     echo "[{$entry->__valid_from}] {$label}" . PHP_EOL;
@@ -535,6 +536,37 @@ User::withoutHook()->create([
 `::at()`, `->rewindTo()`, and `->restoreTo()` automatically exclude records whose last action before the requested datetime was `deleted`. A deleted record will not appear in `::at()->get()`, and `::at()->find($id)` will return `null` for it.
 
 The `->history()` method is the only API that includes `deleted` entries, since it returns the full raw audit trail without filtering.
+
+### Soft-deletable models
+
+When a model carries both `#[Temporal]` and `#[SoftDeletes]`, a soft delete is recorded as a `deleted` snapshot and a `restore()` is recorded as a `restored` snapshot. Time-travel queries therefore treat the record as absent while it was trashed and present again once it was restored:
+
+```php
+#[Temporal]
+#[SoftDeletes]
+class Contract extends Model
+{
+    //
+}
+
+// 2026-01-01: created
+// 2026-01-02: $contract->delete();   // recorded as 'deleted'
+// 2026-01-03: $contract->restore();  // recorded as 'restored'
+
+Contract::at('2026-01-01 12:00:00')->find(42); // the contract
+Contract::at('2026-01-02 12:00:00')->find(42); // null, it was trashed
+Contract::at('2026-01-03 12:00:00')->find(42); // the contract again
+```
+
+`->restoreTo()` also carries over the soft delete state of the snapshot. Restoring a trashed record to a moment before it was deleted brings it back as a live record, and the restoration is recorded as a `restored` entry:
+
+```php
+$contract = Contract::withTrashed()->find(42);
+
+$contract->restoreTo('2026-01-01 12:00:00'); // live again
+```
+
+See [Soft Deletes](/versions/4.x/soft-deletes) for the full soft delete API.
 
 ### The `created` snapshot is recorded before the primary key is written back
 
