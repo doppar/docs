@@ -6,20 +6,6 @@ meta:
   content: Soft Deletes, SoftDeletes, ORM, withTrashed, onlyTrashed, restore, forceDelete, deleted_at
 ---
 
-- [Introduction](#introduction)
-- [Marking a Model as Soft-Deletable](#marking-a-model-as-soft-deletable)
-- [Preparing the Table](#preparing-the-table)
-- [Soft Deleting Models](#soft-deleting-models)
-- [Querying Soft-Deleted Models](#querying-soft-deleted-models)
-- [Restoring Soft-Deleted Models](#restoring-soft-deleted-models)
-- [Permanently Deleting Models](#permanently-deleting-models)
-- [Relationships](#relationships)
-- [Hooks](#hooks)
-- [Temporal ORM Integration](#temporal-orm-integration)
-- [Utility Methods](#utility-methods)
-- [Driver Support](#driver-support)
-- [Important Notes](#important-notes)
-
 ## Soft Deletes
 
 ### Introduction
@@ -28,7 +14,7 @@ Sometimes a record should disappear from your application without actually being
 
 Soft deletes are opt-in per model through the `#[SoftDeletes]` attribute. Once a model carries the attribute, `delete()` marks the row as deleted, every query excludes trashed rows by default, and you get a small API for including them again, restoring them, or removing them for good.
 
-The constraint is applied consistently across the ORM. Regular queries, aggregates, pagination, eager loading, and relationship existence queries such as `present()` and `whereLinked()` all skip trashed rows unless you explicitly ask for them. Soft deletes also integrate with Doppar's [Model Hooks](/versions/4.x/hooks) and [Temporal ORM](/versions/4.x/temporal-orm), so deletions and restorations can be observed and recorded in the model's history.
+The constraint is applied consistently across the ORM. Regular queries, aggregates, pagination, eager loading, and relationship existence queries such as `present()` and `whereLinked()` all skip trashed rows unless you explicitly ask for them. Soft deletes also integrate with Doppar's [`Model Hooks`](/versions/4.x/hooks) and [`Temporal ORM`](/versions/4.x/temporal-orm), so deletions and restorations can be observed and recorded in the model's history.
 
 Soft deletes are particularly useful when your application needs a recycle bin, an undo action, audit-friendly deletion, or a grace period before data is permanently removed.
 
@@ -73,7 +59,7 @@ That single attribute is everything Doppar needs. No trait to pull in, no global
 
 ## Preparing the Table
 
-The soft delete column must be a nullable datetime column. The migration `Blueprint` has a helper for it:
+The soft delete column must be a nullable timestamp column. The migration `Blueprint` has a helper for it:
 
 ```php
 public function up(): void
@@ -83,11 +69,19 @@ public function up(): void
         $table->string('title');
         $table->text('body');
         $table->timestamps();
-        $table->softDeletes();                 // nullable deleted_at
-        // $table->softDeletes('removed_at');  // custom column name
-        // $table->softDeletesTz();            // timezone aware variant
+        $table->softDeletes();
     });
 }
+```
+
+If you need custom column name
+```php
+$table->softDeletes('removed_at');
+```
+
+timezone aware variant
+```php
+$table->softDeletesTz();
 ```
 
 To add the column to an existing table, and drop it again on rollback:
@@ -129,11 +123,13 @@ $post->deleted_at;   // "2026-10-09 10:15:00"
 
 Deleting through the query builder soft-deletes every matching row as well:
 
+Soft-deletes every draft post
 ```php
-// Soft-deletes every draft post
 Post::query()->where('status', 'draft')->delete();
+```
 
-// Soft-deletes the posts with these primary keys
+Soft-deletes the posts with these primary keys
+```php
 Post::purge(1, 2, 3);
 ```
 
@@ -143,10 +139,14 @@ Post::purge(1, 2, 3);
 
 Every query on a soft-deletable model excludes trashed rows automatically. This applies everywhere the model is queried: `get()`, `first()`, `find()`, `count()` and other aggregates, `paginate()`, cursor pagination, chunking, bulk `update()`, `increment()` and so on.
 
+null when post 1 is trashed
 ```php
-Post::find(1);                       // null when post 1 is trashed
-Post::all();                         // live posts only
-Post::where('user_id', 5)->count();  // live posts only
+Post::find(1);
+```
+
+live posts only
+```php
+Post::where('user_id', 5)->count();
 ```
 
 ### Including Trashed Models
@@ -154,8 +154,6 @@ Post::where('user_id', 5)->count();  // live posts only
 Use `withTrashed()` to include trashed rows in the results:
 
 ```php
-$posts = Post::withTrashed()->where('user_id', 5)->get();
-
 $post = Post::withTrashed()->find(1);
 ```
 
@@ -177,7 +175,7 @@ $trash = Post::onlyTrashed()
 ```php
 $query = Post::onlyTrashed();
 
-if ($request->boolean('live')) {
+if ($request->has('live')) {
     $query->withoutTrashed();
 }
 
@@ -198,7 +196,7 @@ Nested `where` groups do not repeat the constraint. It is applied once, on the o
 
 ## Restoring Soft-Deleted Models
 
-Call `restore()` on a trashed model to bring it back. Doppar sets the soft delete column back to `NULL` and touches `updated_at`:
+Call `restore()` on a trashed model to bring it back. Doppar sets the soft delete column back to `NULL` and, when the model uses timestamps, touches `updated_at`:
 
 ```php
 $post = Post::withTrashed()->find(1);
@@ -210,8 +208,8 @@ $post->trashed(); // false
 
 To restore many rows at once, call `restore()` on a query. A restore query targets trashed rows only, so you don't need to add `onlyTrashed()` yourself:
 
+Restore every trashed post of a user
 ```php
-// Restore every trashed post of a user
 Post::where('user_id', 5)->restore();
 ```
 
@@ -230,10 +228,13 @@ $post->forceDelete();
 `forceDelete()` is available on queries too:
 
 ```php
-// Empty the recycle bin
 Post::onlyTrashed()->forceDelete();
+```
 
-// Permanently remove old trashed posts
+> **Note:** A query's `forceDelete()` only removes the rows the query matches, and a query skips trashed rows by default. `Post::where('user_id', 5)->forceDelete()` therefore leaves that user's trashed posts in place. Add `withTrashed()` to remove live and trashed rows together, or `onlyTrashed()` to remove trashed rows only.
+
+Permanently remove old trashed posts
+```php
 Post::onlyTrashed()
     ->where('deleted_at', '<', now()->subDays(30))
     ->forceDelete();
@@ -247,26 +248,31 @@ Trashed rows are hidden from relationships in the same way they are hidden from 
 
 Lazy loading and eager loading with `embed()` skip trashed related models, including nested relations and many-to-many relations through a pivot table:
 
+live posts only
 ```php
 $user = User::find(1);
 
-$user->posts;                                  // live posts only
+$user->posts;
 
-$users = User::query()->embed('posts.comments')->get();  // live posts, live comments
+$users = User::query()->embed('posts.comments')->get();
 ```
 
 ### Relationship Existence Queries
 
 `present()`, `absent()`, `ifExists()` and `whereLinked()` ignore trashed related rows, so a user whose only post is trashed counts as having no posts:
 
+Users with at least one live post
 ```php
-// Users with at least one live post
 User::query()->present('posts')->get();
+```
 
-// Users with no live posts
+Users with no live posts
+```php
 User::query()->absent('posts')->get();
+```
 
-// Users with a live post titled "Hello"
+Users with a live post titled "Hello"
+```php
 User::query()->whereLinked('posts', 'title', 'Hello')->get();
 ```
 
@@ -274,11 +280,13 @@ This also works through nested relations (`present('posts.comments')`) and many-
 
 To change this, call `withTrashed()` or `onlyTrashed()` inside the callback:
 
+Users with any post, live or trashed
 ```php
-// Users with any post, live or trashed
 User::query()->present('posts', fn($query) => $query->withTrashed())->get();
+```
 
-// Users who have at least one trashed post
+Users who have at least one trashed post
+```php
 User::query()->present('posts', fn($query) => $query->onlyTrashed())->get();
 ```
 
@@ -325,16 +333,21 @@ public function clearCache(): void
 
 `withoutHook()` still soft-deletes, it only skips the hooks:
 
+soft-deleted, no hooks
 ```php
-Post::withoutHook()->find($id)->delete();                // soft-deleted, no hooks
-Post::withoutHook()->withTrashed()->find($id)->restore(); // restored, no hooks
+Post::withoutHook()->find($id)->delete();
 ```
 
-See [Model Hooks](/versions/4.x/hooks) for more about hooks.
+restored, no hooks
+```php
+Post::withoutHook()->withTrashed()->find($id)->restore();
+```
+
+See [`Model Hooks`](/versions/4.x/hooks) for more about hooks.
 
 ## Temporal ORM Integration
 
-Soft deletes work together with the [Temporal ORM](/versions/4.x/temporal-orm). When a model carries both `#[SoftDeletes]` and `#[Temporal]`:
+Soft deletes work together with the [`Temporal ORM`](/versions/4.x/temporal-orm). When a model carries both `#[SoftDeletes]` and `#[Temporal]`:
 
 - A soft delete is recorded as a `deleted` snapshot, and a restore is recorded as a new `restored` snapshot.
 - Time-travel queries such as `::at()` treat the record as absent while it was trashed and present again after it was restored.
