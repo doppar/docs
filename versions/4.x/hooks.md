@@ -1074,7 +1074,7 @@ class Post extends Model
 }
 ```
 
-> `before_restored` and `after_restored` are only triggered by the model instance's `restore()` method. They are not triggered by `Post::query()->where('id', $id)->restore()`. See [Soft Deletes](/versions/4.x/soft-deletes) for the full soft delete API.
+> `before_restored` and `after_restored` are only triggered by the model instance's `restore()` method. They are not triggered by `Post::query()->where('id', $id)->restore()`. See [`Soft Deletes`](/versions/4.x/soft-deletes) for the full soft delete API.
 
 ## Accessing Model State Inside Hooks
 

@@ -566,7 +566,7 @@ $contract = Contract::withTrashed()->find(42);
 $contract->restoreTo('2026-01-01 12:00:00'); // live again
 ```
 
-See [Soft Deletes](/versions/4.x/soft-deletes) for the full soft delete API.
+See [`Soft Deletes`](/versions/4.x/soft-deletes) for the full soft delete API.
 
 ### The `created` snapshot is recorded before the primary key is written back
 
