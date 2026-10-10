@@ -58,21 +58,21 @@ Now run migrate command to migrate `personal_access_token` table
 php pool migrate
 ```
 
-## Configure the API authentication actor
+## Configure Token Actors
 
-Flarion resolves token owners from the dedicated `api` authentication actor in `runtime/config/auth.php`. Add the actor to the application's auth configuration:
+Flarion reads the models that may own tokens from the `actors` option in `runtime/config/flarion.php`. Each actor maps a name to an `Authable` model:
 
 ```php
 'actors' => [
-    // Other actors...
     'api' => [
-        'model'       => App\Models\User::class,
-        'session_key' => 'api_user',
+        'model' => App\Models\User::class,
     ],
 ],
+
+'default' => 'api',
 ```
 
-The configured model must extend `Phaseolies\Auth\Authable`. The `session_key` is required by Doppar's actor configuration; Flarion's personal access tokens remain stateless.
+Every configured model must extend `Phaseolies\Auth\Authable` and use the `Doppar\Flarion\Tokenable` trait. Flarion's personal access tokens remain stateless, so no session key is needed. The `default` actor is used when several actors share one model, or when a token is created without naming an actor.
 
 ## API Token Authentication
 Flarion allows you to issue API tokens / personal access tokens that may be used to authenticate API requests to your application. When making requests using API tokens, the token should be included in the Authorization header as a `Bearer token`.
@@ -114,6 +114,84 @@ foreach ($user->tokens as $token) {
 }
 ```
 
+## Token Sources
+
+By default Flarion reads the token only from the `Authorization: Bearer` header. Use the `token_sources` option in `runtime/config/flarion.php` to accept it from other places. Sources are checked in the order listed, and the first token found is used:
+
+```php
+'token_sources' => ['header', 'input', 'cookie'],
+```
+
+| Source | Reads | Notes |
+| ------ | ----- | ----- |
+| `header` | `Authorization: Bearer <token>` | Recommended. Enabled by default. |
+| `input` | `api_token` in the request body or query string | For clients that cannot set headers, such as `EventSource` or WebSocket handshakes. Prefer the body: query strings leak into server logs, browser history and `Referer` headers. |
+| `cookie` | `api_token` cookie | Browsers send cookies automatically, so add your own CSRF protection to state-changing routes. |
+
+## Multiple Token Actors
+
+An application often has more than one kind of API client, such as customers and administrators. Declare each one as an actor in `runtime/config/flarion.php`:
+
+```php
+'actors' => [
+    'api' => [
+        'model' => App\Models\User::class,
+    ],
+    'admin' => [
+        'model' => App\Models\Admin::class,
+    ],
+],
+```
+
+Add the `Tokenable` trait to each model, then create tokens as usual. Flarion records which actor a token belongs to:
+
+```php
+$user->createToken('mobile');       // issued for the "api" actor
+$admin->createToken('dashboard');   // issued for the "admin" actor
+```
+
+A token only authenticates as the actor it was issued for. An `admin` with id `5` and a `user` with id `5` never share tokens, and `$admin->tokens` only returns tokens issued to that admin.
+
+When two actors share one model, the `default` actor is used. To choose another, override `tokenActor` on the model:
+
+```php
+class Customer extends Authable
+{
+    use Tokenable;
+
+    public function tokenActor(): string
+    {
+        return 'storefront';
+    }
+}
+```
+
+Creating a token for a model that has no configured actor throws an `InvalidArgumentException`. Tokens whose actor is later removed from the configuration, or whose owner has been deleted, stop authenticating and receive a `401` response.
+
+### Restricting Routes to an Actor
+
+By default `auth-api` accepts a valid token from any configured actor. Pass one or more `actor=` parameters to restrict a route:
+
+```php
+Route::get('orders', [OrderController::class, 'index'])
+    ->middleware('auth-api:actor=admin');
+
+// Allow either actor
+Route::get('profile', [ProfileController::class, 'show'])
+    ->middleware('auth-api:actor=api,actor=admin');
+```
+
+Actor restrictions can be combined with an ability. A token from another actor receives a `403` response:
+
+```php
+Route::post('orders', [OrderController::class, 'store'])
+    ->middleware('auth-api:actor=admin,orders:write');
+```
+
+> The `#[Middleware(AuthenticateApi::class)]` attribute does not accept parameters. To restrict by actor, use the `auth-api` alias in `middleware: [...]` on `#[Route]`, or on a facade route.
+
+Inside a request, `$request->user()` returns the model that owns the token. To find out which actor it belongs to, call `tokenActor()` on that model, or `currentAccessToken()->actor`.
+
 ## Rotate Tokens
 
 Use `rotateToken` to replace an existing token while preserving its name, abilities, and expiration time. The old token is deleted after the replacement is created, so it can no longer authenticate requests:
@@ -126,7 +204,7 @@ $newToken = $user->rotateToken($oldToken);
 return ['token' => $newToken->plainTextToken];
 ```
 
-The token must belong to the user. Flarion throws an `InvalidArgumentException` when a token owned by another user is supplied. The method accepts a `Doppar\Flarion\PersonalAccessToken` instance, such as the result of `tokens()` or `currentAccessToken()`.
+The token must belong to the user and be issued for the same actor. Flarion throws an `InvalidArgumentException` when a token owned by another user is supplied. The method accepts a `Doppar\Flarion\PersonalAccessToken` instance, such as the result of `tokens()` or `currentAccessToken()`.
 
 ## Token Abilities
 Flarion allows you to assign "abilities" to tokens. Abilities serve a similar purpose as OAuth's "scopes". You may pass an array of string `abilities` as the third argument to the `createToken` method:
@@ -246,14 +324,19 @@ class UserController extends Controller
 
 ## Revoking Tokens
 You may "revoke" tokens by deleting them from your database using the tokens relationship that is provided by the `Doppar\Flarion\Tokenable` trait:
+
+Revoke all tokens
 ```php
-// Revoke all tokens
 $request->user()->tokens()->delete();
+```
 
-// Revoke the token that was used to authenticate the current request
+Revoke the token that was used to authenticate the current request
+```php
 $request->user()->currentAccessToken()->delete();
+```
 
-// Revoke a specific token
+Revoke a specific token
+```php
 $request->user()->tokens()->where('id', $tokenId)->delete();
 ```
 
