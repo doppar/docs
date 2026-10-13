@@ -146,7 +146,7 @@ public function handle(): void
     $lock = cache()->locked('invoice:' . $this->invoiceId, seconds: 60);
 
     if (! $lock->get()) {
-        throw new \RuntimeException('Invoice is already being sent; the job will be retried.');
+        throw new \RuntimeException('Invoice is already being sent.');
     }
 
     defer(static fn () => $lock->release());
@@ -154,6 +154,8 @@ public function handle(): void
     $this->sendInvoice();
 }
 ```
+
+Throwing from `handle()` fails the attempt; whether the worker retries the job depends on the job's `$tries` setting (which defaults to `1`). Cleanup runs after every attempt either way.
 
 This holds both for jobs run in-process and for jobs run in a timeout child process: the callbacks run in the same process that ran the job.
 
@@ -266,6 +268,42 @@ defer(function () {
     defer(fn () => Log::info('follow-up cleanup'));
 });
 ```
+
+### Suspending and Resuming a Scope
+
+Most applications never need this; `runInDeferScope()` covers the common case. The lower-level methods exist for code whose work spans two phases that must not share the active scope, which is exactly how Doppar handles an HTTP request: the scope is open while the request is handled, then detached until termination.
+
+`suspendDeferScope()` detaches a scope from the active stack **without running its callbacks**. While suspended, the scope keeps what it has registered, but `defer()` no longer targets it, and scopes started or ended in the meantime cannot affect it. `resumeDeferScope()` makes it current again.
+
+```php
+$scope = app()->beginDeferScope();
+
+defer(fn () => Log::info('cleanup for phase one and two'));
+
+// Phase one is done. Detach the scope; nothing runs yet.
+app()->suspendDeferScope($scope);
+
+// Other work can now use its own scopes without touching $scope.
+app()->runInDeferScope(function () {
+    defer(fn () => Log::info('independent scope'));
+});
+
+// Phase two: make the scope current again so it can receive more cleanup.
+app()->resumeDeferScope($scope);
+defer(fn () => Log::info('registered in phase two'));
+
+// Run everything registered, last in, first out.
+app()->endDeferScope($scope);
+```
+
+The log output order is `independent scope`, `registered in phase two`, `cleanup for phase one and two`.
+
+Rules to keep in mind:
+
+- A suspended scope must always be ended with `endDeferScope()`, otherwise its callbacks never run. `endDeferScope()` works on a suspended scope directly, so resuming first is only needed when you want to register more cleanup into it.
+- If you suspend a scope that still has inner scopes that were never ended, those inner scopes are ended first.
+- Resuming a scope that has already ended does nothing.
+- While a scope is suspended and no other scope is active, `defer()` throws a `LogicException`.
 
 ## Calling defer() Outside a Scope
 
