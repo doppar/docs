@@ -39,6 +39,7 @@ HTTP Request
   -> Response preparation and send
   -> DispatchResult::terminate()
   -> Application terminating callbacks
+  -> Deferred callbacks (defer(), last in first out)
 ```
 
 This split is important. The response is sent before the termination
@@ -149,6 +150,10 @@ $response->terminate();
 
 Calling `terminate()` triggers all callbacks that were registered
 through `Application::terminating(...)`.
+
+After those callbacks, it also runs any cleanup registered with
+`defer()` during the request, in last-in, first-out order. See
+[`Defer`](/versions/4.x/defer).
 
 If the dispatch result is ignored, Doppar still has a safe fallback that
 ensures termination runs automatically. Even so, the explicit

@@ -119,7 +119,7 @@ If handling the request throws before a response can be built, or an error page 
 
 ### Console Commands
 
-Every command the console executes is wrapped in its own scope, so `defer()` works the same way inside a command. A command that is started from inside another command gets its own independent scope as well, and cleans up when it finishes rather than when the outer command does.
+Every command the console executes is wrapped in its own scope, so `defer()` works the same way inside a command. A command that is run through the console application from inside another command gets its own independent scope as well, and cleans up when it finishes rather than when the outer command does. Calling another command object's `run()` method directly does not go through the console, so that command shares the caller's scope.
 
 Because the scope wraps the command itself, deferred callbacks run **before** Symfony renders an uncaught exception, and a custom reporter sees the exception that failed the command (see [`Custom Failure Reporting`](#custom-failure-reporting)).
 
@@ -358,7 +358,9 @@ defer(static function (): void {
 });
 
 $order = Order::create($data);
-$order->items()->saveMany($items);
+OrderItem::saveMany(
+    array_map(fn (array $item) => $item + ['order_id' => $order->id], $items)
+);
 
 DB::commit();
 ```
