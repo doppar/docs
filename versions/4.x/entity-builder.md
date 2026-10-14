@@ -1255,6 +1255,16 @@ try {
 }
 ```
 
+## Reacting After a Commit
+Work that must only happen for committed data, such as sending a receipt or refreshing an index, should not run inside the transaction. Emit a signal marked with `#[DeliverOnSettle]` instead. It is held until the outermost transaction commits and is discarded if the transaction rolls back. See [`Signals`](/versions/4.x/signals).
+```php
+DB::transaction(function () use ($invoice) {
+    $invoice->markPaid();
+
+    Signal::emit(new InvoicePaid($invoice->id));
+});
+```
+
 ## Handling Deadlocks with Transaction Retries
 Deadlocks can occur when multiple transactions compete for the same database resources. Doppar allows setting a retry limit for transactions using a second parameter in `DB::transaction()`.
 ```php

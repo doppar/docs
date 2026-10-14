@@ -15,7 +15,7 @@ While many of these functions are used internally by the framework itself, they 
 From accessing configuration values to generating routes and handling authentication, Doppar's helpers make your development workflow faster and cleaner.
 
 ## Core Helpers
-[`db()`](#db), [`throttle()`](#throttle), [`env()`](#env), [`app()`](#app), [`resolve()`](#resolve), [`ddd()`](#ddd), [`is_auth()`](#is-auth), [`config()`](#config), [`cookie()`](#cookie), [`csrf_token()`](#csrf-token), [`bcrypt()`](#bcrypt), [`old()`](#old), [`fake()`](#fake), [`route()`](#route), [`session()`](#session), [`url()`](#url), [`request()`](#request), [`response()`](#response), [`view()`](#view), [`redirect()`](#redirect), [`back()`](#back), [`tap()`](#tap), [`with()`](#with), [`blank()`](#blank), [`filled()`](#filled), [`rescue()`](#rescue), [`retry()`](#retry), [`benchmark()`](#benchmark)
+[`db()`](#db), [`throttle()`](#throttle), [`env()`](#env), [`app()`](#app), [`resolve()`](#resolve), [`ddd()`](#ddd), [`is_auth()`](#is-auth), [`config()`](#config), [`cookie()`](#cookie), [`csrf_token()`](#csrf-token), [`bcrypt()`](#bcrypt), [`old()`](#old), [`fake()`](#fake), [`route()`](#route), [`session()`](#session), [`url()`](#url), [`request()`](#request), [`response()`](#response), [`view()`](#view), [`redirect()`](#redirect), [`back()`](#back), [`tap()`](#tap), [`with()`](#with), [`blank()`](#blank), [`filled()`](#filled), [`rescue()`](#rescue), [`retry()`](#retry), [`benchmark()`](#benchmark), [`signal()`](#signal)
 ## Path Helpers
 
 [`base_path()`](#base-path), [`base_url()`](#base-url), [`storage_path()`](#storage-path), [`public_path()`](#public-path), [`template_path()`](#template-path), [`config_path()`](#config-path), [`schema_path()`](#database-path)
@@ -94,6 +94,14 @@ You can Resolve a service with parameters as well
 $service = app(MyService::class, ['param1' => 'value']);
 ```
 This retrieves `MyService` while passing custom parameters. This function simplifies dependency injection, making it easier to manage and access services within the application.
+
+### signal()
+The `signal()` function gives access to the signal bus. With no argument it returns the bus, and with a signal object it emits that signal. Signals that carry `#[DeliverOnSettle]` wait for the open database transaction to commit. See [Signals](/versions/4.x/signals).
+```php
+signal(new InvoicePaid($invoice->id));
+
+signal()->on(InvoicePaid::class, SendReceipt::class);
+```
 
 ### resolve()
 The `resolve()` function is a global helper provided by Doppar to retrieve an instance of a class or service from the service container. It’s a convenient shorthand for calling `app()->make()`.
