@@ -154,6 +154,7 @@ binding key.
 | `Sanitize` | `Phaseolies\Support\Validation\Sanitizer`           | `sanitize` |
 | `Schema`   | `Phaseolies\Database\Migration\Schema`              | `schema`   |
 | `Session`  | `Phaseolies\Support\Session`                        | `session`  |
+| `Signal`   | `Phaseolies\Signals\SignalBus`                       | `signal`   |
 | `Storage`  | `Phaseolies\Support\Storage\StorageFileService`     | `storage`  |
 | `URL`      | `Phaseolies\Support\UrlGenerator`                   | `url`      |
 
