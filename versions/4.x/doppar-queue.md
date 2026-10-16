@@ -67,61 +67,6 @@ This creates two tables:
 
 > These tables are only used by the `database` connection. If you use the [Redis driver](#redis-driver), jobs and failed jobs live in Redis and the tables stay unused.
 
-## Upgrading to v4.1.0
-> **Available from v4.1.0**
-
-If you already use Doppar Queue, update the package first:
-```bash
-composer update doppar/queue
-```
-
-The database driver now reads three new columns of the `queue_jobs` table: `priority`, `lease_expires_at`, and `unique_key`. New installs get them from the queue migration when you run `php pool migrate`. If you created `queue_jobs` on an earlier version, that migration has already run and will not run again, so **add the columns with a migration of your own before starting workers on v4.1.0**:
-```php
-<?php
-
-use Phaseolies\Support\Facades\Schema;
-use Phaseolies\Database\Migration\Migration;
-use Phaseolies\Database\Migration\Blueprint;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::table('queue_jobs', function (Blueprint $table) {
-            $table->smallInteger('priority')->default(0);
-        });
-
-        Schema::table('queue_jobs', function (Blueprint $table) {
-            $table->unsignedInteger('lease_expires_at')->nullable();
-        });
-
-        Schema::table('queue_jobs', function (Blueprint $table) {
-            $table->string('unique_key', 191)->nullable();
-        });
-
-        db()->execute('CREATE UNIQUE INDEX queue_jobs_unique_key_unique ON queue_jobs (unique_key)');
-    }
-
-    public function down(): void
-    {
-        //
-    }
-};
-```
-
-Your existing jobs are not touched. The `database` connection is the only one that uses this table; the Redis driver needs no migration.
-
-Everything you had keeps working: jobs, `#[Queueable]`, chains, `queue:run`, and jobs that only implement `JobInterface`. A few behaviors did change, and you should check them if you call the queue APIs directly:
-
-| Change | What to do |
-| ------ | ---------- |
-| `Queue::pop()` returns a `Doppar\Queue\Support\ReservedJob` instead of the `QueueJob` model. It still has `$queue`, `$payload`, and `$attempts`, but not the model methods (`reserve()`, `release()`, `deleteJob()`). | Use `Queue::delete($job)`, `Queue::release($job, $delay)`, and `Queue::markAsFailed($job, $e)`. |
-| `Queue::pop()`, `delete()`, `release()`, and `markAsFailed()` no longer swallow errors. A database or Redis outage now throws instead of returning `null` or `false`. | Workers already handle this and log it. Catch the exception in your own code if you call these methods. |
-| `Queue::push()` and `dispatch()` return `null` when a [unique job](#unique-jobs) is refused as a duplicate. | Only matters if you use unique jobs. |
-| `queue:monitor` shows **Ready**, **Delayed**, and **Processing** columns instead of **Pending** and **Processing**. | Update anything that parses its output. |
-| Static properties of a job class are no longer written into the payload. Before, their value at dispatch time was saved and written back over the live value when the worker unserialized the job. | Nothing. This fixes a bug. |
-| A job whose worker crashed and whose attempts are already used up is now moved to the failed jobs instead of running again. | Nothing. See [Leases and Crash Recovery](#leases-and-crash-recovery). |
-
 ## Quick Start
 Doppar makes it easy to create a new queue job using the pool command. For example, to generate a job for sending a welcome email, run:
 ```bash
@@ -256,6 +201,21 @@ class SendEmailJob extends Job
 }
 ```
 All available Queueable properties can be used `together`, `partially`, or `individually`, depending on the needs of the job.
+
+### Job Execution Context
+The worker runs every job in its own execution context of type `worker`. It holds the queue, the attempt number, the job class and the job id, and every log entry the job writes carries them, so one search for the context id shows everything a single attempt did. Services bound with `bindExecution()` are created again for each job and dropped when it finishes, so state cannot leak from one job to the next in a long-running worker.
+```php
+public function handle(): void
+{
+    Execution::get('attempt');   // 1
+    Execution::get('queue');     // "default"
+}
+```
+The full order of events for one job, including where the context and its defer scope begin and end, is shown in [`Job Lifecycle`](#job-lifecycle).
+
+The `defer()` callbacks registered in `handle()` run before the job is deleted, released, or failed, so a lock deferred for release is freed before another worker can take the job. Callbacks registered in `failed()`, the hooks, or a chained dispatch run at the end of that same job, and never reach the next job. See [`Execution Context`](/versions/4.x/execution-context#queue-jobs) and [`Defer`](/versions/4.x/defer#queue-jobs).
+
+A job that is stopped because it exceeded its `timeout` is killed with `SIGKILL`. Its deferred callbacks do not run, so give cache locks a lifetime that expires on its own. See [`When Cleanup Cannot Run`](/versions/4.x/defer#when-cleanup-cannot-run).
 
 ### Retry Jobs
 Sometimes jobs may fail due to temporary issues, like network errors or external service downtime. Doppar queue allows you to automatically retry failed jobs a configurable number of times. You can specify the number of attempts for each job using the `$tries` property in your job class.
@@ -418,7 +378,6 @@ Before v4.1.0 the queue always used the database. It now works through *drivers*
 Connections are defined in `runtime/config/queue.php`:
 ```php
 return [
-    // The connection used when a job does not ask for one.
     'default' => env('QUEUE_CONNECTION', 'database'),
 
     'connections' => [
@@ -857,8 +816,11 @@ The following diagram illustrates how Doppar handles single jobs and job chains,
 │  │ • Pop the best job (priority, then oldest)             │     │
 │  │ • Take a lease on it - mark as processing              │     │
 │  │ • Increment attempts counter                           │     │
+│  │ • Begin the job's worker context and defer scope       │     │
 │  │ • Fail it if attempts already exceed tries             │     │
-│  │ • Execute with timeout protection, renewing the lease  │     │
+│  │ • Run the processing hook                              │     │
+│  │ • Run handle() in its own defer scope, with timeout    │     │
+│  │   protection, renewing the lease                       │     │
 │  └────────────────────────────────────────────────────────┘     │
 └────────────────────────────┬────────────────────────────────────┘
                              │
@@ -922,9 +884,25 @@ The following diagram illustrates how Doppar handles single jobs and job chains,
 │  →chainA │  │   callback       │
 │  →chainB │  │ • End            │
 └──────────┘  └──────────────────┘
+
+        (every outcome above: completed, released, failed, chained)
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      JOB EXECUTION ENDS                         │
+│  ┌────────────────────────────────────────────────────────┐     │
+│  │ • Close the job's defer scope: callbacks registered by │     │
+│  │   the hooks, failed() and the chain dispatch run,      │     │
+│  │   last in first out                                    │     │
+│  │ • End the worker context: execution-scoped services    │     │
+│  │   are dropped, so nothing reaches the next job         │     │
+│  └────────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 This diagram clearly shows the end-to-end lifecycle of single jobs and chained jobs, including retries, failures, and chain completion callbacks.
+
+Two defer scopes are involved. The inner one wraps `handle()`, so its deferred callbacks run before the job is deleted, released, or failed. The outer one wraps the whole lifecycle, so `defer()` calls made in the hooks, `failed()`, or the chain dispatch run when the job execution ends. See [Job Execution Context](#job-execution-context).
 
 If a worker dies while a job is being processed, the diagram does not reach SUCCESS or FAILURE. Instead the job's lease runs out and the job returns to the queue for another worker (v4.1.0). See [Leases and Crash Recovery](#leases-and-crash-recovery).
 
