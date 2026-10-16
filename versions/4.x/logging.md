@@ -123,6 +123,29 @@ info('User login failed.', [
 When context data is provided, Doppar includes it in the formatted log
 output for the supported handlers.
 
+### Execution Context in Log Entries
+
+While a request, console command, or custom runner is executing, Doppar automatically adds an `execution` key to the context of every log entry. It holds the execution id, its type, the id of its parent, and its metadata (request path, request id, tenant, and so on), so a single search for the id returns everything one request or command did.
+
+```php
+Execution::stamp(['tenant' => 'acme']);
+
+Log::error('Payment failed', ['order' => 10]);
+```
+
+```text
+[2026-10-16T21:19:21.116749+06:00] stack.ERROR: Payment failed {"order":10,"execution":{"id":"9f2c41e07b1d3a58","type":"request","parent_id":null,"metadata":{"method":"POST","path":"/checkout","tenant":"acme"}}}
+```
+
+- The data is read from the active execution at the moment you log, so
+  nothing has to be reset between requests.
+- It is added to the standard context array, so every handler receives it.
+- Outside an execution the entry is unchanged.
+- An `execution` key that you pass yourself is never overwritten.
+
+See [`Execution Context`](/versions/4.x/execution-context) for how to stamp
+your own metadata.
+
 ## Writing to a Specific Channel
 
 Sometimes a message should go somewhere other than the default channel.

@@ -430,6 +430,36 @@ This is useful in tests, and in long-running processes such as queue workers, wh
 $this->app->using(['tenant' => $tenant], fn() => $job->handle());
 ```
 
+### Binding Scopes
+Every binding has a scope that decides how long an instance lives.
+
+| Scope | Lifetime | Registered with |
+|-------|----------|-----------------|
+| `singleton` | The whole application | `singleton()` |
+| `execution` | One request, console command, or job | `bindExecution()` |
+| `transient` | A new instance on every resolution | `bind()` |
+
+Use `bindExecution` for services that hold per-request state, so that state can never leak into the next request, command, or job handled by the same process.
+```php
+$this->app->bindExecution(TenantState::class, fn () => new TenantState());
+```
+Inside one execution the container always returns the same instance, and it is destroyed when that execution ends:
+```php
+// Request 1
+app(TenantState::class)->name = 'acme';
+
+// Request 2, the same process
+app(TenantState::class)->name; // null, a fresh instance
+```
+Choose the scope by name with `bindWithScope`, and read it back with `scopeOf`:
+```php
+$this->app->bindWithScope(TenantState::class, fn () => new TenantState(), 'execution');
+
+$this->app->scopeOf(TenantState::class); // "execution"
+$this->app->scopeOf('log');              // "singleton"
+```
+Resolving an execution-scoped service while no execution is active throws a `LogicException`. Do not inject one into a singleton's constructor, because the singleton would keep the first execution's instance forever; resolve it at the moment you use it instead. Existing `bind` and `singleton` calls behave exactly as before. See [`Execution Context`](/versions/4.x/execution-context) for the full guide.
+
 ### Checking Container State
 Check if a binding exists
 ```php
