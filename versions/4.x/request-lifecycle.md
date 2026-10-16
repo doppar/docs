@@ -33,6 +33,7 @@ HTTP Request
   -> public/index.php
   -> runtime/app.php
   -> Application::dispatch()
+  -> Request execution context begins
   -> Application::handle()
   -> Router and middleware pipeline
   -> Controller or route closure
@@ -40,6 +41,7 @@ HTTP Request
   -> DispatchResult::terminate()
   -> Application terminating callbacks
   -> Deferred callbacks (defer(), last in first out)
+  -> Request execution context ends (scoped services dropped)
 ```
 
 This split is important. The response is sent before the termination
@@ -154,6 +156,10 @@ through `Application::terminating(...)`.
 After those callbacks, it also runs any cleanup registered with
 `defer()` during the request, in last-in, first-out order. See
 [`Defer`](/versions/4.x/defer).
+
+The request's execution context stays active until termination finishes,
+then ends and drops every execution-scoped service. See
+[`Execution Context`](/versions/4.x/execution-context).
 
 If the dispatch result is ignored, Doppar still has a safe fallback that
 ensures termination runs automatically. Even so, the explicit

@@ -235,6 +235,8 @@ If your reporter itself throws, the exception is swallowed so that remaining cle
 
 ### Isolation Between Executions
 
+HTTP requests and console commands also run inside an [`Execution Context`](/versions/4.x/execution-context), which gives the execution an id and lets services be bound to its lifetime. Deferred callbacks run before that context ends, so they can still use it.
+
 A callback belongs only to the scope that was current when `defer()` was called, and `defer()` throws if none is current, for example after a request was dispatched and before it is terminated. When the scope ends, its callbacks run once and are discarded. Nothing carries over to the next request, job, or command, so long-lived workers (such as a queue worker or a persistent server) do not accumulate callbacks or keep captured values alive.
 
 ### Nested Scopes

@@ -15,7 +15,7 @@ While many of these functions are used internally by the framework itself, they 
 From accessing configuration values to generating routes and handling authentication, Doppar's helpers make your development workflow faster and cleaner.
 
 ## Core Helpers
-[`db()`](#db), [`throttle()`](#throttle), [`env()`](#env), [`app()`](#app), [`resolve()`](#resolve), [`ddd()`](#ddd), [`is_auth()`](#is-auth), [`config()`](#config), [`cookie()`](#cookie), [`csrf_token()`](#csrf-token), [`bcrypt()`](#bcrypt), [`old()`](#old), [`fake()`](#fake), [`route()`](#route), [`session()`](#session), [`url()`](#url), [`request()`](#request), [`response()`](#response), [`view()`](#view), [`redirect()`](#redirect), [`back()`](#back), [`tap()`](#tap), [`with()`](#with), [`blank()`](#blank), [`filled()`](#filled), [`rescue()`](#rescue), [`retry()`](#retry), [`benchmark()`](#benchmark), [`signal()`](#signal)
+[`db()`](#db), [`throttle()`](#throttle), [`env()`](#env), [`app()`](#app), [`resolve()`](#resolve), [`ddd()`](#ddd), [`is_auth()`](#is-auth), [`config()`](#config), [`cookie()`](#cookie), [`csrf_token()`](#csrf-token), [`bcrypt()`](#bcrypt), [`old()`](#old), [`fake()`](#fake), [`route()`](#route), [`session()`](#session), [`url()`](#url), [`request()`](#request), [`response()`](#response), [`view()`](#view), [`redirect()`](#redirect), [`back()`](#back), [`tap()`](#tap), [`with()`](#with), [`blank()`](#blank), [`filled()`](#filled), [`rescue()`](#rescue), [`retry()`](#retry), [`benchmark()`](#benchmark), [`signal()`](#signal), [`execution()`](#execution)
 ## Path Helpers
 
 [`base_path()`](#base-path), [`base_url()`](#base-url), [`storage_path()`](#storage-path), [`public_path()`](#public-path), [`template_path()`](#template-path), [`config_path()`](#config-path), [`schema_path()`](#database-path)
@@ -101,6 +101,16 @@ The `signal()` function gives access to the signal bus. With no argument it retu
 signal(new InvoicePaid($invoice->id));
 
 signal()->on(InvoicePaid::class, SendReceipt::class);
+```
+
+### execution()
+The `execution()` function returns the execution service, the accessor for the context of the request, console command, or job that is currently running. It exposes the context id, type, and metadata, and lets you stamp new metadata onto it. It is the same service the `Execution` facade proxies. See [`Execution Context`](/versions/4.x/execution-context).
+```php
+execution()->id();                        // "9f2c41e07b1d3a58"
+execution()->type();                      // "request"
+execution()->get('path');                 // "/orders/10"
+
+execution()->stamp(['tenant' => 'acme']);
 ```
 
 ### resolve()

@@ -146,6 +146,7 @@ binding key.
 | `Config`   | `Phaseolies\Config\Config`                          | `config`   |
 | `Cookie`   | `Phaseolies\Support\CookieJar`                      | `cookie`   |
 | `Crypt`    | `Phaseolies\Support\Encryption`                     | `crypt`    |
+| `Execution` | `Phaseolies\Support\ExecutionService`              | `execution` |
 | `Hash`     | `Phaseolies\Auth\Security\Hash`                     | `hash`     |
 | `Log`      | `Phaseolies\Support\LoggerService`                  | `log`      |
 | `Mail`     | `Phaseolies\Support\Mail\MailService`               | `mail`     |
