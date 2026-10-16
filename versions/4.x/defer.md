@@ -138,7 +138,9 @@ public function handle(): int
 
 ### Queue Jobs
 
-The queue worker runs **every job in its own scope**, so `defer()` works directly inside a job's `handle()` method. Callbacks run when the job finishes, after success or after an exception, and always before the worker records the result (completing, releasing, or failing the job). Nothing registered by one job can reach the next job the worker handles.
+The queue worker runs **every job in its own execution**, so `defer()` works directly inside a job's `handle()` method. Two scopes are involved: one around `handle()` itself, and one around the job's whole lifecycle. The full order of events, from the context beginning to it ending, is in the diagram of the [`Job Lifecycle`](/versions/4.x/doppar-queue#job-lifecycle) section of the queue documentation.
+
+Callbacks registered in `handle()` run when the job finishes, after success or after an exception, and always **before** the worker records the result (completing, releasing, or failing the job). A lock deferred for release in `handle()` is therefore freed before another worker could pick the job up again.
 
 ```php
 public function handle(): void
@@ -155,9 +157,11 @@ public function handle(): void
 }
 ```
 
+`defer()` also works in the code the worker runs **around** `handle()`: the processing and processed hooks, a chained job's dispatch, and a job's `failed()` method (which runs once a job has used up its attempts). Those callbacks run at the end of that same job, so they never reach the worker command's own long-lived scope, and nothing registered while handling one job can reach the next job the worker handles.
+
 Throwing from `handle()` fails the attempt; whether the worker retries the job depends on the job's `$tries` setting (which defaults to `1`). Cleanup runs after every attempt either way.
 
-This holds both for jobs run in-process and for jobs run in a timeout child process: the callbacks run in the same process that ran the job.
+This holds both for jobs run in-process and for jobs run in a timeout child process: the callbacks run in the same process that ran the job. The one exception is a job that is stopped by force, see [`When Cleanup Cannot Run`](#when-cleanup-cannot-run).
 
 > Jobs run synchronously through `dispatchSync()` or `queueAsSync()` execute inside the caller's execution, so their `defer()` callbacks belong to the caller's scope (the HTTP request or command) instead of getting a scope of their own.
 
@@ -230,6 +234,23 @@ app()->reportDeferredExceptionsUsing(
 ```
 
 If your reporter itself throws, the exception is swallowed so that remaining cleanup still runs. Pass `null` to restore the default reporting.
+
+### When Cleanup Cannot Run
+
+Deferred callbacks run when the PHP process gets to run them. They cannot run if the process is stopped from outside:
+
+- A job that exceeds its `timeout` is run in a child process, and when the time is up the worker ends that process with `SIGKILL`. Nothing in it, including your deferred callbacks, gets to run.
+- A fatal error that ends the process, running out of memory, `kill -9`, and a server losing power behave the same way.
+- The child process of a timeout job keeps the default signal behavior, so a `SIGTERM` that reaches it directly ends it without cleanup. This happens when the whole process group is signalled, for example by a service manager that stops every process of the service at once.
+
+Treat `defer()` as the way to release resources on every **normal** way out of a job, and not as the only line of defence. Anything that can outlive a killed process needs its own expiry:
+
+```php
+// The lock expires on its own if the job is killed before release() runs.
+$lock = cache()->locked('invoice:' . $this->invoiceId, seconds: 60);
+```
+
+Pick a lock lifetime longer than the job's `timeout`, so the lock is not released early while the job is still running, and short enough to recover quickly after a kill. Temporary files and similar resources should be safe to leave behind or to clean up on the next run.
 
 ## Execution Scopes
 

@@ -53,6 +53,7 @@ Doppar creates a context for you at each entry point:
 |-----------|------|----------|------|
 | HTTP request | `request` | `method`, `path`, and `request_id` when an `X-Request-Id` header was sent | After the terminating callbacks, deferred callbacks and request cleanup have run |
 | Console command | `console` | `command` | After the command and its deferred callbacks have finished |
+| Queue job | `worker` | `queue`, `queue_job_id`, `attempt`, `connection`, then `job` and `job_id` once the job is built | After the job has been recorded as done, retried or failed, and its follow-up work has run |
 | Custom runner | Your choice | Your choice | When your callback returns or throws |
 
 ## Reading the Current Context
@@ -538,11 +539,47 @@ See [`Logging`](/versions/4.x/logging) for channels and handlers.
 | Resuming a context that has ended | Nothing happens, the context stays ended |
 | `flush()` while contexts are open | Every open context is ended first and its `ending` listeners run, then all state is cleared. If a listener throws, the state is still cleared and the first failure is rethrown |
 
+## Queue Jobs
+
+The queue worker runs every job in its own `worker` context, inside the same scope as its [`defer()`](/versions/4.x/defer#queue-jobs) callbacks. Nothing needs to be configured. The context carries identifiers only, never the payload:
+
+| Metadata | Description |
+|----------|-------------|
+| `queue` | The queue the job was taken from |
+| `queue_job_id` | The id of the reserved job in the queue backend |
+| `attempt` | The attempt number, starting at `1` |
+| `connection` | The queue connection of the worker, or `null` for the default |
+| `job` | The job class, added once the job has been built |
+| `job_id` | The job's own id, added once the job has been built |
+
+```php
+public function handle(): void
+{
+    Execution::type();          // "worker"
+    Execution::get('attempt');  // 2
+
+    Log::info('Sending invoice');   // the log entry names the queue, job and attempt
+}
+```
+
+Because every job gets a fresh context, an execution-scoped service is created again for each job and is dropped when the job finishes. The same context also covers the code the worker runs around `handle()`: `failed()`, the retry handling, a chained job's dispatch and the processed hook. Stamp extra metadata, such as a tenant stored on the job, as soon as the job starts:
+
+```php
+public function handle(): void
+{
+    Execution::stamp(['tenant' => $this->tenantId]);
+
+    // ...
+}
+```
+
+A job does not inherit the context of the request that dispatched it, see [`Limitations`](#limitations). A worker running with an older version of the framework that has no execution contexts keeps working, it simply runs without a context.
+
 ## Long-Running Workers
 
 A persistent process keeps its container between executions. The context is what lets that be safe: scoped instances are keyed by context id and removed when the context ends, so a worker that runs thousands of jobs holds no more state than one that ran a single job.
 
-For your own workers, consumers and loops, run each unit of work in its own context:
+The queue worker already does this for queue jobs. For your own workers, consumers and loops, run each unit of work in its own context:
 
 ```php
 use Phaseolies\Support\Facades\Execution;
@@ -570,7 +607,8 @@ They work together. A request's deferred callbacks run first, then request servi
 ## Limitations
 
 - A context describes **one process**. It is not carried across a process boundary, so a job pushed onto a queue does not inherit the dispatching request's context. Put the values the job needs, such as the tenant, in the job itself and stamp them when the job runs.
-- Doppar creates contexts for HTTP requests and console commands. The built-in queue worker does not open a `worker` context yet; use `Execution::within()` as shown above in your own runners.
+- Doppar creates contexts for HTTP requests, console commands and queue jobs. Your own long-running loops need `Execution::within()`, as shown in [`Long-Running Workers`](#long-running-workers).
+- A job that is stopped by force, for example by a timeout, is killed together with its child process. Anything created inside that process, scoped instances included, disappears with it, and its deferred callbacks do not run. The worker's own context for the job still ends normally when the worker records the failure.
 - A context is not a place to store application data. Keep it for identity and small correlation values, and keep state in a scoped service.
 - Doppar does not guess a tenant or a user for you. Metadata contains what Doppar can read from the request itself and whatever you stamp.
 - Metadata values should be scalars or small arrays, because they are written to every log entry. See [`Personal Data in Logs`](#personal-data-in-logs).
