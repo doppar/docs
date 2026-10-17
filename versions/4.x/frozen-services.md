@@ -99,8 +99,6 @@ Freeze point    → first resolve, container calls freeze(), properties snapshot
 Runtime phase   → reads work normally, writes throw immediately
 ```
 
----
-
 ## Defining a Frozen Service
 
 Add the `#[Immutable]` attribute to your class and use `EnforcesImmutability`. Declare your properties as `public` exactly as you normally would. No other changes are required on the service class itself.
@@ -342,8 +340,6 @@ $payment->isFrozen(); // true — resolved through the container
 ```
 
 This is primarily useful in diagnostics, debugging, and test assertions. Production code generally does not need to check `isFrozen()` directly — if the service was resolved through the container, it is frozen.
-
----
 
 ## Frozen Services vs PHP `readonly`
 

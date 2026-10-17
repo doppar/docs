@@ -11,7 +11,7 @@ meta:
 ### Introduction
 A queue is a background job processing system that allows tasks to run asynchronously instead of blocking your main application flow. It improves performance, distributes workload efficiently, and ensures time-consuming tasks are handled reliably in the background. Queues are essential for scaling modern applications and maintaining smooth user experiences.
 
-> **Doppar Queue v4.1.0** turns the queue into a driver-based system. Jobs can now be stored in **Redis** as well as the database, and the queue gains job priorities, unique jobs, retry backoff, automatic recovery of jobs from crashed workers, and more. Everything that is new in v4.1.0 is marked **Available from v4.1.0** throughout this page. Existing code keeps working — see [`Upgrade to v4.1.0`](#upgrade-to-v410)
+**Doppar Queue v4.1.0** turns the queue into a driver-based system. Jobs can now be stored in **Redis** as well as the database, and the queue gains job priorities, unique jobs, retry backoff, automatic recovery of jobs from crashed workers, and more. Everything that is new in v4.1.0 is marked **Available from v4.1.0** throughout this page. Existing code keeps working.
 
 Doppar queue system offers robust features including multiple queue support for organizing jobs by priority or category, automatic retry logic with configurable attempts and delays, and comprehensive failed job tracking for easier debugging. It supports delayed execution for scheduling jobs in the future, graceful shutdown handling to safely stop workers, and built-in memory management that automatically restarts workers when limits are exceeded.
 
