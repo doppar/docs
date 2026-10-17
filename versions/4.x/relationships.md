@@ -10,6 +10,9 @@ meta:
   - [One to One / Link One](#one-to-one--link-one)
   - [One To One Inverse / Bind To](#one-to-one-inverse--bind-to)
   - [One to Many / Link Many](#one-to-many--link-many)
+  - [Creating Related Records](#creating-related-records)
+  - [Associate and Dissociate](#associate-and-dissociate)
+  - [Default Conditions on Related Models](#default-conditions-on-related-models)
   - [Eager Loading, Lazy Loading](#eager-loading-lazy-loading)
   - [Many To Many / bindToMany ](#many-to-many--bind-to-many)
   - [Nested Relationship](#nested-relationship)
@@ -237,6 +240,121 @@ $comment = Comment::find(1);
 $comment->post?->title ?? 'default';
 ```
 In the example above, Entity will attempt to find a Post model that has an id which matches the post_id column on the Comment model.
+
+## Creating Related Records
+Once a relationship is defined, you can create and save related records through it. Doppar sets the foreign key from the parent for you, so you never copy ids around by hand. This works on `linkOne` and `linkMany` relationships.
+
+### create()
+```php
+$post = Post::find(1);
+
+$comment = $post->comments()->create([
+    'body' => 'Nice post!',
+]);
+
+$comment->post_id; // 1
+```
+
+The comment is saved with `post_id` set to the post's id. If you pass a `post_id` in the attributes, it is ignored: the parent's key always wins. Hooks, watches and temporal snapshots run as they do for any model save.
+
+### createMany()
+```php
+$comments = $post->comments()->createMany([
+    ['body' => 'First'],
+    ['body' => 'Second'],
+]);
+```
+
+It returns a collection of the saved models. Each record is its own insert, so wrap the call in `DB::transaction()` when they must all succeed or none.
+
+### store() and storeMany()
+Use `store()` when you already have a model instance. It sets the foreign key and saves the model. If the model already belongs to another parent, it is moved to this one.
+
+```php
+$comment = new Comment();
+$comment->body = 'Hello';
+
+$post->comments()->store($comment);
+
+$post->comments()->storeMany([$first, $second]);
+```
+
+A model of the wrong class throws an `InvalidArgumentException`.
+
+### firstOrCreate() and updateOrCreate()
+On a relationship these only look at the parent's own records, and create the missing one with the foreign key set:
+
+```php
+$post->comments()->firstOrCreate(['body' => 'Hello']);
+
+$post->comments()->updateOrCreate(
+    ['body' => 'Hello'],
+    ['body' => 'Hello again']
+);
+```
+
+### Skipping hooks
+Add `withoutHook()` to skip the model hooks for the write:
+
+```php
+$post->comments()->withoutHook()->create(['body' => 'Imported']);
+```
+
+### Rules
+- **The parent must be saved.** Writing through the relationship of a model that has no key yet throws a `LogicException`. Reading the relationship of a model that has no key yet returns nothing: an empty collection, or `null` for a one-to-one.
+- **The foreign key must be in `$creatable`.** Doppar never writes a column the model has not listed. If `post_id` is not in `Comment::$creatable`, the call throws a `LogicException` that names the column, and nothing is inserted.
+
+## Associate and Dissociate
+On the inverse side (`bindTo`), `associate()` points the model at a parent, and `dissociate()` removes the link. Both only change the model. Call `save()` to store the change.
+
+```php
+$comment = Comment::find(1);
+
+$comment->post()->associate($post);   // or associate(5), a plain id
+$comment->save();
+
+$comment->post()->dissociate();       // sets post_id to null
+$comment->save();
+```
+
+Like `create()`, the foreign key (`post_id`) must be in the model's `$creatable`, and the parent passed to `associate()` must be saved.
+
+## Default Conditions on Related Models
+If a model overrides `query()` to add a condition to every query, the same condition applies when that model is reached through a relationship. A common use is hiding rows, for example records of another tenant or records that are not published.
+
+```php
+<?php
+
+namespace App\Models;
+
+use Phaseolies\Database\Entity\Builder;
+use Phaseolies\Database\Entity\Model;
+
+class Article extends Model
+{
+    public static function query(?string $connection = null): Builder
+    {
+        return parent::query($connection)->where('status', '!=', 'hidden');
+    }
+}
+```
+
+With that in place, `Article::all()`, the `articles` relationship property, the relationship method and eager loading all leave out hidden articles:
+
+```php
+$author = Author::find(1);
+
+$author->articles;                 // hidden articles are left out
+$author->articles()->count();      // counts the visible ones only
+Author::embed('articles')->get();  // eager loading leaves them out too
+Author::embedCount('articles')->get();
+```
+
+You can still add your own conditions on top of the relationship method, for example `$author->articles()->where('title', 'Alpha')->get()`.
+
+> The condition filters what is read. Creating a record through a relationship, such as `$author->articles()->create(['status' => 'hidden'])`, still works.
+
+> If your `query()` returns a custom `Builder` subclass, the relationship copies the query state (conditions, scopes and connection) into the relationship class, but methods that exist only on your subclass are not available on the relationship.
 
 ## Eager Loading, Lazy Loading
 Efficiently managing related data is crucial in applications that rely on relational databases. Doppar Entity ORM provides mechanisms to control when and how related models are fetched, helping you optimize performance and avoid common pitfalls such as the `N+1` query problem.
