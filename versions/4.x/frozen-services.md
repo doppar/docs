@@ -285,13 +285,13 @@ public function process(PaymentService $payment): array
 }
 ```
 
-The exception message is always actionable. It includes the fully-qualified class name and the property that was targeted:
+The exception message is actionable. It includes the fully-qualified class name and the property that was targeted, and tells you where to configure the service instead:
 
 ```
 ImmutableViolationException:
 Cannot mutate property $taxRate on immutable service [App\Services\PaymentService].
-Services marked #[Immutable] are frozen after instantiation.
-Configure this service in a ServiceProvider during boot, not at runtime.
+Services marked #[Immutable] are frozen once the container resolves them.
+Configure the service in a launcher during boot, before it is first resolved, not at runtime.
 ```
 
 ### What Is Blocked
@@ -309,6 +309,15 @@ unset($payment->gateway);       // ✗ unset
 clone $payment;                 // ✗ clone
 ```
 
+Cloning has its own message, because there is no property involved:
+
+```
+ImmutableViolationException:
+Cannot clone immutable service [App\Services\PaymentService].
+Services marked #[Immutable] are frozen once the container resolves them, and a clone would be a way around that.
+Resolve the service from the container instead.
+```
+
 ### What Is Always Allowed
 
 ```php
@@ -322,7 +331,7 @@ $payment->isFrozen();            // ✓ frozen state check
 
 ## Checking Frozen State
 
-Any service that extends `ImmutableService` or uses the `EnforcesImmutability` trait exposes an `isFrozen()` method. You can call it at any time to check whether the container has frozen that instance.
+Any service that uses the `EnforcesImmutability` trait exposes an `isFrozen()` method. You can call it at any time to check whether the container has frozen that instance.
 
 ```php
 $payment = new PaymentService();
@@ -344,7 +353,7 @@ PHP 8.2 introduced `readonly class`, which also prevents property mutation after
 | --- | --- | --- |
 | **Frozen at** | Immediately on `new` — no post-construction writes ever | The first time the container resolves it — configurable window before that |
 | **Configure from `config()` / `env()`** | ✗ Impossible after `new` | ✓ Standard pattern during boot |
-| **ServiceProvider configuration** | ✗ Cannot assign post-construction | ✓ Designed for this |
+| **Launcher configuration** | ✗ Cannot assign post-construction | ✓ Designed for this |
 | **Default property values** | ✓ | ✓ |
 | **Constructor promotion** | ✓ | ✓ |
 | **Exception on mutation** | Generic PHP `Error` | Typed `ImmutableViolationException` with class + property |
