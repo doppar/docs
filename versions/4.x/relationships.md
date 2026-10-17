@@ -6,20 +6,6 @@ meta:
     content: Entity Relationships
 ---
 
-  - [Relationship Return Types](#relationship-return-types)
-  - [One to One / Link One](#one-to-one--link-one)
-  - [One To One Inverse / Bind To](#one-to-one-inverse--bind-to)
-  - [One to Many / Link Many](#one-to-many--link-many)
-  - [Creating Related Records](#creating-related-records)
-  - [Associate and Dissociate](#associate-and-dissociate)
-  - [Default Conditions on Related Models](#default-conditions-on-related-models)
-  - [Eager Loading, Lazy Loading](#eager-loading-lazy-loading)
-  - [Many To Many / bindToMany ](#many-to-many--bind-to-many)
-  - [Nested Relationship](#nested-relationship)
-  - [Quering Relationship Existence](#quering-relationship-existence)
-  - [Quering Relationship Missing](#quering-relationship-missing)
-  - [Relationship Count](#relationship-count)
-
 ## Relationships
 ### Introduction
 Doppar Entity provides a powerful relationship system for defining and working with connections between related database records. Instead of manually managing foreign keys and separate queries, relationships allow your models to describe how their data is connected and provide an expressive interface for retrieving and querying related records.
@@ -47,6 +33,22 @@ All of them extend the Entity query builder, so everything you can do on a query
 ```php
 $user->otp()->where('used', false)->first();
 ```
+
+### Conditions Stay Inside the Parent
+A relationship method is always limited to the records of its parent. Whatever you add to it, including `orWhere()`, a nested group or a `whereIn()`, can only narrow the parent's own records. It can never reach the records of another parent:
+
+```php
+$post = Post::find(1);
+
+$post->comments()
+    ->where('body', 'Nice post!')
+    ->orWhere('body', 'First')
+    ->get();
+```
+
+This holds for `get()`, `first()`, `count()` and `exists()`, and for writes through the builder such as `update()` and `delete()`. It applies to `linkOne`, `linkMany`, `bindTo` and `bindToMany` relationships alike, and soft deleted records are still left out unless you ask for them with `withTrashed()` or `onlyTrashed()`.
+
+If the model has no key yet, because it has not been saved, its relationships match nothing.
 
 ## One to One / Link One
 A one-to-one relationship is one of the simplest types of database associations. For instance, a `User` model may be linked to a single `Otp` model. To define this relationship, you can add an otp method to the User model. This method should invoke the `linkOne` method and return its result. The `linkOne` method is provided by the `Phaseolies\Database\Entity\Model` base class, making it easily accessible within your model.
@@ -171,6 +173,7 @@ A one-to-many relationship is ideal for scenarios where a single model serves as
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\LinkMany;
 
 class Post extends Model
 {
@@ -183,7 +186,7 @@ class Post extends Model
     }
 }
 ```
-The first argument passed to the linkMany method is the name of the related model class. The keys default the same way as `linkOne`: the foreign key on the related table is `post_id` (comments.post_id) and the local key is this model's primary key (posts.id). Pass the second and third arguments to use different columns: `$this->linkMany(Comment::class, 'article_id', 'id')`. Add `use Phaseolies\Database\Entity\Relations\LinkMany;` to the model.
+The first argument passed to the linkMany method is the name of the related model class. The keys default the same way as `linkOne`: the foreign key on the related table is `post_id` (comments.post_id) and the local key is this model's primary key (posts.id). Pass the second and third arguments to use different columns: `$this->linkMany(Comment::class, 'article_id', 'id')`.
 
 Once the relationship method has been defined, we can access the collection of related comments by accessing the comments property. Remember, since Entity provides "dynamic relationship properties", we can access relationship methods as if they were defined as properties on the model:
 
@@ -211,22 +214,23 @@ Post::embed('comments')->get();
 This approach ensures that all related articles for each User are loaded in a single query, By retrieving the posts and their associated comments in one go, you significantly improve performance, especially when dealing with large datasets or nested relationships.
 
 ## One to Many Inverse / Bind To
-Now that we can access all of a post's comments, let's define a relationship to allow a comment to access its parent post. To define the inverse of a `LinkMany` relationship, define a relationship method on the child model which calls the belongsTo method:
+Now that we can access all of a post's comments, let's define a relationship to allow a comment to access its parent post. To define the inverse of a `LinkMany` relationship, define a relationship method on the child model which calls the `bindTo` method:
 ```php
 <?php
 
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\BindTo;
 
 class Comment extends Model
 {
     /**
      * Get the post that owns the comment.
      */
-    public function post()
+    public function post(): BindTo
     {
-      return $this->bindTo(Post::class, 'id', 'post_id');
+        return $this->bindTo(Post::class);
     }
 }
 ```
@@ -453,6 +457,7 @@ Doppar ORM supports many-to-many relationships through an intermediate pivot tab
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\BindToMany;
 
 class Post extends Model
 {
@@ -493,6 +498,18 @@ foreach ($post->tags as $tag) {
     // ...
 }
 ```
+You can also query the relationship method like a query builder. It only ever returns the tags of that post:
+
+```php
+$post->tags()->where('name', 'php')->first();
+
+$post->tags()->orderBy('name')->get();
+
+$post->tags()->count();
+```
+
+> Pivot table columns are available through the dynamic property (`$post->tags`) and through `embed()`. Models returned by `$post->tags()->get()` do not carry the `pivot` object.
+
 You can easily retrieve all the related tag names of a post as a plain array using Entity’s pluck method:
 ```php
 $tagNames = $post->tags->pluck('name')->toArray();
@@ -519,27 +536,23 @@ foreach ($post->tags as $tag) {
 ```
 
 ## Defining the Inverse of the Relationship
-To define the "inverse" of a many-to-many relationship, you should define a method on the related model which also returns the result of the `bindToMany` method. To complete our post / tag example, let's define the users method on the Tag model:
+To define the "inverse" of a many-to-many relationship, you should define a method on the related model which also returns the result of the `bindToMany` method. To complete our post / tag example, let's define the posts method on the Tag model:
 ```php
 <?php
 
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\BindToMany;
 
 class Tag extends Model
 {
     /**
      * The posts that belong to the tag.
      */
-    public function posts()
+    public function posts(): BindToMany
     {
-        return $this->bindToMany(
-            Post::class, // Related model
-            'tag_id',    // Foreign key for tags in pivot table
-            'post_id',   // Foreign key for posts in pivot table
-            'post_tag'   // Pivot table name
-        );
+        return $this->bindToMany(Post::class);
     }
 }
 ```
