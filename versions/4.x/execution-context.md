@@ -393,6 +393,20 @@ app()->endContext($context);
 
 A suspended context must always be ended, otherwise its end listeners never run and its scoped instances are never released.
 
+A suspended context that was started inside another context ends together with it. When you end the parent, its suspended children (and their children) end first, deepest first, so their `ending` listeners run before the parent's and they cannot be resumed afterwards:
+
+```php
+$outer = app()->beginContext('outer');
+$inner = app()->beginContext('inner');
+
+app()->suspendContext($inner);
+app()->endContext($outer);      // ends 'inner' first, then 'outer'
+
+app()->resumeContext($inner);   // does nothing, 'inner' has already ended
+```
+
+A suspended context with no parent, such as a request context suspended after dispatch, is not affected when some other context ends.
+
 What you can rely on:
 
 - Resuming a context restores its **latest** metadata, including anything stamped after you obtained the object. Termination callbacks and `ending` listeners of a request therefore see the tenant that a middleware stamped.
@@ -446,7 +460,8 @@ What you can rely on:
 - Listeners run in the order they were registered.
 - An `ending` listener can still resolve the context's scoped services, so it can flush or persist them.
 - When a nested context ends, its listeners run before its parent's.
-- If a listener throws, the remaining listeners still run and the context is still torn down completely. The first failure is rethrown afterwards.
+- If a listener throws, the remaining listeners still run and the context is still torn down completely. The first failure is rethrown afterwards, and any further failures are logged.
+- If the work is already failing, for example a controller threw or a queue job failed, a listener failure never replaces that exception. It is logged as `Execution context ending listener failed: ...` and the original exception reaches your code. The same applies to a failing `terminating()` callback and to a `beginning` listener that throws.
 - A listener that throws from `beginning` stops the context from starting: the context is ended again and the exception propagates.
 
 For cleanup that belongs next to the line that acquired a resource, prefer [`defer()`](/versions/4.x/defer). Deferred callbacks run before the context ends, so they can still use the context and its scoped services.
@@ -533,7 +548,7 @@ See [`Logging`](/versions/4.x/logging) for channels and handlers.
 | An empty context type | `InvalidArgumentException` |
 | An unknown scope passed to `bindWithScope()` | `InvalidArgumentException` |
 | The callback given to `within()` throws | The context is ended, then the exception is rethrown |
-| An `ending` listener throws | Every other listener still runs, the context is fully torn down, then the first failure is rethrown |
+| An `ending` listener throws | Every other listener still runs and the context is fully torn down. The first failure is rethrown, unless another exception is already in flight, in which case it is logged and the original exception wins |
 | A `beginning` listener throws | The context is ended again and the exception propagates |
 | Ending a context twice | Nothing happens |
 | Resuming a context that has ended | Nothing happens, the context stays ended |
@@ -640,7 +655,7 @@ They work together. A request's deferred callbacks run first, then request servi
 | `scopeOf(string $abstract)` | `string\|null` | The scope a binding was declared with |
 | `executionContext()` | `ExecutionContext\|null` | The active context |
 | `hasExecutionContext()` | `bool` | Whether any context is active |
-| `beginContext(string $type, array $metadata = [])` | `ExecutionContext` | Begin a context nested in the current one |
+| `endContext(ExecutionContext $context, ?\Throwable $original = null)` | `void` | End a context, and any open contexts inside it. Pass the exception that is already ending the work as `$original` so a failing `ending` listener is logged instead of replacing it |
 | `endContext(ExecutionContext $context)` | `void` | End a context, and any open contexts inside it |
 | `runInContext(string $type, array $metadata, callable $callback)` | `mixed` | Run a callback in a context that always ends |
 | `suspendContext(ExecutionContext $context)` | `void` | Detach a context from the stack without ending it |

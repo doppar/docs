@@ -204,6 +204,32 @@ $activeContracts = Contract::at('2024-06-01')
 
 Supported operators: `=`, `!=`, `<>`, `>`, `>=`, `<`, `<=`, `IS NULL`, `IS NOT NULL`, `IN`, `NOT IN`, `BETWEEN`, `NOT BETWEEN`, `LIKE`, `NOT LIKE`.
 
+#### Combining conditions
+
+`where()` and `orWhere()` follow the same rules as SQL: `AND` binds tighter than `OR`, and the boolean on the first condition is ignored.
+
+```php
+$contracts = Contract::at('2024-06-01')
+    ->where('status', 'active')
+    ->orWhere('status', 'pending')
+    ->where('amount', '>', 500)
+    ->get();
+```
+
+Use a closure to group conditions:
+
+```php
+$contracts = Contract::at('2024-06-01')
+    ->where(function ($query) {
+        $query->where('status', 'active')
+            ->orWhere('status', 'pending');
+    })
+    ->where('amount', '>', 500)
+    ->get();
+```
+
+> Raw conditions (`whereRaw()`) and relationship checks (`present()`, `absent()`) cannot be evaluated against a snapshot. A time-travel query that contains one throws a `LogicException` instead of returning unfiltered rows.
+
 ### Ordering and Limiting
 
 ```php
@@ -329,6 +355,18 @@ Output:
   'removed' => [],
 ]
 ```
+
+### How values are compared
+
+`diff()` compares the stored snapshot values, not their string forms:
+
+| Values | Counted as changed? |
+|--------|---------------------|
+| Arrays (JSON or array columns) | Yes, if any item differs. Arrays are compared deeply, and the order of keys in an object does not matter |
+| `null` and `''` | Yes. `null` only equals `null` |
+| `false` and `null`, or `false` and `''` | Yes |
+| `1`, `'1'` and `true` | No. These are the same value, the way a database returns them |
+| `false`, `0` and `'0'` | No |
 
 If no snapshot exists at either datetime (e.g. the record was created after `$from`, or deleted before `$to`), `diff()` returns `null`:
 
