@@ -47,7 +47,7 @@ That single attribute is everything Doppar needs. No trait to pull in, no interf
 
 ## Attribute Options
 
-The `#[Temporal]` attribute accepts two optional parameters.
+The `#[Temporal]` attribute accepts three optional parameters.
 
 ### `suffix`
 
@@ -87,6 +87,20 @@ class Contract extends Model
 }
 ```
 
+### `branches`
+
+When set to `true`, the model can keep named branches alongside its main timeline: proposed versions of a record that you can review, compare and restore without touching the live row. See [Branches](#branches).
+
+```php
+#[Temporal(branches: true)]
+class Invoice extends Model
+{
+    //
+}
+```
+
+> **Note:** Branches need a `branch` column in the history table. Run `php pool migrate:temporal` after enabling `branches: true`. Until you do, normal writes to the model are still recorded on the main timeline, but every branch operation throws a `RuntimeException` asking you to run the migration.
+
 ## Running the Migration
 
 The `migrate:temporal` command scans your `src/Models` directory, finds every model marked with `#[Temporal]`, and creates the corresponding history table.
@@ -113,7 +127,7 @@ Example output:
 Done. Created: 2
 ```
 
-The command is **idempotent** — running it again on a table that already exists simply skips it. If a table exists but a new `actor` column is needed (because you added `trackActor: true` after the initial migration), the command adds the column without recreating the table:
+The command is **idempotent** — running it again on a table that already exists simply skips it. If a table exists but a new `actor` column is needed (because you added `trackActor: true` after the initial migration), the command adds the column without recreating the table. The same applies to the `branch` column and its index when you add `branches: true`:
 
 ```
   Model        : App\Models\User
@@ -158,6 +172,7 @@ For each temporal model, Doppar creates a history table with the following colum
 | `snapshot` | JSON / JSONB / TEXT | The full row state at the time of the write |
 | `changed_cols` | JSON / JSONB / TEXT | (updates only) Array of column names that changed |
 | `actor` | varchar(255) | (optional) PK of the authenticated user who made the change |
+| `branch` | varchar(50) | (optional, `branches: true`) The timeline the row belongs to. Defaults to `main` |
 
 The exact column types vary by database driver:
 
@@ -169,7 +184,7 @@ The exact column types vary by database driver:
 | `snapshot` | `JSON` | `JSONB` | `TEXT` |
 | `changed_cols` | `JSON` | `JSONB` | `TEXT` |
 
-Two indexes are created automatically: one on `record_id` for fast per-record lookups, and one on `valid_from` for fast time-range queries.
+Two indexes are created automatically: one on `record_id` for fast per-record lookups, and one on `valid_from` for fast time-range queries. Models with `branches: true` also get an index on `(record_id, branch, valid_from)`.
 
 ## Time-Travel Queries
 
@@ -294,6 +309,7 @@ Each history entry carries these read-only virtual properties:
 | `__valid_from` | string | High-precision timestamp of when this state was recorded |
 | `__changed_cols` | array\|null | Columns that changed (updates only, `null` otherwise) |
 | `__actor` | mixed\|null | PK of the user who triggered the change (requires `trackActor: true`) |
+| `__branch` | string | The branch the entry belongs to (`main` unless `branches: true`) |
 
 Example: Rendering an Audit Timeline
 
@@ -335,6 +351,7 @@ The return value is an associative array with the following keys:
 |-----|-------------|
 | `from` | The `$from` datetime string as provided |
 | `to` | The `$to` datetime string as provided |
+| `branch` | The branch that was compared (`main` unless you pass one, see [Branches](#branches)) |
 | `changes` | Columns whose value changed, each with a `from` and `to` sub-key |
 | `added` | Columns present in the `to` snapshot but absent in `from` |
 | `removed` | Columns present in the `from` snapshot but absent in `to` |
@@ -347,6 +364,7 @@ Output:
 [
   'from'    => '2024-01-01',
   'to'      => '2024-06-01',
+  'branch'  => 'main',
   'changes' => [
     'status' => ['from' => 'draft',  'to' => 'active'],
     'amount' => ['from' => 500,      'to' => 750],
@@ -463,6 +481,98 @@ Output:
 [updated] 2024-06-18 11:47:55.804312+00   ← the bad change
 [updated] 2024-06-19 08:02:44.113900+00   ← the restoration
 ```
+
+### Restoring a Specific Version
+
+`->restoreVersion($historyId)` restores the record to one exact history entry, identified by its `__history_id`. Like `restoreTo()`, it saves through the normal `save()` path, so the restoration is recorded as a new history entry.
+
+```php
+$contract = Contract::find(42);
+
+$entry = $contract->history()->first();
+
+$contract->restoreVersion($entry->__history_id);
+```
+
+`restoreVersion()` returns `false` when the id does not exist, belongs to another record, or `save()` fails. It throws a `RuntimeException` when the entry is a `deleted` snapshot, because restoring a deletion you picked by id is always a mistake.
+
+## Branches
+
+Branches let you keep a proposed version of a record next to its live state. A reviewer can see exactly what would change before anything goes live. Enable them with `#[Temporal(branches: true)]` and run `php pool migrate:temporal`.
+
+The live record always lives on the `main` branch. Every API in this section that takes a branch name defaults to `main`, so existing code keeps working unchanged.
+
+### Creating a Branch
+
+`->branch($name, $fromDatetime)` forks a new branch from the record's main timeline as it was at `$fromDatetime`:
+
+```php
+$invoice = Invoice::find(42);
+
+$invoice->branch('proposed', '2026-03-01 10:00:00');
+```
+
+It returns `false` if no main snapshot exists at that point, and throws if a branch with the same name already exists for the record.
+
+> **Note:** A branch's timeline starts when it is forked, not at `$fromDatetime`. `Invoice::at($earlier, 'proposed')` returns `null` for any time before the fork was created.
+
+### Saving to a Branch
+
+`->saveToBranch($name)` records the model's current in-memory values as a new version on an existing branch. The live row is **not** written:
+
+```php
+$invoice = Invoice::find(42);
+$invoice->total = 150;
+
+$invoice->saveToBranch('proposed'); // the live total is still 100
+```
+
+The model stays dirty afterwards. Calling `->save()` next makes the proposed values live, as it would for any other unsaved change. Writing to a branch that has not been forked throws a `RuntimeException`.
+
+### Reading a Branch
+
+`::at()`, `->history()`, `->diff()`, `->rewindTo()` and `->restoreTo()` all take an optional branch name:
+
+```php
+Invoice::at('2026-03-02', 'proposed')->find(42);
+
+$invoice->history('proposed');      // entries on the 'proposed' branch
+$invoice->history(null);            // entries on every branch
+
+$invoice->diff('2026-03-01', '2026-03-05', 'proposed');
+$invoice->rewindTo('2026-03-05', 'proposed');
+$invoice->restoreTo('2026-03-05', 'proposed'); // make the proposal live
+```
+
+The `branch` key of the `diff()` result names the branch that was compared.
+
+### Comparing a Branch with the Live Record
+
+`->diffAgainstBranch($name)` compares the latest main state with the latest state on the branch:
+
+```php
+$diff = $invoice->diffAgainstBranch('proposed');
+```
+
+Output:
+```php
+[
+  'at'      => '2026-03-05 12:00:00.000000',
+  'main'    => ['id' => 42, 'total' => 100, ...],
+  'branch'  => ['name' => 'proposed', 'snapshot' => ['id' => 42, 'total' => 150, ...]],
+  'changes' => ['total' => ['from' => 100, 'to' => 150]],
+  'added'   => [],
+  'removed' => [],
+]
+```
+
+It returns `null` when the live record has been deleted, or when either side has no snapshot.
+
+### Branch Names
+
+- Branch names must be 1 to 50 characters long and use only lowercase letters, digits, `_` and `-`. Anything else throws an `InvalidArgumentException` from every method that takes a branch name.
+- `main` is reserved for the live timeline. You can read from it, but you cannot fork or save to a branch named `main`.
+- Passing any branch name other than `main` to a model without `branches: true` throws a `RuntimeException`.
 
 ## Actor Tracking
 
