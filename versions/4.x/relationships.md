@@ -6,6 +6,7 @@ meta:
     content: Entity Relationships
 ---
 
+  - [Relationship Return Types](#relationship-return-types)
   - [One to One / Link One](#one-to-one--link-one)
   - [One To One Inverse / Bind To](#one-to-one-inverse--bind-to)
   - [One to Many / Link Many](#one-to-many--link-many)
@@ -28,6 +29,22 @@ For applications that need relationship statistics, embedCount() provides a conv
 
 In the following sections, we’ll explore how to define one-to-one, one-to-many, and many-to-many relationships, work with inverse relationships and pivot data, load nested relationships efficiently, apply relationship existence constraints, and retrieve counts of related records using Doppar Entity ORM.
 
+## Relationship Return Types
+Each relationship method returns its own class from the `Phaseolies\Database\Entity\Relations` namespace, so you can declare the return type of your relationship methods:
+
+| Method | Returns |
+|---|---|
+| `linkOne()` | `LinkOne` |
+| `linkMany()` | `LinkMany` |
+| `bindTo()` | `BindTo` |
+| `bindToMany()` | `BindToMany` |
+
+All of them extend the Entity query builder, so everything you can do on a query builder, such as `where()`, `orderBy()` or `count()`, works on a relationship method. A type hint of `Phaseolies\Database\Entity\Builder` is also valid.
+
+```php
+$user->otp()->where('used', false)->first();
+```
+
 ## One to One / Link One
 A one-to-one relationship is one of the simplest types of database associations. For instance, a `User` model may be linked to a single `Otp` model. To define this relationship, you can add an otp method to the User model. This method should invoke the `linkOne` method and return its result. The `linkOne` method is provided by the `Phaseolies\Database\Entity\Model` base class, making it easily accessible within your model.
 ```php
@@ -36,20 +53,32 @@ A one-to-one relationship is one of the simplest types of database associations.
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\LinkOne;
 
 class User extends Model
 {
     /**
      * Get the otp associated with the user.
      */
-    public function otp()
+    public function otp(): LinkOne
     {
-        return $this->linkOne(Otp::class, 'user_id', 'id');
+        return $this->linkOne(Otp::class);
     }
 }
 ```
 
-The first argument passed to the linkOne method is the name of the related model class. Second argument is the Foreign key on related table (otps.user_id) and the third one is Local key on this table (users.id). All the arguments is mandatory.
+The first argument passed to the linkOne method is the name of the related model class. Doppar works out the keys from the model names: the foreign key on the related table is `user_id` (otps.user_id) and the local key on this table is the primary key (users.id). If your columns are named differently, pass them as the second and third arguments:
+```php
+return $this->linkOne(Otp::class, 'owner_id', 'id');
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `$related` | The related model class | Required |
+| `$foreignKey` | Foreign key on the related table | `{this_model}_{primary_key}`, for example `user_id` |
+| `$localKey` | Local key on this table | This model's primary key, for example `id` |
+
+You can pass only the foreign key and keep the default local key: `$this->linkOne(Otp::class, 'owner_id')`.
 
 ```php
 $otp = User::find(1)->otp;
@@ -89,20 +118,30 @@ So, we can access the Otp model from our User model. Next, let's define a relati
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\BindTo;
 
 class Otp extends Model
 {
     /**
      * Get the user that owns the otp.
      */
-    public function user()
+    public function user(): BindTo
     {
-        return $this->bindTo(User::class, 'id', 'user_id');
+        return $this->bindTo(User::class);
     }
 }
 ```
 
-The first argument passed to the bindTo method is the name of the related model class. Second argument is the Local key on related table (users.id) and the third one is Foreign key on this table (otps.user_id). All the arguments is mandatory.
+The first argument passed to the bindTo method is the name of the related model class. Doppar works out the keys: the key on the related table is its primary key (users.id) and the key on this table is `{related_model}_{primary_key}`, which is `user_id` (otps.user_id). To use other columns, pass them as the second and third arguments:
+```php
+return $this->bindTo(User::class, 'id', 'owner_id');
+```
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `$related` | The related model class | Required |
+| `$foreignKey` | Key on the related table | The related model's primary key, for example `id` |
+| `$localKey` | Key on this table | `{related_model}_{primary_key}`, for example `user_id` |
 
 Now you can get the user that owns the otp
 ```php
@@ -135,13 +174,13 @@ class Post extends Model
     /**
      * Get the comments for the blog post.
      */
-    public function comments()
+    public function comments(): LinkMany
     {
-        return $this->linkMany(Comment::class, 'post_id', 'id');
+        return $this->linkMany(Comment::class);
     }
 }
 ```
-The first argument passed to the linkMany method is the name of the related model class. Second argument is the Foreign key on related table (comments.post_id) and the third one is Local key on this table (posts.id). All the arguments is mandatory.
+The first argument passed to the linkMany method is the name of the related model class. The keys default the same way as `linkOne`: the foreign key on the related table is `post_id` (comments.post_id) and the local key is this model's primary key (posts.id). Pass the second and third arguments to use different columns: `$this->linkMany(Comment::class, 'article_id', 'id')`. Add `use Phaseolies\Database\Entity\Relations\LinkMany;` to the model.
 
 Once the relationship method has been defined, we can access the collection of related comments by accessing the comments property. Remember, since Entity provides "dynamic relationship properties", we can access relationship methods as if they were defined as properties on the model:
 
@@ -299,16 +338,30 @@ use Phaseolies\Database\Entity\Model;
 
 class Post extends Model
 {
-    public function tags()
+    public function tags(): BindToMany
     {
-        return $this->bindToMany(
-            Tag::class,  // Related model
-            'post_id',   // Foreign key for posts in pivot table (post_tag.post_id)
-            'tag_id',    // Foreign key for tags in pivot table (post_tag.tag_id)
-            'post_tag'   // Pivot table name
-        );
+        return $this->bindToMany(Tag::class);
     }
 }
+```
+
+With only the related model, Doppar uses these defaults:
+
+| Argument | Meaning | Default |
+|---|---|---|
+| `$related` | The related model class | Required |
+| `$foreignKey` | This model's key in the pivot table | `{this_model}_{primary_key}`, for example `post_id` |
+| `$relatedKey` | The related model's key in the pivot table | `{related_model}_{primary_key}`, for example `tag_id` |
+| `$pivotTable` | The pivot table | Both model names, singular and in alphabetical order, for example `post_tag` |
+
+If your pivot table or columns are named differently, pass them explicitly:
+```php
+return $this->bindToMany(
+    Tag::class,    // Related model
+    'post_id',     // This model's key in the pivot table (post_tag.post_id)
+    'tag_id',      // The related model's key in the pivot table (post_tag.tag_id)
+    'post_tag'     // Pivot table name
+);
 ```
 
 Once the relationship is defined, you may access the post's tags using the tags dynamic relationship property:
@@ -699,10 +752,12 @@ Or count multiple relations at once:
 User::query()
     ->embedCount(['posts', 'comments', 'followers'])
     ->get();
-// Access like this way
-// $user->posts_count
-// $user->comments_count
-// $user->followers_count
+```
+The count values are automatically appended to the model instance with the pattern `{relation}_count`. Access like this way
+```php
+$user->posts_count
+$user->comments_count
+$user->followers_count
 ```
 
 ### Conditional Counting

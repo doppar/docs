@@ -89,7 +89,7 @@ class Contract extends Model
 
 ### `branches`
 
-When set to `true`, the model can keep named branches alongside its main timeline: proposed versions of a record that you can review, compare and restore without touching the live row. See [Branches](#branches).
+When set to `true`, the model can keep named branches alongside its main timeline: proposed versions of a record that you can review, compare and restore without touching the live row. See [`Branches`](#branches).
 
 ```php
 #[Temporal(branches: true)]
@@ -351,7 +351,7 @@ The return value is an associative array with the following keys:
 |-----|-------------|
 | `from` | The `$from` datetime string as provided |
 | `to` | The `$to` datetime string as provided |
-| `branch` | The branch that was compared (`main` unless you pass one, see [Branches](#branches)) |
+| `branch` | The branch that was compared (`main` unless you pass one, see [`Branches`](#branches)) |
 | `changes` | Columns whose value changed, each with a `from` and `to` sub-key |
 | `added` | Columns present in the `to` snapshot but absent in `from` |
 | `removed` | Columns present in the `from` snapshot but absent in `to` |
@@ -524,7 +524,8 @@ It returns `false` if no main snapshot exists at that point, and throws if a bra
 $invoice = Invoice::find(42);
 $invoice->total = 150;
 
-$invoice->saveToBranch('proposed'); // the live total is still 100
+// the live total is still 100
+$invoice->saveToBranch('proposed');
 ```
 
 The model stays dirty afterwards. Calling `->save()` next makes the proposed values live, as it would for any other unsaved change. Writing to a branch that has not been forked throws a `RuntimeException`.
@@ -536,12 +537,17 @@ The model stays dirty afterwards. Calling `->save()` next makes the proposed val
 ```php
 Invoice::at('2026-03-02', 'proposed')->find(42);
 
-$invoice->history('proposed');      // entries on the 'proposed' branch
-$invoice->history(null);            // entries on every branch
+// entries on the 'proposed' branch
+$invoice->history('proposed');
+
+// entries on every branch
+$invoice->history(null);
 
 $invoice->diff('2026-03-01', '2026-03-05', 'proposed');
 $invoice->rewindTo('2026-03-05', 'proposed');
-$invoice->restoreTo('2026-03-05', 'proposed'); // make the proposal live
+
+// make the proposal live
+$invoice->restoreTo('2026-03-05', 'proposed');
 ```
 
 The `branch` key of the `diff()` result names the branch that was compared.
