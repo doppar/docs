@@ -6,22 +6,6 @@ meta:
     content: queue manager
 ---
 
- - [Installation](#installation)
- - [Upgrading to v4.1.0](#upgrading-to-v410)
- - [Quick Start](#quick-start)
- - [Queue Connections and Drivers](#queue-connections-and-drivers) (v4.1.0)
- - [Job Priority](#job-priority) (v4.1.0)
- - [Unique Jobs](#unique-jobs) (v4.1.0)
- - [Bulk Dispatching](#bulk-dispatching) (v4.1.0)
- - [Leases and Crash Recovery](#leases-and-crash-recovery) (v4.1.0)
- - [Inspecting Queues](#inspecting-queues) (v4.1.0)
- - [Custom Drivers](#custom-drivers) (v4.1.0)
- - [Testing](#testing) (v4.1.0)
- - [Job Chaining](#job-chaining)
- - [Job Lifecycle](#job-lifecycle)
- - [Queue Commands](#queue-commands)
- - [Production Setup](#production-setup)
-
 ## Queue
 
 ### Introduction
