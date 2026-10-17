@@ -3,7 +3,7 @@ title: Frozen Services
 description: Doppar Frozen Services page
 meta:
   - name: keywords
-    content: Frozen Services, Immutable, Boot-time Frozen Services, #[Immutable]
+    content: Frozen Services, Immutable, Boot-time Frozen Services, Immutable
 ---
 
 ## Frozen Services
@@ -68,7 +68,7 @@ public function launch(): void
     $this->app->singleton(PaymentService::class, fn () => $payment);
 }
 ```
-At the moment the container finishes building, Doppar automatically freezes the service.
+The service is frozen the first time the container hands it out, for example the first time a controller asks for `PaymentService`. Until then your launcher still holds a normal, writable object.
 
 ### Runtime Behavior
 Anywhere else in the application, the service is safe to read but impossible to mutate:
@@ -89,13 +89,13 @@ Every frozen service passes through three phases:
 
 **Phase 1 — Boot.** The service is constructed and configured. All properties are writable. launchers can assign values from `config()`, `env()`, or any external source. This is the only window where mutation is permitted.
 
-**Phase 2 — Freeze.** The container calls `freeze()` immediately after `build()` completes. Every public property's value is snapshotted into a hidden internal map and then unset from the object. After this point, all read access routes through `__get()` and all write access routes through `__set()`.
+**Phase 2 — Freeze.** The container calls `freeze()` the first time it resolves the service. Every public property's value is snapshotted into a hidden internal map and then unset from the object. After this point, all read access routes through `__get()` and all write access routes through `__set()`.
 
 **Phase 3 — Runtime.** The frozen service is injected into controllers, closure routes, middleware, and all other consumers. Property reads work transparently and identically to before. Any write attempt on any property throws `ImmutableViolationException` with the class name and property name.
 
 ```
 Boot phase      → mutable, configurable by launchers
-Freeze point    → container calls freeze(), properties snapshotted
+Freeze point    → first resolve, container calls freeze(), properties snapshotted
 Runtime phase   → reads work normally, writes throw immediately
 ```
 
@@ -152,7 +152,7 @@ The `#[Immutable]` attribute signals intent. `EnforcesImmutability` provides the
 
 ## Configuring a Frozen Service
 
-The boot window is where you configure a frozen service with values from your environment. Inside your launcher's `launch()` method, the service is still mutable. Once you register the singleton, the container calls `freeze()` and the service is permanently locked.
+The boot window is where you configure a frozen service with values from your environment. Inside your launcher's `launch()` method, the service is still mutable. Registering it does not freeze it. The container calls `freeze()` the first time the service is resolved, and from then on it is permanently locked.
 
 The boot window is the only time configuration should occur.
 ```php
@@ -177,9 +177,46 @@ class AppLauncher extends ServiceLauncher
     }
 }
 ```
-After registration, the instance is permanently locked and reused everywhere.
+After the first resolve, the instance is permanently locked and reused everywhere. The `$payment` variable in your launcher points to the same object, so it is locked too.
 
 After freeze, the service carries exactly the values you configured. Every subsequent injection of `PaymentService` anywhere in your application receives the same frozen, correctly-configured instance.
+
+### How a Service Gets Frozen
+
+The freeze happens the first time the container resolves the service, whichever way you registered it:
+
+| **Registered with** | **Frozen when** |
+| --- | --- |
+| Nothing, or `singleton(PaymentService::class)` | The container builds it and freezes it |
+| `singleton(PaymentService::class, fn () => $payment)` | The first resolve freezes the object your closure returns |
+| `bind(PaymentService::class, fn () => new PaymentService())` | Every resolve freezes the new object |
+| `instance(PaymentService::class, $payment)` | The first resolve freezes the object you passed in |
+
+A closure that returns an object you created yourself:
+```php
+$payment = new PaymentService();
+$payment->gateway = config('payment.gateway');
+
+$this->app->singleton(PaymentService::class, fn () => $payment);
+```
+
+An instance you already have:
+```php
+$payment = new PaymentService();
+$payment->gateway = config('payment.gateway');
+
+$this->app->instance(PaymentService::class, $payment);
+```
+
+Letting the container build the service itself, with its default values:
+```php
+$this->app->singleton(
+    PaymentService::class,
+    fn ($app) => $app->build(PaymentService::class)
+);
+```
+
+In all of these, the object is frozen once, and resolving it again never changes the values it holds.
 
 ### Using Default Values
 
@@ -305,7 +342,7 @@ PHP 8.2 introduced `readonly class`, which also prevents property mutation after
 
 | | `readonly class` | `#[Immutable]` Frozen Service |
 | --- | --- | --- |
-| **Frozen at** | Immediately on `new` — no post-construction writes ever | After container `boot()` — configurable window before freeze |
+| **Frozen at** | Immediately on `new` — no post-construction writes ever | The first time the container resolves it — configurable window before that |
 | **Configure from `config()` / `env()`** | ✗ Impossible after `new` | ✓ Standard pattern during boot |
 | **ServiceProvider configuration** | ✗ Cannot assign post-construction | ✓ Designed for this |
 | **Default property values** | ✓ | ✓ |
@@ -318,10 +355,10 @@ The critical distinction is the **boot window**. With `readonly`, all values mus
 
 ### Mutating After Singleton Registration
 
-A common mistake is attempting to configure a frozen service after it has been registered as a singleton. By the time any code outside the launcher runs, the service is already frozen.
+A common mistake is attempting to configure a frozen service after the container has already resolved it. Registering the singleton does not freeze it, but the first `app(PaymentService::class)` or injection does.
 
 ```php
-// ✓ Correct — configure before registering
+// Correct — configure before registering
 public function launch(): void
 {
     $payment = new PaymentService();
@@ -329,7 +366,7 @@ public function launch(): void
     $this->app->singleton(PaymentService::class, fn() => $payment);
 }
 
-// ✗ Wrong — service is already frozen when this runs
+// Wrong — the container has already resolved and frozen the service
 $payment = app(PaymentService::class);
 $payment->gateway = 'paypal'; // ImmutableViolationException
 ```
