@@ -329,7 +329,7 @@ public function clearCache(): void
 }
 ```
 
-> `before_deleted`, `after_deleted`, `before_restored` and `after_restored` are only triggered by the model instance's `delete()`, `forceDelete()` and `restore()` methods. They are not triggered by bulk queries such as `Post::query()->where(...)->delete()` or `Post::query()->where(...)->restore()`.
+> `before_deleted`, `after_deleted`, `before_restored` and `after_restored` are only triggered by the model instance's `delete()`, `forceDelete()` and `restore()` methods. They are not triggered by bulk queries such as `Post::query()->where(...)->delete()` or `Post::query()->where(...)->restore()` unless you add `withHooks()`, for example `Post::where(...)->withHooks()->delete()`. See [`Running hooks on bulk queries`](/versions/4.x/hooks#running-hooks-on-bulk-queries-with-withhooks).
 
 `withoutHook()` still soft-deletes, it only skips the hooks:
 

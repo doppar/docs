@@ -1,6 +1,6 @@
 ---
 title: Reactive Model Properties
-description: Doppar #[Watches] attribute documentation — property-level reactive observation
+description: Doppar Watches attribute documentation — property-level reactive observation
 meta:
 - name: keywords
   content: Watches, Reactive, Model, Reactive, Doppar, Property Observer
@@ -425,7 +425,8 @@ Watches are tied to Doppar's hook system. Calling `withoutHook()` disables both 
 
 Neither hooks nor watches fire
 ```php
-Order::withoutHook()->update(['status' => 'cancelled', 'total' => 0]);
+$order = Order::find($id);
+$order->withoutHook()->update(['status' => 'cancelled', 'total' => 0]);
 ```
 
 This is useful for data migrations, seeding, and admin operations where you explicitly do not want side effects.

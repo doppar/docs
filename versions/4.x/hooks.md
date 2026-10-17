@@ -3,115 +3,206 @@ title: Model Hooks
 description: Lifecycle hooks for Doppar ORM models
 meta:
 - name: keywords
-  content: Model Hooks, Lifecycle, before_created, after_created, before_updated, after_updated, before_deleted, after_deleted, before_restored, after_restored, booting, booted
+  content: Model Hooks, Lifecycle, before_created, after_created, before_updated, after_updated, before_deleted, after_deleted, before_restored, after_restored, booting, booted, withoutHook, withHooks
 ---
-
-- [Introduction](#introduction)
-- [Supported Events](#supported-events)
-- [Array Property Hooks](#array-property-hooks)
-- [Attribute Based Hooks](#attribute-based-hooks)
-- [Lifecycle Events In Depth](#lifecycle-events-in-depth)
-- [Accessing Model State Inside Hooks](#accessing-model-state-inside-hooks)
-- [Skipping Hooks](#skipping-hooks)
-- [Execution Order](#execution-order)
-- [Important Constraints](#important-constraints)
 
 ## Hooks
 ### Introduction
+Model hooks let you run code at specific moments in the life of a model: just before it is inserted, right after it is updated, when it is deleted, when it is restored, and so on. You attach small pieces of logic to those moments, and Doppar runs them for you every time the model is saved through its own methods.
 
-Model Hooks in Doppar provide a clean, expressive way to respond to lifecycle events on your models. They allow you to execute custom logic automatically when specific events occur — such as when a model is being created, updated, deleted, or booted for the first time.
+Hooks are the right place for rules that belong close to the model but should not be repeated in every controller or service. Typical examples are building a slug from a title, setting a default status, clearing a cache after a delete, or writing an audit record.
 
-Hooks are the right place for cross-cutting concerns that belong close to the model but should not live inside your controllers or service classes.
+Doppar gives you two ways to define hooks, and both can be used on the same model:
 
-Doppar allows two independent ways to define hooks on a model, and both can be used together on the same model:
+| **Style**         | **How it looks**                              | **Best for**                                    |
+| ----------------- | --------------------------------------------- | ----------------------------------------------- |
+| **Attribute**     | `#[Hook('before_created')]` above a method    | Short logic that lives next to the model        |
+| **Array property**| `protected $hooks = [...]` on the model       | Reusable handler classes and static callbacks   |
 
-## Supported Events
-
-Every hook is tied to one of the following ten lifecycle events:
-
-| Event | When it fires |
-|---|---|
-| `booting` | Before the model class is fully initialised. Fires once per class per process, not once per instance. |
-| `booted` | After the model class is fully initialised. Fires once per class per process. |
-| `before_created` | Just before a new record is inserted into the database. Attribute mutations made here are persisted. |
-| `after_created` | Immediately after a new record has been successfully inserted. The model's primary key is available. |
-| `before_updated` | Just before an existing record is updated. Attribute mutations made here are persisted. |
-| `after_updated` | Immediately after an existing record has been successfully updated. |
-| `before_deleted` | Just before a DELETE query runs on the record. |
-| `after_deleted` | Immediately after a record has been removed from the database, or soft-deleted on a `#[SoftDeletes]` model. |
-| `before_restored` | Just before a soft-deleted record is restored. `#[SoftDeletes]` models only. |
-| `after_restored` | Immediately after a soft-deleted record has been restored. `#[SoftDeletes]` models only. |
-
-## Array Property Hooks
-
-### Inline Callback
-
-The simplest way to register a hook is to point it at a static method on the model class using the `[ClassName::class, 'methodName']` callable format. The method receives the model instance as its only parameter.
+A first example, using the attribute style:
 
 ```php
 <?php
 
 namespace App\Models;
 
+use Phaseolies\Database\Entity\Attributes\Hook;
 use Phaseolies\Database\Entity\Model;
-use Phaseolies\Support\Facades\Cache;
 
 class Post extends Model
 {
-    protected $table     = 'posts';
-    protected $creatable = ['title', 'slug', 'status', 'user_id'];
+    protected $creatable = ['title', 'slug', 'status'];
 
-    protected array $hooks = [
-        'before_created' => [self::class, 'setDefaults'],
-        'after_created'  => [self::class, 'notifyFollowers'],
-        'after_deleted'  => [self::class, 'clearCache'],
-    ];
-
-    public static function setDefaults(Model $model): void
+    #[Hook('before_created')]
+    public function generateSlug(): void
     {
-        if (empty($model->status)) {
-            $model->status = 'draft';
-        }
-
-        if (empty($model->user_id)) {
-            $model->user_id = auth()->id();
-        }
-    }
-
-    public static function notifyFollowers(Model $model): void
-    {
-        (new NotifyFollowersJob($model->id))->dispatch();
-    }
-
-    public static function clearCache(Model $model): void
-    {
-        Cache::delete('posts.all');
-        Cache::delete('post.' . $model->id);
+        $this->slug = str()->slug($this->title);
     }
 }
 ```
 
-You can register multiple events each pointing to a different static method:
+Now every post created through the model gets its slug automatically:
 
 ```php
-protected array $hooks = [
-    'before_created' => [self::class, 'generateSlug'],
-    'before_updated' => [self::class, 'generateSlug'],
-    'after_created'  => [self::class, 'sendWelcomeEmail'],
-    'after_updated'  => [self::class, 'invalidateCache'],
-    'after_deleted'  => [self::class, 'invalidateCache'],
-];
+Post::create(['title' => 'Hello World']);
+// saved with slug = 'hello-world'
 ```
 
-### Class-Based Handler
+## Supported Events
+Every hook is tied to one of the following ten lifecycle events:
 
-For reusable or complex hook logic, create a dedicated hook class. Doppar provides a `make:hook` command to scaffold one quickly:
+| **Event**         | **When it fires**                                                                              | **Changes are saved?** |
+| ----------------- | ---------------------------------------------------------------------------------------------- | ---------------------- |
+| `booting`         | Before the model class is initialised. Once per class per process, not once per record.       | No                     |
+| `booted`          | After the model class is initialised. Once per class per process.                             | No                     |
+| `before_created`  | Just before a new record is inserted.                                                          | Yes                    |
+| `after_created`   | Right after the insert. The primary key is available.                                         | No                     |
+| `before_updated`  | Just before an existing record is updated.                                                     | Yes                    |
+| `after_updated`   | Right after the update.                                                                        | No                     |
+| `before_deleted`  | Just before the record is deleted.                                                             | -                      |
+| `after_deleted`   | Right after the record is removed, or soft-deleted on a `#[SoftDeletes]` model.               | -                      |
+| `before_restored` | Just before a soft-deleted record is restored. `#[SoftDeletes]` models only.                  | -                      |
+| `after_restored`  | Right after the record is restored. `#[SoftDeletes]` models only.                              | -                      |
+
+"Changes are saved" means that attribute changes you make inside the hook are written to the database. That is only true for `before_created` and `before_updated`, because Doppar takes its snapshot after those hooks have run.
+
+## When Hooks Run
+Hooks belong to the model's own methods. The table shows which call fires which events:
+
+| **Call**                                            | **Events fired**                                  |
+| --------------------------------------------------- | ------------------------------------------------- |
+| `Post::create([...])`                               | `before_created`, `after_created`                 |
+| `$post->save()` on a new model                      | `before_created`, `after_created`                 |
+| `$post->save()` on an existing model                | `before_updated`, `after_updated`                 |
+| `$post->update([...])`                              | `before_updated`, `after_updated`                 |
+| `$post->delete()`                                   | `before_deleted`, `after_deleted`                 |
+| `$post->forceDelete()`                              | `before_deleted`, `after_deleted`                 |
+| `$post->restore()`                                  | `before_restored`, `after_restored`               |
+| `Post::updateOrCreate([...], [...])`                | The insert or the update events, whichever runs   |
+| `Post::firstOrCreate([...], [...])`                 | The insert events, only when it creates a record  |
+
+Query builder writes are single SQL statements and do not involve a model, so they skip hooks by default:
+
+| **Call**                                            | **Hooks run?**                                    |
+| --------------------------------------------------- | ------------------------------------------------- |
+| `Post::query()->insert([...])`                      | No                                                |
+| `Post::query()->where(...)->update([...])`          | No                                                |
+| `Post::query()->where(...)->delete()`               | No                                                |
+| `Post::where(...)->withHooks()->update([...])`      | Yes, for every matching record                    |
+
+You can opt in with [`withHooks()`](#running-hooks-on-bulk-queries-with-withhooks) when you need hooks on a bulk query.
+
+## Defining Hooks
+
+### Attribute Based Hooks
+The `#[Hook]` attribute declares a model method as a hook handler. Import it at the top of your model:
+
+```php
+use Phaseolies\Database\Entity\Attributes\Hook;
+```
+
+The method runs on the live model, so use `$this` to read and change attributes. It can be `public` or `protected`, and it receives no parameters.
+
+#### Basic usage
+```php
+#[Hook('before_created')]
+public function setDefaultStatus(): void
+{
+    if (empty($this->status)) {
+        $this->status = 'draft';
+    }
+}
+```
+
+#### Several hooks on one model
+A model can have as many hook methods as it needs. Give each method one focused job:
+
+```php
+#[Hook('before_created')]
+public function generateSlug(): void
+{
+    $this->slug = str()->slug($this->title);
+}
+
+#[Hook('before_created')]
+public function setDefaultStatus(): void
+{
+    if (empty($this->status)) {
+        $this->status = 'draft';
+    }
+}
+
+#[Hook('after_deleted')]
+public function clearPostCache(): void
+{
+    Cache::delete('post.' . $this->id);
+    Cache::delete('posts.all');
+}
+```
+
+#### One method for several events
+The attribute is repeatable. Stack it to register a single method for more than one event:
+
+```php
+#[Hook('before_created')]
+#[Hook('before_updated')]
+public function normaliseEmail(): void
+{
+    $this->email = strtolower(trim($this->email));
+}
+```
+
+#### Conditional hooks with `when`
+Add `when:` to run a hook only if a condition is true. It takes the **name** of another method on the same model, as a string. That method must return `bool`. When it returns `false`, the hook is skipped.
+
+```php
+#[Hook('before_updated', when: 'isBeingPublished')]
+public function stampPublishedAt(): void
+{
+    $this->published_at = now();
+}
+
+public function isBeingPublished(): bool
+{
+    return $this->isDirtyAttr('status')
+        && $this->status === 'published'
+        && empty($this->published_at);
+}
+```
+
+The `when` method runs on the same model instance, so it can use `$this`, `isDirtyAttr()`, `getOriginal()` and relationships.
+
+> `when` cannot be a closure, because PHP attributes cannot hold one. If the method does not exist or does not return `bool`, Doppar throws a `RuntimeException` instead of guessing.
+
+### Array Property Hooks
+The other style is a `$hooks` property that maps each event to a handler. Handlers in the array are not tied to `$this`. They receive the model as a parameter.
+
+> Declare the property **without a type**. `protected $hooks = [...]` works. `protected array $hooks = [...]` causes a fatal error, because the base `Model` class declares `$hooks` without a type and PHP does not allow a child class to add one.
+
+#### Static method on the model
+Point an event at a static method with the `[ClassName::class, 'method']` format. The method receives the model as its only argument:
+
+```php
+protected $hooks = [
+    'before_created' => [self::class, 'setDefaults'],
+];
+
+public static function setDefaults(Model $model): void
+{
+    if (empty($model->status)) {
+        $model->status = 'draft';
+    }
+}
+```
+
+#### Hook class
+For reusable or larger logic, put the handler in its own class. Doppar can scaffold one for you:
 
 ```bash
 php pool make:hook PostCreatedHook
 ```
 
-This generates the following class inside `App\Hooks`:
+This creates the following class inside `App\Hooks`:
 
 ```php
 <?php
@@ -129,481 +220,49 @@ class PostCreatedHook
 }
 ```
 
-Register it on the model using the fully qualified class string:
+Register it on the model with the class name:
 
 ```php
-<?php
-
-namespace App\Models;
-
 use App\Hooks\PostCreatedHook;
-use App\Hooks\PostUpdatedHook;
-use App\Hooks\PostDeletedHook;
-use Phaseolies\Database\Entity\Model;
 
-class Post extends Model
-{
-    protected $table     = 'posts';
-    protected $creatable = ['title', 'slug', 'body', 'status'];
-
-    protected array $hooks = [
-        'after_created' => PostCreatedHook::class,
-        'after_updated' => PostUpdatedHook::class,
-        'after_deleted' => PostDeletedHook::class,
-    ];
-}
+protected $hooks = [
+    'after_created' => PostCreatedHook::class,
+];
 ```
 
-Doppar resolves the class from the container and calls `handle(Model $model)` automatically. A real-world example of a hook class:
+Doppar resolves the class from the container, so you can inject dependencies through its constructor, and then calls `handle(Model $model)`.
+
+#### Conditional handler
+Use the `handler` and `when` keys to run a handler only when a condition holds. `when` points to a static method on the model that receives the model and returns `bool`:
 
 ```php
-<?php
+protected $hooks = [
+    'after_updated' => [
+        'handler' => AuditUserHook::class,
+        'when'    => [self::class, 'shouldAudit'],
+    ],
+];
 
-namespace App\Hooks;
-
-use Phaseolies\Database\Entity\Model;
-
-class PostCreatedHook
-{
-    public function handle(Model $model): void
-    {
-        foreach ($model->author->subscribers as $subscriber) {
-            (new NewPostNotifyJob($subscriber, $model))->dispatch();
-        }
-
-        AuditLog::create([
-            'event'      => 'post.created',
-            'model_id'   => $model->id,
-            'user_id'    => auth()->id(),
-            'created_at' => now(),
-        ]);
-    }
-}
-```
-
-### Conditional Hook
-
-Use the `handler` / `when` array format to make a hook fire only when a runtime condition is met. The `when` key must point to a static method on the model that receives the model instance and returns `bool`. When it returns `false`, the handler is silently skipped.
-
-```php
-<?php
-
-namespace App\Models;
-
-use App\Hooks\AuditUserHook;
-use Phaseolies\Database\Entity\Model;
-
-class User extends Model
-{
-    protected $table     = 'users';
-    protected $creatable = ['name', 'email', 'role', 'status', 'password'];
-
-    protected array $hooks = [
-        'after_updated' => [
-            'handler' => AuditUserHook::class,
-            'when'    => [self::class, 'shouldAudit'],
-        ],
-    ];
-
-    /**
-     * Only audit when sensitive fields change.
-     */
-    public static function shouldAudit(Model $model): bool
-    {
-        return $model->isDirtyAttr('email')
-            || $model->isDirtyAttr('role')
-            || $model->isDirtyAttr('password');
-    }
-}
-```
-
-You can refine conditions further — the condition method has full access to current and original state:
-
-```php
 public static function shouldAudit(Model $model): bool
 {
-    // Only audit changes made by administrators
-    if (auth()->user()?->role !== 'admin') {
-        return false;
-    }
-
-    return $model->isDirtyAttr('email') || $model->isDirtyAttr('role');
+    return $model->isDirtyAttr('email')
+        || $model->isDirtyAttr('role');
 }
 ```
 
-You can also use an inline callback as the `handler` inside a conditional hook:
+The `handler` can also be a static method instead of a class:
 
 ```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Model;
-
-class Invoice extends Model
-{
-    protected $table     = 'invoices';
-    protected $creatable = ['amount', 'status', 'tenant_id', 'paid_at'];
-
-    protected array $hooks = [
-        'before_created' => [
-            'handler' => [self::class, 'stampTenantId'],
-            'when'    => [self::class, 'isTenantScoped'],
-        ],
-        'before_updated' => [
-            'handler' => [self::class, 'stampPaidAt'],
-            'when'    => [self::class, 'isBeingPaid'],
-        ],
-    ];
-
-    public static function stampTenantId(Model $model): void
-    {
-        $model->tenant_id = auth()->user()->tenant_id;
-    }
-
-    public static function isTenantScoped(Model $model): bool
-    {
-        return auth()->check() && auth()->user()->tenant_id !== null;
-    }
-
-    public static function stampPaidAt(Model $model): void
-    {
-        $model->paid_at = now();
-    }
-
-    public static function isBeingPaid(Model $model): bool
-    {
-        return $model->isDirtyAttr('status') && $model->status === 'paid';
-    }
-}
+protected $hooks = [
+    'before_updated' => [
+        'handler' => [self::class, 'stampPaidAt'],
+        'when'    => [self::class, 'isBeingPaid'],
+    ],
+];
 ```
 
-### Multiple Events in One Array
-
-You can register hooks for as many events as needed in a single `$hooks` array. Each event key independently uses any handler format — inline, class-based, or conditional:
-
-```php
-<?php
-
-namespace App\Models;
-
-use App\Hooks\OrderCreatedHook;
-use App\Hooks\OrderUpdatedHook;
-use Phaseolies\Database\Entity\Model;
-
-class Order extends Model
-{
-    protected $table     = 'orders';
-    protected $creatable = ['reference', 'amount', 'status', 'user_id'];
-
-    protected array $hooks = [
-        // Inline callback — runs before INSERT
-        'before_created' => [self::class, 'generateReference'],
-
-        // Class-based handler — runs after INSERT
-        'after_created'  => OrderCreatedHook::class,
-
-        // Conditional with class-based handler
-        // Runs after UPDATE only when status changed
-        'after_updated'  => [   
-            'handler' => OrderUpdatedHook::class,
-            'when'    => [self::class, 'statusChanged'],
-        ],
-
-        // Inline callback — cleanup after DELETE
-        'after_deleted'  => [self::class, 'cleanupOrderFiles'],
-    ];
-
-    public static function generateReference(Model $model): void
-    {
-        $model->reference = 'ORD-' . strtoupper(uniqid());
-    }
-
-    public static function statusChanged(Model $model): bool
-    {
-        return $model->isDirtyAttr('status');
-    }
-
-    public static function cleanupOrderFiles(Model $model): void
-    {
-        //
-    }
-}
-```
-
-## Attribute Based Hooks
-
-The `#[Hook]` attribute lets you declare a model method as a lifecycle hook handler without any `$hooks` array entry. Import the attribute class at the top of your model:
-
-```php
-use Phaseolies\Database\Entity\Attributes\Hook;
-```
-
-`#[Hook]` methods run on the live model instance. Use `$this` to read and mutate attributes — no parameter is passed to the method.
-
-### Basic Usage
-
-Place `#[Hook('event_name')]` directly above any public or protected method:
-
-```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Model;
-
-class Post extends Model
-{
-    protected $table     = 'posts';
-    protected $creatable = ['title', 'slug', 'body', 'status'];
-
-    #[Hook('before_created')]
-    public function generateSlug(): void
-    {
-        $this->slug = str()->slug($this->title);
-    }
-
-    #[Hook('before_created')]
-    public function setDefaultStatus(): void
-    {
-        if (empty($this->status)) {
-            $this->status = 'draft';
-        }
-    }
-
-    #[Hook('after_created')]
-    public function notifySubscribers(): void
-    {
-        (new NotifySubscribersJob($this->id))->dispatch();
-    }
-
-    #[Hook('after_deleted')]
-    public function clearPostCache(): void
-    {
-        Cache::delete('post.' . $this->id);
-        Cache::delete('posts.all');
-    }
-}
-```
-
-When `Post::create(['title' => 'Hello World'])` is called, `generateSlug()` and `setDefaultStatus()` both fire before the INSERT. The record is saved with `slug = 'hello-world'` and `status = 'draft'` without any extra code in your controller.
-
-### Multiple Events on One Method
-
-The `#[Hook]` attribute is repeatable. Stack multiple attributes on a single method to register it for more than one event:
-
-```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Model;
-
-class User extends Model
-{
-    protected $table     = 'users';
-    protected $creatable = ['name', 'email', 'username', 'avatar'];
-
-    /**
-     * Normalise the email on both create and update.
-     */
-    #[Hook('before_created')]
-    #[Hook('before_updated')]
-    public function normaliseEmail(): void
-    {
-        $this->email = strtolower(trim($this->email));
-    }
-
-    /**
-     * Generate a default username on create.
-     * Re-sync it on update if the name changes.
-     */
-    #[Hook('before_created')]
-    #[Hook('before_updated')]
-    public function syncUsername(): void
-    {
-        if (empty($this->username) || $this->isDirtyAttr('name')) {
-            $this->username = str()->slug($this->name) . '-' . rand(100, 999);
-        }
-    }
-
-    /**
-     * Clear the cached profile on both update and delete.
-     */
-    #[Hook('after_updated')]
-    #[Hook('after_deleted')]
-    public function clearProfileCache(): void
-    {
-        Cache::delete('user.profile.' . $this->id);
-    }
-}
-```
-
-### Multiple Hook Methods on One Model
-
-A model can have as many `#[Hook]`-annotated methods as it needs. Each method handles one focused responsibility:
-
-```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Model;
-
-class Product extends Model
-{
-    protected $table     = 'products';
-    protected $creatable = ['name', 'slug', 'sku', 'price', 'stock', 'status'];
-
-    #[Hook('before_created')]
-    public function generateSlug(): void
-    {
-        $this->slug = str()->slug($this->name);
-    }
-
-    #[Hook('before_created')]
-    public function normaliseSku(): void
-    {
-        $this->sku = strtoupper(trim($this->sku));
-    }
-
-    #[Hook('before_created')]
-    public function roundPrice(): void
-    {
-        $this->price = round((float) $this->price, 2);
-    }
-
-    #[Hook('before_updated')]
-    public function roundPriceOnUpdate(): void
-    {
-        if ($this->isDirtyAttr('price')) {
-            $this->price = round((float) $this->price, 2);
-        }
-    }
-
-    #[Hook('after_created')]
-    #[Hook('after_updated')]
-    public function reindexSearch(): void
-    {
-        (new ReindexProductJob($this->id))->dispatch();
-    }
-
-    #[Hook('before_deleted')]
-    public function preventDeleteIfHasOrders(): void
-    {
-        if ($this->orders()->count() > 0) {
-            throw new \RuntimeException(
-                "Cannot delete product #{$this->id} — it has existing orders."
-            );
-        }
-    }
-
-    #[Hook('after_deleted')]
-    public function cleanupProductAssets(): void
-    {
-        Cache::delete('product.' . $this->id);
-    }
-}
-```
-
-### Conditional Attribute Hook
-
-Use the `when` parameter to make an attribute hook fire only when a condition is met. Pass the name of another method on the same model as a string. That method must return `bool`. When it returns `false`, the hook is silently skipped.
-
-```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Model;
-
-class Article extends Model
-{
-    protected $table     = 'articles';
-    protected $creatable = ['title', 'slug', 'body', 'status', 'published_at', 'author_id'];
-
-    /**
-     * Only stamp published_at when status changes to 'published' for the first time.
-     */
-    #[Hook('before_updated', when: 'isBeingPublished')]
-    public function stampPublishedAt(): void
-    {
-        $this->published_at = now();
-    }
-
-    public function isBeingPublished(): bool
-    {
-        return $this->isDirtyAttr('status')
-            && $this->status === 'published'
-            && empty($this->published_at);
-    }
-
-    /**
-     * Only notify the author when their article transitions to 'approved'.
-     */
-    #[Hook('after_updated', when: 'wasJustApproved')]
-    public function notifyAuthorOfApproval(): void
-    {
-        (new ArticleApprovedNotification($this->id, $this->author_id))->dispatch();
-    }
-
-    public function wasJustApproved(): bool
-    {
-        return $this->isDirtyAttr('status')
-            && $this->status === 'approved'
-            && $this->getOriginal('status') !== 'approved';
-    }
-
-    /**
-     * Regenerate slug on create only — slug stays stable once published.
-     */
-    #[Hook('before_created')]
-    public function generateSlug(): void
-    {
-        $this->slug = str()->slug($this->title);
-    }
-
-    /**
-     * Only reindex if the body content actually changed.
-     */
-    #[Hook('after_updated', when: 'bodyChanged')]
-    public function reindexArticle(): void
-    {
-        (new ReindexArticleJob($this->id))->dispatch();
-    }
-
-    public function bodyChanged(): bool
-    {
-        return $this->isDirtyAttr('body');
-    }
-
-    /**
-     * Only revoke sessions when the account is being banned.
-     */
-    #[Hook('after_updated', when: 'isBeingBanned')]
-    public function revokeActiveSessions(): void
-    {
-        //
-    }
-
-    public function isBeingBanned(): bool
-    {
-        return $this->isDirtyAttr('status')
-            && $this->status === 'banned'
-            && $this->getOriginal('status') !== 'banned';
-    }
-}
-```
-
-The `when` method always runs on the same model instance, so you have full access to `$this`, `isDirtyAttr()`, `getOriginal()`, and any relationship.
-
-### Mixing Attribute and Array Hooks
-
-Both formats can coexist on the same model. Array hooks execute first, followed by attribute hooks. A common pattern is to use array hooks for injected class-based handlers and attribute hooks for inline per-method logic:
+### Mixing Both Styles
+Both styles can live on the same model. A common split is to use the array for class-based handlers and attributes for small inline logic:
 
 ```php
 <?php
@@ -616,507 +275,209 @@ use Phaseolies\Database\Entity\Model;
 
 class User extends Model
 {
-    protected $table     = 'users';
-    protected $creatable = ['name', 'email', 'username', 'role', 'avatar', 'status'];
+    protected $creatable = ['name', 'email', 'role'];
 
-    /**
-     * Array hook — delegates to an injectable, testable hook class.
-     * Fires first, before all attribute hooks.
-     */
-    protected array $hooks = [
-        'after_updated' => [
-            'handler' => UserAuditHook::class,
-            'when'    => [self::class, 'sensitiveFieldChanged'],
-        ],
+    protected $hooks = [
+        'after_updated' => UserAuditHook::class,
     ];
 
-    public static function sensitiveFieldChanged(Model $model): bool
-    {
-        return $model->isDirtyAttr('email')
-            || $model->isDirtyAttr('role')
-            || $model->isDirtyAttr('password');
-    }
-
-    /**
-     * Attribute hooks — inline logic co-located with each method.
-     * Fire after array hooks.
-     */
     #[Hook('before_created')]
     #[Hook('before_updated')]
     public function normaliseEmail(): void
     {
         $this->email = strtolower(trim($this->email));
     }
-
-    #[Hook('before_created')]
-    public function setDefaultRole(): void
-    {
-        if (empty($this->role)) {
-            $this->role = 'member';
-        }
-    }
-
-    #[Hook('after_created')]
-    public function sendWelcomeEmail(): void
-    {
-        (new SendWelcomeEmailJob($this->id))->dispatch();
-    }
-
-    #[Hook('after_updated')]
-    #[Hook('after_deleted')]
-    public function clearUserCache(): void
-    {
-        Cache::delete('user.' . $this->id);
-    }
 }
 ```
 
-## Lifecycle Events In Depth
+### Execution Order
+When an event fires, hooks run in a fixed order:
 
-### booting and booted
+| **Order** | **Handlers**                                                          |
+| --------- | --------------------------------------------------------------------- |
+| 1         | Array `$hooks` handlers, in the order they appear in the array        |
+| 2         | `#[Hook]` methods, in the order they appear in the class              |
 
-`booting` fires before a model class is fully initialised. `booted` fires after. Both run exactly once per class per PHP process — on the first instantiation of the class — and never again for any subsequent instance of the same class.
-
-Runs once when this class is first instantiated in the process:
-```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Model;
-
-class Setting extends Model
-{
-    #[Hook('booting')]
-    public function onBooting(): void
-    {
-        info('Setting model class is booting.');
-    }
-}
-```
-
-Runs once after the class is fully ready:
-```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Model;
-
-class Setting extends Model
-{
-    #[Hook('booted')]
-    public function onBooted(): void
-    {
-        info('Setting model class has booted.');
-    }
-}
-```
-
-> Do not use `booting` or `booted` for per-record logic. They fire only for the first instantiation in a request. Use `before_created` or `after_created` for per-row operations.
-
-### before_created and after_created
-
-`before_created` fires just before the INSERT query. Any attribute mutations you make inside this hook are included in the INSERT — the snapshot is taken after the hook runs, not before.
-
-`after_created` fires immediately after the record was successfully inserted. The model's primary key is populated and available.
+The same handler cannot be registered twice for the same event. Doppar silently ignores a repeat, so you do not need to guard against it.
 
 ```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Model;
-
-class User extends Model
-{
-    protected $table     = 'users';
-    protected $creatable = ['name', 'email', 'username', 'uuid', 'role', 'status'];
-
-    /**
-     * Generate a unique UUID before insert.
-     * The generated uuid is included in the INSERT.
-     */
-    #[Hook('before_created')]
-    public function assignUuid(): void
-    {
-        //
-    }
-
-    /**
-     * Normalise email to lowercase before insert.
-     */
-    #[Hook('before_created')]
-    public function normaliseEmail(): void
-    {
-        $this->email = strtolower(trim($this->email));
-    }
-
-    /**
-     * Set a default role if none was provided.
-     */
-    #[Hook('before_created')]
-    public function setDefaultRole(): void
-    {
-        if (empty($this->role)) {
-            $this->role = 'member';
-        }
-    }
-
-    /**
-     * After the INSERT, $this->id is now available.
-     */
-    #[Hook('after_created')]
-    public function sendVerificationEmail(): void
-    {
-        (new SendEmailVerificationJob($this->id, $this->email))->dispatch();
-    }
-
-    #[Hook('after_created')]
-    public function createDefaultProfile(): void
-    {
-        Profile::create([
-            'user_id' => $this->id,
-            'avatar'  => 'default-avatar.png',
-        ]);
-    }
-}
-```
-
-Using the array format for the same model:
-
-```php
-protected array $hooks = [
-    'before_created' => [self::class, 'assignUuid'],
-    'after_created'  => [self::class, 'sendVerificationEmail'],
-];
-
-public static function assignUuid(Model $model): void
-{
-    //
-}
-
-public static function sendVerificationEmail(Model $model): void
-{
-    (new SendEmailVerificationJob($model, $model))->dispatch();
-}
-```
-
-> `before_created` and `after_created` are only triggered by `save()` on a new model instance, `create()`, `updateOrCreate()` when it performs an insert, and `firstOrCreate()` when it creates a new record.
-They are **not** triggered by `Post::query()->insert([...])`.
-
-### before_updated and after_updated
-
-`before_updated` fires just before the UPDATE query. Attribute mutations made inside this hook are included in the UPDATE — the dirty snapshot is taken after the hook runs. `after_updated` fires after the record was successfully updated.
-
-```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Model;
-
 class Post extends Model
 {
-    protected $table     = 'posts';
-    protected $creatable = ['title', 'slug', 'body', 'status', 'published_at', 'updated_by'];
-
-    /**
-     * Regenerate slug whenever the title changes.
-     */
-    #[Hook('before_updated', when: 'titleChanged')]
-    public function regenerateSlug(): void
-    {
-        $this->slug = str()->slug($this->title);
-    }
-
-    public function titleChanged(): bool
-    {
-        return $this->isDirtyAttr('title');
-    }
-
-    /**
-     * Stamp published_at the first time status becomes 'published'.
-     */
-    #[Hook('before_updated', when: 'isBeingPublished')]
-    public function stampPublishedAt(): void
-    {
-        $this->published_at = now();
-    }
-
-    public function isBeingPublished(): bool
-    {
-        return $this->isDirtyAttr('status')
-            && $this->status === 'published'
-            && $this->getOriginal('status') !== 'published';
-    }
-
-    /**
-     * Track who performed the last update.
-     */
-    #[Hook('before_updated')]
-    public function trackUpdatedBy(): void
-    {
-        $this->updated_by = auth()->id();
-    }
-
-    /**
-     * Clear caches after every update.
-     */
-    #[Hook('after_updated')]
-    public function invalidateCaches(): void
-    {
-        Cache::delete('post.' . $this->id);
-        Cache::delete('posts.latest');
-    }
-
-    /**
-     * Only reindex search when content actually changes.
-     */
-    #[Hook('after_updated', when: 'contentChanged')]
-    public function triggerSearchReindex(): void
-    {
-        (new ReindexPostJob($this->id))->dispatch();
-    }
-
-    public function contentChanged(): bool
-    {
-        return $this->isDirtyAttr('title') || $this->isDirtyAttr('body');
-    }
-}
-```
-
-Using the array format with a class-based handler:
-
-```php
-<?php
-
-namespace App\Models;
-
-use App\Hooks\PostUpdatedHook;
-use Phaseolies\Database\Entity\Model;
-
-class Post extends Model
-{
-    protected array $hooks = [
-        'after_updated' => [
-            'handler' => PostUpdatedHook::class,
-            'when'    => [self::class, 'contentChanged'],
-        ],
+    protected $hooks = [
+        'before_created' => [self::class, 'stepOne'],   // runs first
     ];
 
-    public static function contentChanged(Model $model): bool
-    {
-        return $model->isDirtyAttr('title') || $model->isDirtyAttr('body');
-    }
+    #[Hook('before_created')]
+    public function stepTwo(): void {}                  // runs second
+
+    #[Hook('before_created')]
+    public function stepThree(): void {}                // runs third
 }
 ```
 
-Now the `PostUpdatedHook` will only run when the title or body attributes have changed.
-```php
-<?php
+## Events One by One
+Each event below has one small example. All of them work the same way in the array style, only the handler signature changes.
 
-namespace App\Hooks;
-
-use Phaseolies\Database\Entity\Model;
-
-class PostUpdatedHook
-{
-    public function handle(Model $model): void
-    {
-        AuditLog::create([
-            'model'     => 'Post',
-            'model_id'  => $model->id,
-            'changes'   => json_encode($model->getDirtyAttributes()),
-            'user_id'   => auth()->id(),
-        ]);
-    }
-}
-```
-
-> `before_updated` and `after_updated` are only triggered when updating via `save()` on an existing model instance, the model's `update()` method, or `updateOrCreate()` when it performs an update.
-They are not triggered by `User::query()->where('id', $id)->update([...])`.
-
-### before_deleted and after_deleted
-
-`before_deleted` fires just before the DELETE query runs. `after_deleted` fires after the record has been removed. Model attributes are still accessible in both hooks.
+### booting
+Fires before the model class is initialised, once per class per process. Use it for class-level setup, not for per-record work.
 
 ```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Model;
-
-class Post extends Model
+#[Hook('booting')]
+public function onBooting(): void
 {
-    protected $table     = 'posts';
-    protected $creatable = ['title', 'slug', 'body', 'status'];
-
-    /**
-     * Block deletion of published posts.
-     */
-    #[Hook('before_deleted')]
-    public function preventDeleteIfPublished(): void
-    {
-        if ($this->status === 'published') {
-            throw new \RuntimeException(
-                "Post #{$this->id} is published and cannot be deleted. Unpublish it first."
-            );
-        }
-    }
-
-    /**
-     * Block deletion if comments exist.
-     */
-    #[Hook('before_deleted')]
-    public function preventDeleteIfHasComments(): void
-    {
-        $count = Comment::query()->where('post_id', $this->id)->count();
-
-        if ($count > 0) {
-            throw new \RuntimeException(
-                "Post #{$this->id} has {$count} comment(s). Delete them before deleting the post."
-            );
-        }
-    }
-
-    /**
-     * Clean up uploaded files and caches after deletion.
-     */
-    #[Hook('after_deleted')]
-    public function cleanupRelatedAssets(): void
-    {
-        Cache::delete('post.' . $this->id);
-        Cache::delete('posts.all');
-        Cache::delete('posts.latest');
-    }
-
-    /**
-     * Write an audit trail after deletion.
-     */
-    #[Hook('after_deleted')]
-    public function logDeletion(): void
-    {
-        AuditLog::create([
-            'event'    => 'post.deleted',
-            'model_id' => $this->id,
-            'title'    => $this->title,
-            'user_id'  => auth()->id(),
-        ]);
-    }
+    info('Setting model is booting.');
 }
 ```
 
-Using the array format:
+### booted
+Fires after the model class is initialised, once per class per process.
 
 ```php
-protected array $hooks = [
-    'before_deleted' => [self::class, 'preventDeleteIfPublished'],
-    'after_deleted'  => [self::class, 'cleanupRelatedAssets'],
-];
-
-public static function preventDeleteIfPublished(Model $model): void
+#[Hook('booted')]
+public function onBooted(): void
 {
-    if ($model->status === 'published') {
-        throw new \RuntimeException('Published posts cannot be deleted.');
-    }
-}
-
-public static function cleanupRelatedAssets(Model $model): void
-{
-    Cache::delete('post.' . $model->id);
+    info('Setting model has booted.');
 }
 ```
 
-> `before_deleted` and `after_deleted` are only triggered when deleting via the model instance's `delete()` method. They are not triggered by `Post::query()->where('id', $id)->delete()`.
+> `booting` and `booted` fire on the first use of the class, then never again in the same process. Use `before_created` and friends for logic that must run for every record.
 
-On a model marked `#[SoftDeletes]`, `delete()` soft-deletes the record and these hooks still fire. They also fire for `forceDelete()`. Call `$this->isForceDeleting()` inside the hook to tell a permanent delete from a soft one.
-
-### before_restored and after_restored
-
-These events exist only on models marked `#[SoftDeletes]`. `before_restored` fires just before a soft-deleted record is restored with `restore()`, and `after_restored` fires once the soft delete column has been cleared. Throwing an exception in `before_restored` stops the restore.
+### before_created
+Fires just before the INSERT. Changes you make here are saved, which makes it the right place for defaults and generated values.
 
 ```php
-<?php
-
-namespace App\Models;
-
-use Phaseolies\Database\Entity\Attributes\Hook;
-use Phaseolies\Database\Entity\Attributes\SoftDeletes;
-use Phaseolies\Database\Entity\Model;
-
-#[SoftDeletes]
-class Post extends Model
+#[Hook('before_created')]
+public function prepareForInsert(): void
 {
-    protected $table     = 'posts';
-    protected $creatable = ['title', 'slug', 'body', 'status'];
+    $this->slug  = str()->slug($this->title);
+    $this->email = strtolower(trim($this->email));
+}
+```
 
-    #[Hook('before_restored')]
-    public function preventRestoreIfArchived(): void
-    {
-        if ($this->status === 'archived') {
-            throw new \RuntimeException("Post #{$this->id} is archived and cannot be restored.");
-        }
-    }
+### after_created
+Fires right after the INSERT. The primary key is now available.
 
-    #[Hook('after_restored')]
-    public function refreshCache(): void
-    {
-        Cache::delete('posts.all');
-        Cache::delete('posts.latest');
+```php
+#[Hook('after_created')]
+public function createDefaultProfile(): void
+{
+    Profile::create([
+        'user_id' => $this->id,
+        'avatar'  => 'default-avatar.png',
+    ]);
+}
+```
+
+### before_updated
+Fires just before the UPDATE. Changes you make here are saved. Use `isDirtyAttr()` to react only to specific changes.
+
+```php
+#[Hook('before_updated', when: 'titleChanged')]
+public function regenerateSlug(): void
+{
+    $this->slug = str()->slug($this->title);
+}
+
+public function titleChanged(): bool
+{
+    return $this->isDirtyAttr('title');
+}
+```
+
+### after_updated
+Fires right after the UPDATE. The original values are still available through `getOriginal()`, which makes it a good place for audit records and cache clearing.
+
+```php
+#[Hook('after_updated')]
+public function invalidateCaches(): void
+{
+    Cache::delete('post.' . $this->id);
+    Cache::delete('posts.latest');
+}
+```
+
+### before_deleted
+Fires just before the delete. Throw an exception to stop it.
+
+```php
+#[Hook('before_deleted')]
+public function preventDeleteIfPublished(): void
+{
+    if ($this->status === 'published') {
+        throw new \RuntimeException(
+            "Post #{$this->id} is published and cannot be deleted. Unpublish it first."
+        );
     }
 }
 ```
 
-> `before_restored` and `after_restored` are only triggered by the model instance's `restore()` method. They are not triggered by `Post::query()->where('id', $id)->restore()`. See [`Soft Deletes`](/versions/4.x/soft-deletes) for the full soft delete API.
+### after_deleted
+Fires right after the record is removed. Attributes are still readable.
+
+```php
+#[Hook('after_deleted')]
+public function logDeletion(): void
+{
+    AuditLog::create([
+        'event'    => 'post.deleted',
+        'model_id' => $this->id,
+        'user_id'  => auth()->id(),
+    ]);
+}
+```
+
+On a model marked `#[SoftDeletes]`, `delete()` soft-deletes the record and both delete events still fire. They also fire for `forceDelete()`. Call `$this->isForceDeleting()` inside the hook to tell a permanent delete from a soft one:
+
+```php
+#[Hook('after_deleted')]
+public function removeFiles(): void
+{
+    if ($this->isForceDeleting()) {
+        @unlink($this->cover_path);
+    }
+}
+```
+
+### before_restored
+Fires just before a soft-deleted record is restored. Throw an exception to stop the restore. `#[SoftDeletes]` models only.
+
+```php
+#[Hook('before_restored')]
+public function preventRestoreIfArchived(): void
+{
+    if ($this->status === 'archived') {
+        throw new \RuntimeException("Post #{$this->id} is archived and cannot be restored.");
+    }
+}
+```
+
+### after_restored
+Fires once the soft delete column has been cleared. `#[SoftDeletes]` models only.
+
+```php
+#[Hook('after_restored')]
+public function refreshCache(): void
+{
+    Cache::delete('posts.all');
+    Cache::delete('posts.latest');
+}
+```
+
+See [`Soft Deletes`](/versions/4.x/soft-deletes) for the full soft delete API.
 
 ## Accessing Model State Inside Hooks
+Inside any hook you can read the model's current state, its original state before the operation, and what changed.
 
-Inside any hook you have full access to the model's current state, its original state before the operation began, and which attributes have changed.
+| **Method**                       | **Returns**                                                        |
+| -------------------------------- | ------------------------------------------------------------------ |
+| `$this->name`                    | The current value of an attribute                                  |
+| `$this->getAttributes()`         | All current attributes as an array                                 |
+| `$this->getOriginal('name')`     | The value of one attribute before the current operation            |
+| `$this->getOriginalAttributes()` | All original attributes as an array                                |
+| `$this->isDirtyAttr('email')`    | `true` if the attribute differs from its original value            |
+| `$this->getDirtyAttributes()`    | The changed attributes as `key => new_value` pairs                 |
 
-### Reading Attributes
-Current value via magic getter
-```php
-$this->name
-$this->email
-$this->status
-```
-
-All current attributes as array
-```php
-$this->getAttributes()
-```
-
-Single original attribute (value before the current operation)
-```php
-$this->getOriginal('name')
-```
-
-All original attributes as array
-```php
-$this->getOriginalAttributes()
-```
-
-### Detecting Changes
-
-`true` if the attribute differs from its original value
-```php
-$this->isDirtyAttr('email')
-```
-
-All changed attributes as `key => new_value` pairs
-```php
-$this->getDirtyAttributes()
-// returns: ['email' => 'new@example.com', 'role' => 'admin']
-```
-
-Combining these to build a precise per-field audit hook:
+Writing an audit entry for each changed field:
 
 ```php
 #[Hook('after_updated')]
@@ -1130,87 +491,118 @@ public function writeAuditLog(): void
             'old_value' => $this->getOriginal($field),
             'new_value' => $newValue,
             'user_id'   => auth()->id(),
-            'ip'        => request()->ip(),
-            'at'        => now(),
         ]);
     }
 }
 ```
 
-Detecting a specific state transition:
+Reacting to a transition, not just a change:
 
 ```php
-#[Hook('after_updated', when: 'statusChangedToBanned')]
-public function revokeUserSessions(): void
+#[Hook('after_updated', when: 'wasJustApproved')]
+public function notifyAuthor(): void
 {
-    (new NotifyUserBannedJob($this->id))->dispatch();
+    (new ArticleApprovedNotification($this->id, $this->author_id))->dispatch();
 }
 
-public function statusChangedToBanned(): bool
+public function wasJustApproved(): bool
 {
     return $this->isDirtyAttr('status')
-        && $this->status === 'banned'
-        && $this->getOriginal('status') !== 'banned';
+        && $this->status === 'approved'
+        && $this->getOriginal('status') !== 'approved';
 }
 ```
 
-### Mutating Attributes
+### Before and after are not the same
+Changes made in `before_created` and `before_updated` are saved, because the snapshot is taken after your hook runs. Changes made in `after_created` and `after_updated` are **not** saved, because the query has already run.
 
-In `before_created` and `before_updated` hooks, you can freely mutate `$this` attributes. The database snapshot is taken **after** the hook runs, so your changes are always persisted:
+If you need to save more after the fact, call `save()` again with hooks switched off for that save. Otherwise you would trigger the hooks again:
 
 ```php
-#[Hook('before_created')]
-public function prepareForInsert(): void
+#[Hook('after_created')]
+public function stampCode(): void
 {
-    $this->slug       = str()->slug($this->title);
-    $this->price      = round((float) $this->price, 2);
-    $this->email      = strtolower(trim($this->email));
-    $this->created_by = auth()->id();
+    $this->code = 'CODE-' . $this->id;
+
+    $this->withoutHook()->save();
 }
 ```
-All of the above will be included in the INSERT.
 
-Attribute mutations in `after_created` and `after_updated` hooks are not automatically persisted. The `INSERT` or `UPDATE` has already executed. If you need to persist further changes after the fact, call `$this->save()` explicitly — but use `withoutHook()` to avoid triggering hooks recursively.
-
-Inside `#[Hook]` attribute methods, use `$this` to access the model. Inside array-based inline callbacks (`[self::class, 'method']`) and class-based `handle()` methods, the model is passed as the `$model` parameter — `$this` is not the model.
-
-## Skipping Hooks
-
-Sometimes you need to save, update, or delete a model without triggering any hooks — for example during data migrations, bulk imports, system writes, or seeding. Doppar provides `withoutHook()` for this.
-
-#### Skip hooks on create
+## Cancelling an Operation
+A `before_*` hook can stop the operation by throwing an exception. The exception reaches the code that called `save()`, `update()`, `delete()` or `restore()`, and nothing is written.
 
 ```php
-// New instance
-$user = new User();
-$user->name  = 'Imported User';
-$user->email = 'import@example.com';
-$user->withoutHook()->save();
-
-// Via static create
-User::withoutHook()->create([
-    'name'  => 'Imported User',
-    'email' => 'import@example.com',
-]);
+try {
+    $post->delete();
+} catch (\RuntimeException $e) {
+    return back()->with('error', $e->getMessage());
+}
 ```
 
-#### Skip hooks on update via save()
+Returning `false` from a hook does not cancel anything. Throw instead.
 
+## Skipping Hooks with withoutHook()
+Some writes should not run your hooks: data migrations, bulk imports, seeders, system fixes, or a hook that needs to save its own model again. `withoutHook()` switches hooks off for **one write**.
+
+It works in two places, and the difference matters:
+
+| **Called on**                  | **Returns**          | **Effect**                                                                        |
+| ------------------------------ | -------------------- | --------------------------------------------------------------------------------- |
+| A model instance               | The same instance    | Skips hooks for the next write on that instance                                   |
+| The model class (`User::...`)  | A query builder      | Models the builder creates or loads skip hooks for their next write              |
+
+Two things hold in both cases:
+
+- **It lasts for one write.** After `save()`, `update()`, `delete()` or `restore()` finishes, hooks are back on for that model.
+- **It never leaks.** The switch lives on the model or the builder you called it on. Other models and other queries are not affected, even if the call is followed by a plain read.
+
+### On a model instance
+Because the instance is returned, you can chain the write straight onto it. Each call below touches only that one record.
+
+#### Save
 ```php
 $user = User::find($id);
 $user->name = 'Updated Name';
 $user->withoutHook()->save();
 ```
 
-#### Skip hooks on update via update()
-
+#### Update
 ```php
 $user = User::find($id);
 $user->withoutHook()->update(['name' => 'Updated Name']);
 ```
 
-#### Skip hooks on updateOrCreate
+#### Delete
+```php
+$post = Post::find($id);
+$post->withoutHook()->delete();
+```
 
+#### Create from a new instance
+```php
+$user = new User();
+$user->name  = 'Imported User';
+$user->email = 'import@example.com';
+$user->withoutHook()->save();
+```
+
+### On the model class
+The class form is the right choice when you create or look up the record in the same expression.
+
+#### Create
+```php
+User::withoutHook()->create([
+    'name'  => 'Imported User',
+    'email' => 'import@example.com',
+]);
+```
+
+#### Find and delete
+```php
+User::withoutHook()->find($id)->delete();
+```
+
+#### Update or create
 ```php
 User::withoutHook()->updateOrCreate(
     ['email' => 'user@example.com'],
@@ -1218,130 +610,199 @@ User::withoutHook()->updateOrCreate(
 );
 ```
 
-#### Skip hooks on restore
+#### First or create
+```php
+User::withoutHook()->firstOrCreate(
+    ['email' => 'user@example.com'],
+    ['name'  => 'New User']
+);
+```
 
+#### Restore
 ```php
 Post::withoutHook()->withTrashed()->find($id)->restore();
 ```
 
-#### Skip hooks on delete
+On a `#[SoftDeletes]` model, `withoutHook()` still soft-deletes. It only skips the hooks:
 
 ```php
-$post = Post::find($id);
-$post->withoutHook()->delete();
-
-// Or in one line
-User::withoutHook()->find($id)->delete();
+Post::withoutHook()->find($id)->delete();   // soft-deleted, no hooks
 ```
 
-`withoutHook()` disables all hooks for that single operation chain. Subsequent operations on other model instances are not affected.
+> A model loaded through `User::withoutHook()->find($id)` carries the switch with it. If you change that model and call `save()` later, that first save also skips hooks.
 
-## Execution Order
+### Use cases
+| **Situation**                                   | **Why `withoutHook()` helps**                                          |
+| ----------------------------------------------- | ---------------------------------------------------------------------- |
+| Importing records from another system           | Skip slug generation, notifications and cache work for every row       |
+| Seeders and test data                           | Avoid sending emails or dispatching jobs while seeding                 |
+| Saving again from inside an `after_*` hook      | Prevents the hook from triggering itself in a loop                     |
+| Housekeeping writes, such as a remember token   | Avoid audit records for changes nobody made                            |
+| Repairing bad data                              | Fix values without running business rules a second time                |
 
-When a lifecycle event fires, hooks run in this fixed order:
+## Running Hooks on Bulk Queries with withHooks()
+A query builder write such as `User::query()->where(...)->update([...])` is one SQL statement. No model is involved, so no hooks run. That is the fast path, and it is the right default.
 
-1. **Array `$hooks` property handlers** — in the order they are defined in the array
-2. **Attribute `#[Hook]` handlers** — in the order the annotated methods appear in the class file
-
-Within each group, the same handler cannot be registered twice for the same event. Doppar automatically prevents duplicate registration and silently ignores any repeat.
+When you need hooks, watches and temporal snapshots to run for every affected record, add `withHooks()` to the query:
 
 ```php
-class Post extends Model
-{
-    // Executes first (array hook)
-    protected array $hooks = [
-        'before_created' => [self::class, 'stepOne'],
-    ];
-
-    // Executes second (first attribute hook in the file)
-    #[Hook('before_created')]
-    public function stepTwo(): void { ... }
-
-    // Executes third (second attribute hook in the file)
-    #[Hook('before_created')]
-    public function stepThree(): void { ... }
-}
+User::where('status', 'pending')->withHooks()->update(['status' => 'active']);
 ```
 
+Doppar loads the matching records in chunks of 500, ordered by primary key, and calls each model's own `update()`, `delete()`, `restore()` or `forceDelete()`. Your hooks see a real model, exactly as they do for a single record.
+
+| **Call after `withHooks()`** | **Runs for each record**              | **Notes**                                             |
+| ---------------------------- | ------------------------------------- | ----------------------------------------------------- |
+| `update([...])`              | `before_updated`, `after_updated`     | Follows the model's `$creatable` list                 |
+| `delete()`                   | `before_deleted`, `after_deleted`     | Soft-deletes on a `#[SoftDeletes]` model              |
+| `restore()`                  | `before_restored`, `after_restored`   | `#[SoftDeletes]` models only                          |
+| `forceDelete()`              | `before_deleted`, `after_deleted`     | `#[SoftDeletes]` models only                          |
+
+### Ways to use it
+Each example below changes only the call after `withHooks()`.
+
+#### Update many records
+```php
+User::where('status', 'pending')
+    ->withHooks()
+    ->update(['status' => 'active']);
+```
+
+#### Update a list of ids
+```php
+Order::whereIn('id', [10, 11, 12])
+    ->withHooks()
+    ->update(['status' => 'shipped']);
+```
+
+#### Delete many records
+```php
+Post::where('author_id', $authorId)
+    ->withHooks()
+    ->delete();
+```
+
+#### Restore trashed records
+```php
+Post::onlyTrashed()
+    ->where('author_id', $authorId)
+    ->withHooks()
+    ->restore();
+```
+
+#### Permanently delete
+```php
+Post::where('archived', true)
+    ->withHooks()
+    ->forceDelete();
+```
+
+> `restore()` and `forceDelete()` are available on models marked `#[SoftDeletes]`. On any other model they throw a `LogicException`, the same as without `withHooks()`.
+
+#### All or nothing, inside a transaction
+Records are written one by one, and there is no transaction around them. If a hook throws, records handled before it stay changed. Wrap the call in a transaction when you need all or nothing:
+
+```php
+DB::transaction(function () {
+    User::where('status', 'pending')
+        ->withHooks()
+        ->update(['status' => 'active']);
+});
+```
+
+#### Combined with withoutHook()
+You can combine both. The records are still written one by one, but without any hooks. This is rarely what you want, so pick one unless you have a reason:
+
+```php
+User::withoutHook()
+    ->where('status', 'pending')
+    ->withHooks()
+    ->update(['status' => 'active']);
+```
+
+### What to know before using it
+| **Point**                       | **Detail**                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Speed                           | Every record gets its own query. Use it when you need the hooks, not by default.                        |
+| `$creatable`                    | `update()` ignores columns that are not in the model's `$creatable` list, like `$user->update([...])`.   |
+| No implicit transaction         | A throwing hook stops the run. Earlier records stay changed and later records are not touched.          |
+| Rows that stop matching         | Not skipped. The query walks the primary key, so changing the column used in `where` is safe.           |
+| `orderBy()` and `limit()`       | Replaced by the chunking while the query runs.                                                          |
+
+## Choosing Between the Three
+| **You want to...**                                         | **Use**                                              |
+| ---------------------------------------------------------- | ---------------------------------------------------- |
+| Write one record and run its hooks                         | `$post->save()`, `$post->update([...])`              |
+| Write one record and skip its hooks                        | `$post->withoutHook()->save()`                       |
+| Create or find a record and skip hooks                     | `Post::withoutHook()->create([...])`                 |
+| Change many rows as fast as possible, no hooks             | `Post::where(...)->update([...])`                    |
+| Change many rows and run hooks for each                    | `Post::where(...)->withHooks()->update([...])`       |
+
+## Hooks, Watches and Temporal Snapshots
+Hooks are the base for two other features, and `withoutHook()` and `withHooks()` affect them in the same way:
+
+| **Feature**                                       | **Runs with hooks?** | **Skipped by `withoutHook()`?** |
+| ------------------------------------------------- | -------------------- | ------------------------------- |
+| Property watches (`#[Watches]`)                   | Yes                  | Yes                             |
+| Temporal snapshots (history records)              | Yes                  | Yes                             |
+
+Use `withoutHook()` only when you intentionally want to skip them as well. See [`Reactive Model`](/versions/4.x/reactive-model) and [`Temporal ORM`](/versions/4.x/temporal-orm) for details.
 
 ## Important Constraints
 
-Hooks are triggered by model methods only
-
-Hooks fire when you use the model's own persistence methods. Direct entity builder calls bypass all hooks entirely.
-
-```php
-// Hooks fire
-Post::create(['title' => 'Hello']);
-$post->save();
-$post->update(['title' => 'Updated']);
-$post->delete();
-
-// Hooks do NOT fire
-Post::query()->insert(['title' => 'Hello']);
-Post::query()->where('id', 1)->update(['title' => 'Updated']);
-Post::query()->where('id', 1)->delete();
-Post::query()->whereIn('id', [1, 2, 3])->delete();
-```
-
-Attribute hooks use `$this`, array hooks receive `$model`
+#### Attribute hooks use `$this`, array hooks receive `$model`
+Inside a `#[Hook]` method, `$this` is the model. Inside a static callback or a `handle()` method, the model is the `$model` parameter and `$this` is not the model.
 
 ```php
 #[Hook('before_created')]
 public function generateSlug(): void
 {
-    // $this is the model
     $this->slug = str()->slug($this->title);
 }
 ```
 
-Array hook — static method, model passed as parameter
+Here `$this` is the model.
+
 ```php
-protected array $hooks = [
+protected $hooks = [
     'before_created' => [self::class, 'generateSlug'],
 ];
 
 public static function generateSlug(Model $model): void
 {
-    // use $model, not $this
     $model->slug = str()->slug($model->title);
 }
 ```
+Use `$model`, not `$this` this case.
 
-**`when` on `#[Hook]` must be a method name string**
+#### `when` on `#[Hook]` must be a method name
+It accepts only a string, the name of another method on the same model, and that method must return `bool`.
 
-The `when` parameter accepts only a string — the name of another instance method on the same model. It cannot be a closure or a callable array. The named method must return exactly `bool`.
-
+Correct one.
 ```php
-// Correct
 #[Hook('before_updated', when: 'isPublished')]
-public function doSomething(): void { ... }
+public function doSomething(): void {}
 
 public function isPublished(): bool
 {
     return $this->status === 'published';
 }
-
-// Wrong — closures cannot be passed as PHP attribute values
-#[Hook('before_updated', when: fn() => true)]
-public function doSomething(): void { ... }
-
-// Wrong — when method must return bool, not string or int
-public function isPublished(): string { return 'yes'; }
 ```
 
-**`booting` and `booted` fire once per class, not once per instance**
+Wrong, you can't use closures as attribute values:
+```php
+#[Hook('before_updated', when: fn() => true)]
+public function doSomething(): void {}
+```
 
-These are class-level bootstrap events. They fire on the first instantiation of the class within a PHP process. All subsequent instantiations skip them entirely. Do not rely on them for per-record logic.
+#### `$hooks` must not have a type
+Write `protected $hooks = [...]`. Adding `array` is a fatal error.
 
-**`before_*` mutations are persisted, `after_*` mutations are not**
+#### `booting` and `booted` run once per class
+They fire on the first use of the class in a process. Do not rely on them for per-record logic.
 
-Attribute changes made in `before_created` and `before_updated` hooks are included in the INSERT or UPDATE because the snapshot is taken after hooks run. Attribute changes made in `after_created` and `after_updated` are **not** automatically persisted — the database operation has already completed.
+#### Duplicate registration is ignored
+The same handler is never registered twice for the same event. This applies to array hooks, attribute hooks and any mix of both.
 
-**Duplicate hook prevention**
-
-Doppar automatically prevents the same handler from being registered twice for the same event on the same model. This applies to array hooks, attribute hooks, and any combination of both. You do not need to guard against double registration.
-
-**Reflection runs once per class**
-
-For `#[Hook]` attribute hooks, Doppar uses PHP Reflection to scan model methods. This scan runs exactly once per class per process and the result is cached in a static property on the `Model` class. There is no performance cost for models hydrated in bulk or large collections.
+#### Reflection runs once per class
+For `#[Hook]` attributes, Doppar scans the model's methods with Reflection once per class per process and caches the result. Loading large collections of models does not repeat the scan.
