@@ -246,7 +246,7 @@ $comment->post?->title ?? 'default';
 In the example above, Entity will attempt to find a Post model that has an id which matches the post_id column on the Comment model.
 
 ## Creating Related Records
-Once a relationship is defined, you can create and save related records through it. Doppar sets the foreign key from the parent for you, so you never copy ids around by hand. This works on `linkOne` and `linkMany` relationships.
+Once a relationship is defined, you can create and save related records through it. Doppar sets the foreign key from the parent for you, so you never copy ids around by hand. This works on `linkOne` and `linkMany` relationships. For many-to-many relationships, see [`Creating Related Records in a Many to Many Relationship`](#creating-related-records-in-a-many-to-many-relationship).
 
 ### create()
 ```php
@@ -307,6 +307,48 @@ $post->comments()->withoutHook()->create(['body' => 'Imported']);
 ### Rules
 - **The parent must be saved.** Writing through the relationship of a model that has no key yet throws a `LogicException`. Reading the relationship of a model that has no key yet returns nothing: an empty collection, or `null` for a one-to-one.
 - **The foreign key must be in `$creatable`.** Doppar never writes a column the model has not listed. If `post_id` is not in `Comment::$creatable`, the call throws a `LogicException` that names the column, and nothing is inserted.
+
+### Creating Related Records in a Many to Many Relationship
+On a `bindToMany` relationship there is no foreign key on the related record. The link is a row in the pivot table. `create()`, `createMany()`, `store()` and `storeMany()` create or save the record **and** add that pivot row, so the new record is attached to the parent:
+
+```php
+$post = Post::find(1);
+
+$tag = $post->tags()->create(['name' => 'doppar']);
+
+$post->tags()->createMany([
+    ['name' => 'php'],
+    ['name' => 'orm'],
+]);
+```
+
+Pass the extra pivot columns as the last argument:
+
+```php
+$post->tags()->create(['name' => 'featured'], ['created_at' => now()]);
+```
+
+To attach a model you already have, use `store()` and `storeMany()`. A model that is already linked to the post is not linked twice:
+
+```php
+$tag = new Tag();
+$tag->name = 'new';
+
+$post->tags()->store($tag);                  // saved and linked
+$post->tags()->store(Tag::find(5));          // linked
+$post->tags()->store(Tag::find(5));          // already linked: nothing is added
+$post->tags()->storeMany([$tagA, $tagB]);
+```
+
+If you give pivot data for a model that is already linked, the stored pivot values are updated.
+
+These rules apply:
+
+- **One transaction.** The record and its pivot row are written together. If the pivot row cannot be written, the record is not kept. `createMany()` and `storeMany()` are all or nothing: if one record fails, none of them are kept. Inside your own `DB::transaction()`, they join it, so a rollback of your transaction removes them too.
+- **The post must be saved.** Writing through the relationship of a model with no key yet throws a `LogicException`.
+- **A model of the wrong class throws.** `store()` throws an `InvalidArgumentException`, and nothing is changed.
+- **`firstOrCreate()` and `updateOrCreate()`** only look at the records already linked to the post. If the record is not found, it is created and linked. A tag with the same name that is linked to another post does not count.
+- `withoutHook()` skips the model hooks, as it does for the other relationships.
 
 ## Associate and Dissociate
 On the inverse side (`bindTo`), `associate()` points the model at a parent, and `dissociate()` removes the link. Both only change the model. Call `save()` to store the change.
