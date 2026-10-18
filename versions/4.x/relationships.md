@@ -6,17 +6,6 @@ meta:
     content: Entity Relationships
 ---
 
-  - [Relationship Return Types](#relationship-return-types)
-  - [One to One / Link One](#one-to-one--link-one)
-  - [One To One Inverse / Bind To](#one-to-one-inverse--bind-to)
-  - [One to Many / Link Many](#one-to-many--link-many)
-  - [Eager Loading, Lazy Loading](#eager-loading-lazy-loading)
-  - [Many To Many / bindToMany ](#many-to-many--bind-to-many)
-  - [Nested Relationship](#nested-relationship)
-  - [Quering Relationship Existence](#quering-relationship-existence)
-  - [Quering Relationship Missing](#quering-relationship-missing)
-  - [Relationship Count](#relationship-count)
-
 ## Relationships
 ### Introduction
 Doppar Entity provides a powerful relationship system for defining and working with connections between related database records. Instead of manually managing foreign keys and separate queries, relationships allow your models to describe how their data is connected and provide an expressive interface for retrieving and querying related records.
@@ -44,6 +33,22 @@ All of them extend the Entity query builder, so everything you can do on a query
 ```php
 $user->otp()->where('used', false)->first();
 ```
+
+### Conditions Stay Inside the Parent
+A relationship method is always limited to the records of its parent. Whatever you add to it, including `orWhere()`, a nested group or a `whereIn()`, can only narrow the parent's own records. It can never reach the records of another parent:
+
+```php
+$post = Post::find(1);
+
+$post->comments()
+    ->where('body', 'Nice post!')
+    ->orWhere('body', 'First')
+    ->get();
+```
+
+This holds for `get()`, `first()`, `count()` and `exists()`, and for writes through the builder such as `update()` and `delete()`. It applies to `linkOne`, `linkMany`, `bindTo` and `bindToMany` relationships alike, and soft deleted records are still left out unless you ask for them with `withTrashed()` or `onlyTrashed()`.
+
+If the model has no key yet, because it has not been saved, its relationships match nothing.
 
 ## One to One / Link One
 A one-to-one relationship is one of the simplest types of database associations. For instance, a `User` model may be linked to a single `Otp` model. To define this relationship, you can add an otp method to the User model. This method should invoke the `linkOne` method and return its result. The `linkOne` method is provided by the `Phaseolies\Database\Entity\Model` base class, making it easily accessible within your model.
@@ -168,6 +173,7 @@ A one-to-many relationship is ideal for scenarios where a single model serves as
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\LinkMany;
 
 class Post extends Model
 {
@@ -180,7 +186,7 @@ class Post extends Model
     }
 }
 ```
-The first argument passed to the linkMany method is the name of the related model class. The keys default the same way as `linkOne`: the foreign key on the related table is `post_id` (comments.post_id) and the local key is this model's primary key (posts.id). Pass the second and third arguments to use different columns: `$this->linkMany(Comment::class, 'article_id', 'id')`. Add `use Phaseolies\Database\Entity\Relations\LinkMany;` to the model.
+The first argument passed to the linkMany method is the name of the related model class. The keys default the same way as `linkOne`: the foreign key on the related table is `post_id` (comments.post_id) and the local key is this model's primary key (posts.id). Pass the second and third arguments to use different columns: `$this->linkMany(Comment::class, 'article_id', 'id')`.
 
 Once the relationship method has been defined, we can access the collection of related comments by accessing the comments property. Remember, since Entity provides "dynamic relationship properties", we can access relationship methods as if they were defined as properties on the model:
 
@@ -208,22 +214,23 @@ Post::embed('comments')->get();
 This approach ensures that all related articles for each User are loaded in a single query, By retrieving the posts and their associated comments in one go, you significantly improve performance, especially when dealing with large datasets or nested relationships.
 
 ## One to Many Inverse / Bind To
-Now that we can access all of a post's comments, let's define a relationship to allow a comment to access its parent post. To define the inverse of a `LinkMany` relationship, define a relationship method on the child model which calls the belongsTo method:
+Now that we can access all of a post's comments, let's define a relationship to allow a comment to access its parent post. To define the inverse of a `LinkMany` relationship, define a relationship method on the child model which calls the `bindTo` method:
 ```php
 <?php
 
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\BindTo;
 
 class Comment extends Model
 {
     /**
      * Get the post that owns the comment.
      */
-    public function post()
+    public function post(): BindTo
     {
-      return $this->bindTo(Post::class, 'id', 'post_id');
+        return $this->bindTo(Post::class);
     }
 }
 ```
@@ -237,6 +244,164 @@ $comment = Comment::find(1);
 $comment->post?->title ?? 'default';
 ```
 In the example above, Entity will attempt to find a Post model that has an id which matches the post_id column on the Comment model.
+
+## Creating Related Records
+Once a relationship is defined, you can create and save related records through it. Doppar sets the foreign key from the parent for you, so you never copy ids around by hand. This works on `linkOne` and `linkMany` relationships. For many-to-many relationships, see [`Creating Related Records in a Many to Many Relationship`](#creating-related-records-in-a-many-to-many-relationship).
+
+### create()
+```php
+$post = Post::find(1);
+
+$comment = $post->comments()->create([
+    'body' => 'Nice post!',
+]);
+
+$comment->post_id; // 1
+```
+
+The comment is saved with `post_id` set to the post's id. If you pass a `post_id` in the attributes, it is ignored: the parent's key always wins. Hooks, watches and temporal snapshots run as they do for any model save.
+
+### createMany()
+```php
+$comments = $post->comments()->createMany([
+    ['body' => 'First'],
+    ['body' => 'Second'],
+]);
+```
+
+It returns a collection of the saved models. Each record is its own insert, so wrap the call in `DB::transaction()` when they must all succeed or none.
+
+### store() and storeMany()
+Use `store()` when you already have a model instance. It sets the foreign key and saves the model. If the model already belongs to another parent, it is moved to this one.
+
+```php
+$comment = new Comment();
+$comment->body = 'Hello';
+
+$post->comments()->store($comment);
+
+$post->comments()->storeMany([$first, $second]);
+```
+
+A model of the wrong class throws an `InvalidArgumentException`.
+
+### firstOrCreate() and updateOrCreate()
+On a relationship these only look at the parent's own records, and create the missing one with the foreign key set:
+
+```php
+$post->comments()->firstOrCreate(['body' => 'Hello']);
+
+$post->comments()->updateOrCreate(
+    ['body' => 'Hello'],
+    ['body' => 'Hello again']
+);
+```
+
+### Skipping hooks
+Add `withoutHook()` to skip the model hooks for the write:
+
+```php
+$post->comments()->withoutHook()->create(['body' => 'Imported']);
+```
+
+### Rules
+- **The parent must be saved.** Writing through the relationship of a model that has no key yet throws a `LogicException`. Reading the relationship of a model that has no key yet returns nothing: an empty collection, or `null` for a one-to-one.
+- **The foreign key must be in `$creatable`.** Doppar never writes a column the model has not listed. If `post_id` is not in `Comment::$creatable`, the call throws a `LogicException` that names the column, and nothing is inserted.
+
+### Creating Related Records in a Many to Many Relationship
+On a `bindToMany` relationship there is no foreign key on the related record. The link is a row in the pivot table. `create()`, `createMany()`, `store()` and `storeMany()` create or save the record **and** add that pivot row, so the new record is attached to the parent:
+
+```php
+$post = Post::find(1);
+
+$tag = $post->tags()->create(['name' => 'doppar']);
+
+$post->tags()->createMany([
+    ['name' => 'php'],
+    ['name' => 'orm'],
+]);
+```
+
+Pass the extra pivot columns as the last argument:
+
+```php
+$post->tags()->create(['name' => 'featured'], ['created_at' => now()]);
+```
+
+To attach a model you already have, use `store()` and `storeMany()`. A model that is already linked to the post is not linked twice:
+
+```php
+$tag = new Tag();
+$tag->name = 'new';
+
+$post->tags()->store($tag);                  // saved and linked
+$post->tags()->store(Tag::find(5));          // linked
+$post->tags()->store(Tag::find(5));          // already linked: nothing is added
+$post->tags()->storeMany([$tagA, $tagB]);
+```
+
+If you give pivot data for a model that is already linked, the stored pivot values are updated.
+
+These rules apply:
+
+- **One transaction.** The record and its pivot row are written together. If the pivot row cannot be written, the record is not kept. `createMany()` and `storeMany()` are all or nothing: if one record fails, none of them are kept. Inside your own `DB::transaction()`, they join it, so a rollback of your transaction removes them too.
+- **The post must be saved.** Writing through the relationship of a model with no key yet throws a `LogicException`.
+- **A model of the wrong class throws.** `store()` throws an `InvalidArgumentException`, and nothing is changed.
+- **`firstOrCreate()` and `updateOrCreate()`** only look at the records already linked to the post. If the record is not found, it is created and linked. A tag with the same name that is linked to another post does not count.
+- `withoutHook()` skips the model hooks, as it does for the other relationships.
+- **Hooks run before the link exists.** The record has to be saved before it can be linked, so `after_created` and the other model hooks run first. Inside a hook the new record and its id are available, but its link to the post is not. Do work that needs the link in the code that calls `create()`, after it returns.
+
+## Associate and Dissociate
+On the inverse side (`bindTo`), `associate()` points the model at a parent, and `dissociate()` removes the link. Both only change the model. Call `save()` to store the change.
+
+```php
+$comment = Comment::find(1);
+
+$comment->post()->associate($post);   // or associate(5), a plain id
+$comment->save();
+
+$comment->post()->dissociate();       // sets post_id to null
+$comment->save();
+```
+
+Like `create()`, the foreign key (`post_id`) must be in the model's `$creatable`, and the parent passed to `associate()` must be saved.
+
+## Default Conditions on Related Models
+If a model overrides `query()` to add a condition to every query, the same condition applies when that model is reached through a relationship. A common use is hiding rows, for example records of another tenant or records that are not published.
+
+```php
+<?php
+
+namespace App\Models;
+
+use Phaseolies\Database\Entity\Builder;
+use Phaseolies\Database\Entity\Model;
+
+class Article extends Model
+{
+    public static function query(?string $connection = null): Builder
+    {
+        return parent::query($connection)->where('status', '!=', 'hidden');
+    }
+}
+```
+
+With that in place, `Article::all()`, the `articles` relationship property, the relationship method and eager loading all leave out hidden articles:
+
+```php
+$author = Author::find(1);
+
+$author->articles;                 // hidden articles are left out
+$author->articles()->count();      // counts the visible ones only
+Author::embed('articles')->get();  // eager loading leaves them out too
+Author::embedCount('articles')->get();
+```
+
+You can still add your own conditions on top of the relationship method, for example `$author->articles()->where('title', 'Alpha')->get()`.
+
+> The condition filters what is read. Creating a record through a relationship, such as `$author->articles()->create(['status' => 'hidden'])`, still works.
+
+> If your `query()` returns a custom `Builder` subclass, the relationship copies the query state (conditions, scopes and connection) into the relationship class, but methods that exist only on your subclass are not available on the relationship.
 
 ## Eager Loading, Lazy Loading
 Efficiently managing related data is crucial in applications that rely on relational databases. Doppar Entity ORM provides mechanisms to control when and how related models are fetched, helping you optimize performance and avoid common pitfalls such as the `N+1` query problem.
@@ -335,6 +500,7 @@ Doppar ORM supports many-to-many relationships through an intermediate pivot tab
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\BindToMany;
 
 class Post extends Model
 {
@@ -375,6 +541,18 @@ foreach ($post->tags as $tag) {
     // ...
 }
 ```
+You can also query the relationship method like a query builder. It only ever returns the tags of that post:
+
+```php
+$post->tags()->where('name', 'php')->first();
+
+$post->tags()->orderBy('name')->get();
+
+$post->tags()->count();
+```
+
+> Pivot table columns are available through the dynamic property (`$post->tags`) and through `embed()`. Models returned by `$post->tags()->get()` do not carry the `pivot` object.
+
 You can easily retrieve all the related tag names of a post as a plain array using Entity’s pluck method:
 ```php
 $tagNames = $post->tags->pluck('name')->toArray();
@@ -401,27 +579,23 @@ foreach ($post->tags as $tag) {
 ```
 
 ## Defining the Inverse of the Relationship
-To define the "inverse" of a many-to-many relationship, you should define a method on the related model which also returns the result of the `bindToMany` method. To complete our post / tag example, let's define the users method on the Tag model:
+To define the "inverse" of a many-to-many relationship, you should define a method on the related model which also returns the result of the `bindToMany` method. To complete our post / tag example, let's define the posts method on the Tag model:
 ```php
 <?php
 
 namespace App\Models;
 
 use Phaseolies\Database\Entity\Model;
+use Phaseolies\Database\Entity\Relations\BindToMany;
 
 class Tag extends Model
 {
     /**
      * The posts that belong to the tag.
      */
-    public function posts()
+    public function posts(): BindToMany
     {
-        return $this->bindToMany(
-            Post::class, // Related model
-            'tag_id',    // Foreign key for tags in pivot table
-            'post_id',   // Foreign key for posts in pivot table
-            'post_tag'   // Pivot table name
-        );
+        return $this->bindToMany(Post::class);
     }
 }
 ```

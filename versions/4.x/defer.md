@@ -419,9 +419,7 @@ defer(static function (): void {
 });
 
 $order = Order::create($data);
-OrderItem::saveMany(
-    array_map(fn (array $item) => $item + ['order_id' => $order->id], $items)
-);
+$order->items()->createMany($items);
 
 DB::commit();
 ```
