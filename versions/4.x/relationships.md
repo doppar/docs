@@ -349,6 +349,7 @@ These rules apply:
 - **A model of the wrong class throws.** `store()` throws an `InvalidArgumentException`, and nothing is changed.
 - **`firstOrCreate()` and `updateOrCreate()`** only look at the records already linked to the post. If the record is not found, it is created and linked. A tag with the same name that is linked to another post does not count.
 - `withoutHook()` skips the model hooks, as it does for the other relationships.
+- **Hooks run before the link exists.** The record has to be saved before it can be linked, so `after_created` and the other model hooks run first. Inside a hook the new record and its id are available, but its link to the post is not. Do work that needs the link in the code that calls `create()`, after it returns.
 
 ## Associate and Dissociate
 On the inverse side (`bindTo`), `associate()` points the model at a parent, and `dissociate()` removes the link. Both only change the model. Call `save()` to store the change.
