@@ -7,6 +7,8 @@ meta:
 ---
 
 ## URL Generation
+### Introduction
+
 Doppar provides several helpers to assist you in generating URLs for your application. These helpers are primarily helpful when building links in your templates, or when generating redirect responses to another part of your application. The most basic URL generation will be like assume we want to generate url using route name.
 
 ## Generating URLs
