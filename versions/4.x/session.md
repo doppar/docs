@@ -357,9 +357,9 @@ SESSION_DRIVER = "redis"
 
 A misconfigured driver is reported when the session is first used, as a `Phaseolies\Session\Exceptions\SessionException`. It is handled like any other exception: the full message is shown when `APP_DEBUG` is `true`, and a generic server error page is shown otherwise. Internal details, such as file paths, are never included in the production response.
 
-## Notes for Existing Applications
+## Upgrading to Doppar 4.9
 
-Sessions no longer use PHP's native session functions. If you are upgrading an application that stored sessions with an earlier version, be aware of the following:
+Sessions no longer use PHP's native session functions as of Doppar v4.9.0. If you are upgrading an application that stored sessions with an earlier version, be aware of the following:
 
 - **Existing sessions are not carried over.** Users are signed out once, the first time they visit after the upgrade. Old `sess_*` files are removed by `php pool session:gc`.
 - **Do not read `$_SESSION` or call `session_start()`.** Use `$request->session()`, the `session()` helper, or the `Session` facade, which work with every driver.
