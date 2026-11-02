@@ -68,7 +68,7 @@ SESSION_LIFETIME = 120
 
 The default driver stores each session as a file under `storage/framework/sessions`. Files are grouped into sub-directories by the first two characters of the session ID, which keeps directories small and cleanup fast, and are created readable by the application user only.
 
-The file driver behaves the same on Linux, macOS, and Windows. Files are written atomically, no file locks are used, and a storage path may contain any characters your operating system allows.
+The file driver behaves the same on Linux, macOS, and Windows. Files are written atomically, requests never hold a lock while they run, and a storage path may contain any characters your operating system allows.
 
 Session IDs are 40 character random hexadecimal strings. A session cookie that does not match that format is ignored, so a client can never influence which file Doppar opens.
 
@@ -79,7 +79,7 @@ The cookie driver keeps the whole session inside the cookie. The data is encrypt
 Keep these constraints in mind before choosing it:
 
 - **Size.** A cookie is limited to roughly 4 KB. If the encrypted session grows beyond that, Doppar throws a `SessionException` that lists the largest keys, rather than letting the browser silently discard the cookie.
-- **Serialization.** Values must be JSON serializable. Store scalars and arrays, not objects.
+- **Serialization.** Values must come back from JSON unchanged. Store strings (valid UTF-8), numbers, booleans, `null` and arrays. Objects would silently turn into arrays and binary data cannot be encoded, so both throw a `SessionException` that names the key.
 - **Revocation.** There is no server-side record, so `destroy()` and `session:clear` cannot invalidate a cookie that has already been issued. A copied cookie stays valid until it expires or you rotate `APP_KEY`.
 
 > **Note:** Prefer the `file` driver for anything that holds authentication state or large values, such as validation errors and old input.
@@ -272,11 +272,11 @@ public function handle()
 }
 ```
 
-> **Note:** The CSRF middleware belongs to the `web` group. A request that passes through it creates a session so it can issue the `XSRF-TOKEN` cookie. Keep API routes out of that group, or list them under `stateless`.
+> **Note:** The CSRF middleware belongs to the `web` group. It sends the `XSRF-TOKEN` cookie only when the request already created a token, for example by rendering a form or calling `csrf_token()`, so visits that never need one do not create a session. Keep API routes out of that group, or list them under `stateless`.
 
 ## Garbage Collection
 
-Expired sessions are removed automatically. When a session is saved, there is a small chance, controlled by `lottery`, that the request also deletes expired sessions from one portion of the session store. Each sweep is bounded, so its cost stays constant however many sessions exist.
+Expired sessions are removed automatically. When a session is saved, there is a small chance, controlled by `lottery`, that the request also deletes expired sessions from one portion of the session store. The sweep runs after the response has been sent, so it never delays it. Each sweep is bounded, so its cost stays constant however many sessions exist.
 
 Two chances in a hundred
 ```php
@@ -301,9 +301,11 @@ Removes every stored session, which signs out all users. It has no effect on the
 
 ## Concurrent Requests
 
-Sessions are not locked. Several requests from the same browser run in parallel, which is what makes pages that issue many AJAX calls fast. The trade-off is that the **last request to finish wins** when two requests change the same session.
+A session is not locked while a request runs, so several requests from the same browser run in parallel, which is what makes pages that issue many AJAX calls fast.
 
-Treat the session as a place for per-visitor state, and avoid read-modify-write patterns such as counters. Keep values that need atomic updates in your database or [cache](/versions/4.x/caching).
+When a request saves the session, the file driver briefly locks it, reads the session as other requests have left it, and applies only what this request changed (keys it added, changed or removed, including inside arrays such as flash data). Two requests that touch different keys, such as one adding to the cart while another flashes a message, both keep their changes.
+
+When two requests change the **same** key, the last one to finish wins, and a counter incremented by both can lose an update. Keep values that need atomic updates in your database or [cache](/versions/4.x/caching). Calling `invalidate()` or `flush()` replaces the stored session instead of merging, so a logout always clears everything. The `cookie` driver cannot merge, because the data travels with each request.
 
 ## Custom Drivers
 
@@ -319,6 +321,8 @@ You may add a driver by implementing `Phaseolies\Session\Contracts\SessionStoreI
 | `sweep(int $maxLifetime): int` | Remove a bounded portion of the expired sessions. This runs on requests, so its cost must not grow with the number of sessions |
 | `flush(): int` | Remove every session |
 | `isClientSide(): bool` | Return `true` only when the data is stored in the cookie itself |
+
+A driver that can lock a session may also implement `Phaseolies\Session\Contracts\LockableSessionStore` and its `synchronized(string $id, callable $callback): mixed` method. Doppar then merges concurrent changes inside it, as the file driver does.
 
 ```php
 <?php
