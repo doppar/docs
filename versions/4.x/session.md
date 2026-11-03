@@ -189,6 +189,8 @@ A session that is left with no data is removed when the request finishes, and it
 
 Regenerating the session ID prevents session fixation, where an attacker sets a known ID in a victim's browser before they sign in. Doppar regenerates the ID automatically when a user authenticates, and rotates it again when the session has gone a full `lifetime` without rotation.
 
+An automatic rotation happens when the session is saved, and the old ID keeps leading to the new one for about a minute. Requests that were already running when the ID changed, or that still send the old cookie, carry on with the new session instead of splitting it or being signed out, and several requests that find the session due at the same time end up with the same new ID. Regenerating the ID yourself, which includes logging in, is stricter: the old ID stops working immediately and never leads to the new session, so an ID that an attacker planted before the login is useless afterwards.
+
 To regenerate it manually, use the `regenerate()` method. The data is kept and moves to the new ID.
 
 ```php
@@ -284,7 +286,7 @@ Two chances in a hundred
 'lottery' => [2, 100],
 ```
 
-Set the first value to `0` to disable the automatic sweep, for example when you prefer to schedule cleanup yourself.
+Set the first value to `0`, or set `lottery` to `null` or an empty array, to disable the automatic sweep, for example when you prefer to schedule cleanup yourself.
 
 ### Console Commands
 
@@ -322,6 +324,7 @@ Ending a session always wins over a request that was still running on it:
 
 - A request that was still running when the session was destroyed, by a logout, `invalidate()`, `destroy()`, or expiry, does not bring it back. Its changes are dropped and it sends no session cookie, so the user stays logged out.
 - Calling `invalidate()` or `flush()` replaces the stored session instead of merging, so a logout always clears everything.
+- Ending a session also ends the session an automatic rotation made from it, so a logout that overlaps a rotation cannot be undone by it.
 - The `cookie` driver cannot merge or end a session from the server, because the data travels with each request.
 
 If the lock cannot be acquired within two seconds, the session is saved without it rather than failing the request, and a warning is written to the log, since concurrent changes to that session may then be lost. A warning that appears regularly means requests are being held up long enough to be worth looking at.
@@ -387,4 +390,5 @@ Sessions no longer use PHP's native session functions as of Doppar v4.9.0. If yo
 - **Existing sessions are not carried over.** Users are signed out once, the first time they visit after the upgrade. Old `sess_*` files are removed by `php pool session:gc`.
 - **Do not read `$_SESSION` or call `session_start()`.** Use `$request->session()`, the `session()` helper, or the `Session` facade, which work with every driver.
 - **`csrf_token()` creates the token on demand.** Code should call it rather than reading `_token` from the session directly.
+- **Session changes are not saved when a request ends with an uncaught exception.** The session is saved just before the response is sent. A request that ends in an unhandled error, a `500`, never gets that far, so flash data and other changes made before the failure are dropped. With PHP's native sessions they were saved when the script ended, so code that flashes a message and then throws must catch the exception or save the data another way. Requests that end with an HTTP exception, such as `abort(404)`, and validation failures that redirect back with their errors, are still saved.
 - **The `XSRF-TOKEN` cookie is sent lazily.** It is only sent once a token exists, for example after a page renders a form or calls `csrf_token()`. A front end that reads the cookie instead of a page, such as an axios or fetch based client that never loads a form, will get a `419` on its first `POST`. Expose the token with `csrf_token()` (a meta tag or a route that returns it), or set `'always_send_xsrf_cookie' => true` in `runtime/config/session.php`. See [The XSRF-TOKEN Cookie](/versions/4.x/csrf-protection#the-xsrf-token-cookie).
