@@ -70,6 +70,22 @@ $.ajaxSetup({
 });
 ```
 
+## The XSRF-TOKEN Cookie
+Besides checking the `_token` input and the `X-CSRF-TOKEN` header, Doppar sends the token in an `XSRF-TOKEN` cookie, which libraries such as axios read and send back as a header automatically.
+
+The cookie is only sent once a token exists. A page that renders a form, or calls `csrf_token()`, creates it. Doppar does not create the token just to hand it out, because that would make every anonymous visit, crawler hits included, worth a stored session.
+
+A front end that never loads such a page therefore has no cookie on its first request and gets a `419` on its first `POST`. There are two ways to deal with it:
+
+- Expose the token yourself, with a meta tag in your layout or a route that returns `csrf_token()`, and send it in the `X-CSRF-TOKEN` header
+- Set `always_send_xsrf_cookie` to `true` in `runtime/config/session.php`, so every stateful response creates the token and carries the cookie
+
+```php
+'always_send_xsrf_cookie' => true,
+```
+
+> **Note:** With `always_send_xsrf_cookie` enabled, every visitor to a route in the `web` group gets a stored session, so cleanup and storage grow with your traffic. Enable it only if your front end needs it. [Stateless](/versions/4.x/session#stateless-routes) routes never get the cookie, whatever the setting.
+
 ## Stateless Routes
 Requests that are [stateless](/versions/4.x/session#stateless-routes) have no stored session to tie a token to, so Doppar does not issue the `XSRF-TOKEN` cookie for them and they cannot pass CSRF verification. Keep token authenticated endpoints, such as a JSON API, out of the `web` middleware group, or list them in `setRelaxablePaths` as shown below.
 

@@ -46,13 +46,14 @@ The session configuration file is located at `runtime/config/session.php`. Most 
 | `same_site` | `SESSION_SAME_SITE` | `lax` | `lax`, `strict`, or `none` |
 | `stateless` | | `[]` | Request paths that never get a session. See [Stateless Routes](#stateless-routes) |
 | `lottery` | | `[2, 100]` | Chance that a request also removes expired sessions. See [Garbage Collection](#garbage-collection) |
+| `always_send_xsrf_cookie` | | `false` | Send the `XSRF-TOKEN` cookie on every stateful response, even before a token exists. See [The XSRF-TOKEN Cookie](/versions/4.x/csrf-protection#the-xsrf-token-cookie) |
 
 ```toml
 SESSION_DRIVER = "file"
 SESSION_LIFETIME = 120
 ```
 
-> **Note:** `stateless` and `lottery` are optional. A configuration file created before these options existed keeps working with the defaults shown above.
+> **Note:** `stateless`, `lottery`, and `always_send_xsrf_cookie` are optional. A configuration file created before these options existed keeps working with the defaults shown above.
 
 > **Note:** Browsers reject `SameSite=None` cookies that are not `Secure`. When `same_site` is `none`, Doppar always marks the session cookie as secure.
 
@@ -303,9 +304,27 @@ Removes every stored session, which signs out all users. It has no effect on the
 
 A session is not locked while a request runs, so several requests from the same browser run in parallel, which is what makes pages that issue many AJAX calls fast.
 
-When a request saves the session, the file driver briefly locks it, reads the session as other requests have left it, and applies only what this request changed (keys it added, changed or removed, including inside arrays such as flash data). Two requests that touch different keys, such as one adding to the cart while another flashes a message, both keep their changes.
+When a request saves the session, the file driver briefly locks it, reads the session as other requests have left it, and applies only what this request changed: keys it added, changed or removed, including inside arrays such as flash data. The lock covers a small group of sessions, so visitors who are unrelated to each other never wait for one another. Two requests that touch different keys, such as one adding to the cart while another flashes a message, both keep their changes.
 
-When two requests change the **same** key, the last one to finish wins, and a counter incremented by both can lose an update. Keep values that need atomic updates in your database or [cache](/versions/4.x/caching). Calling `invalidate()` or `flush()` replaces the stored session instead of merging, so a logout always clears everything. The `cookie` driver cannot merge, because the data travels with each request.
+Lists are merged by what each request added and removed, not by position. Two requests that each append to the same list both keep their item, and the same is true when both create the list for the first time.
+
+```php
+// The stored cart is ['x']. Request A appends 'apple', request B appends 'pear'.
+// Once both have saved: ['x', 'apple', 'pear'], in either order of arrival.
+$request->session()->put('cart', [...$request->session()->get('cart', []), 'apple']);
+```
+
+> **Note:** When requests race on the same list, the position of an item that one of them added or changed is not defined. Do not rely on the order of a list that several requests modify at once.
+
+When two requests change the **same** value, the last one to finish wins, and a counter incremented by both can lose an update. Keep values that need atomic updates in your database or [cache](/versions/4.x/caching).
+
+Ending a session always wins over a request that was still running on it:
+
+- A request that was still running when the session was destroyed, by a logout, `invalidate()`, `destroy()`, or expiry, does not bring it back. Its changes are dropped and it sends no session cookie, so the user stays logged out.
+- Calling `invalidate()` or `flush()` replaces the stored session instead of merging, so a logout always clears everything.
+- The `cookie` driver cannot merge or end a session from the server, because the data travels with each request.
+
+If the lock cannot be acquired within two seconds, the session is saved without it rather than failing the request, and a warning is written to the log, since concurrent changes to that session may then be lost. A warning that appears regularly means requests are being held up long enough to be worth looking at.
 
 ## Custom Drivers
 
@@ -368,3 +387,4 @@ Sessions no longer use PHP's native session functions as of Doppar v4.9.0. If yo
 - **Existing sessions are not carried over.** Users are signed out once, the first time they visit after the upgrade. Old `sess_*` files are removed by `php pool session:gc`.
 - **Do not read `$_SESSION` or call `session_start()`.** Use `$request->session()`, the `session()` helper, or the `Session` facade, which work with every driver.
 - **`csrf_token()` creates the token on demand.** Code should call it rather than reading `_token` from the session directly.
+- **The `XSRF-TOKEN` cookie is sent lazily.** It is only sent once a token exists, for example after a page renders a form or calls `csrf_token()`. A front end that reads the cookie instead of a page, such as an axios or fetch based client that never loads a form, will get a `419` on its first `POST`. Expose the token with `csrf_token()` (a meta tag or a route that returns it), or set `'always_send_xsrf_cookie' => true` in `runtime/config/session.php`. See [The XSRF-TOKEN Cookie](/versions/4.x/csrf-protection#the-xsrf-token-cookie).
