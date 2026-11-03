@@ -55,7 +55,7 @@ SESSION_LIFETIME = 120
 
 > **Note:** `stateless`, `lottery`, and `always_send_xsrf_cookie` are optional. A configuration file created before these options existed keeps working with the defaults shown above.
 
-> **Note:** Browsers reject `SameSite=None` cookies that are not `Secure`. When `same_site` is `none`, Doppar always marks the session cookie as secure.
+Browsers reject `SameSite=None` cookies that are not `Secure`. When `same_site` is `none`, Doppar always marks the session cookie as secure.
 
 ## Session Drivers
 
