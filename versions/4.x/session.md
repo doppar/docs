@@ -183,7 +183,9 @@ $request->session()->flush();
 $request->session()->invalidate();
 ```
 
-A session that is left with no data is removed when the request finishes, and its cookie is expired, so clearing a session never leaves an empty one behind.
+A session that is left with no data is removed when the request finishes, and its cookie is expired, so clearing a session never leaves an empty one behind. If another request saved something into the session in the meantime, that is kept: the session is only removed when nothing is left once both requests' changes are taken together.
+
+`destroy()`, `flush()`, and `invalidate()` end the session, and they are applied even if the request then fails with an exception, so a logout is never lost.
 
 ## Regenerating the Session ID
 
@@ -239,7 +241,7 @@ Endpoints that authenticate with tokens, such as a JSON API, do not need a sessi
 - Nothing is stored and no session cookie is sent
 - A session cookie sent by the client is ignored
 
-To make a group of paths stateless, list them in `runtime/config/session.php`. Patterns are matched against the request path and may use `*` as a wildcard.
+To make a group of paths stateless, list them in `runtime/config/session.php`. Patterns are matched against the request path and may use `*` as a wildcard. Matching ignores case, and the leading slash is optional, so `api/*` and `/api/*` are the same pattern. Paths that skip CSRF verification and `Request::is()` use the same rules.
 
 ```php
 'stateless' => ['api/*', 'webhooks/*'],
@@ -390,5 +392,7 @@ Sessions no longer use PHP's native session functions as of Doppar v4.9.0. If yo
 - **Existing sessions are not carried over.** Users are signed out once, the first time they visit after the upgrade. Old `sess_*` files are removed by `php pool session:gc`.
 - **Do not read `$_SESSION` or call `session_start()`.** Use `$request->session()`, the `session()` helper, or the `Session` facade, which work with every driver.
 - **`csrf_token()` creates the token on demand.** Code should call it rather than reading `_token` from the session directly.
-- **Session changes are not saved when a request ends with an uncaught exception.** The session is saved just before the response is sent. A request that ends in an unhandled error, a `500`, never gets that far, so flash data and other changes made before the failure are dropped. With PHP's native sessions they were saved when the script ended, so code that flashes a message and then throws must catch the exception or save the data another way. Requests that end with an HTTP exception, such as `abort(404)`, and validation failures that redirect back with their errors, are still saved.
+- **Session changes are not saved when a request ends with an uncaught exception.** The session is saved just before the response is sent. A request that ends in an unhandled error, a `500`, never gets that far, so flash data and other changes made before the failure are dropped. With PHP's native sessions they were saved when the script ended, so code that flashes a message and then throws must catch the exception or save the data another way. A logout is the exception: `destroy()`, `flush()`, and `invalidate()` are still applied, so a user is never left signed in by a request that failed after logging them out. Requests that end with an HTTP exception, such as `abort(404)`, and validation failures that redirect back with their errors, are saved as usual.
+- **Changes made while a streamed response is sent are not saved.** The session is saved before the response is sent, because that is when its cookie is added. A `StreamedResponse` callback runs after that, so a value it writes to the session is lost. Write to the session before returning the response.
+- **Error pages can use the session.** The page of an HTTP exception, such as a custom `403` view that renders a form with `csrf_token()`, is built before the session is saved, so what it writes is kept and its form can be submitted.
 - **The `XSRF-TOKEN` cookie is sent lazily.** It is only sent once a token exists, for example after a page renders a form or calls `csrf_token()`. A front end that reads the cookie instead of a page, such as an axios or fetch based client that never loads a form, will get a `419` on its first `POST`. Expose the token with `csrf_token()` (a meta tag or a route that returns it), or set `'always_send_xsrf_cookie' => true` in `runtime/config/session.php`. See [The XSRF-TOKEN Cookie](/versions/4.x/csrf-protection#the-xsrf-token-cookie).
