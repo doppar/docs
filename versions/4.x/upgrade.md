@@ -272,6 +272,14 @@ Doppar 4.9 fixes a number of inconsistencies in the HTTP request and response la
 
 A `HEAD` request to a path that only has a `GET` route used to return `404`. It is now handled by the `GET` route, with that route's middleware, and returns headers only. Uptime monitors, link checkers and proxies that probe pages with `HEAD` will now get the real status (for example `200`, or a `302` to the login page for protected routes). An explicit `Route::head()` route still takes precedence. See [HEAD Requests](/versions/4.x/routing#head-requests).
 
+### Method overrides only apply to POST requests
+
+The `_method` field and the `X-HTTP-Method-Override` header are now only honoured on real `POST` requests. Before, they applied to any method, so a plain link such as `GET /posts/1?_method=DELETE` reached the `DELETE` route. On API routes, which have no CSRF check, a link or `<img>` tag could trigger it. HTML forms already send these overrides with `method="POST"`, so they keep working. If a client sends an override on a non-`POST` request, switch it to `POST` or send the real method directly.
+
+### API errors are always JSON
+
+An HTTP exception on an API route (`/api/*`) or an AJAX request now always gets a JSON error body, matching `abort()`. Before, the bundled HTML error page was sent instead whenever a view existed for that status.
+
 ### Client IP and scheme now honor trusted proxies
 
 `ip()`, `ips()` and `scheme()` now use the same proxy-aware logic as `getClientIp()`, `getClientIps()` and `getScheme()`. Previously they always returned `REMOTE_ADDR` and the raw `HTTPS` server value, even when [trusted proxies](/versions/4.x/trust-proxies) were configured.
@@ -314,7 +322,7 @@ It now returns `Phaseolies\Http\Response\RedirectResponse` with a standard HTML 
 - A JSON request with an empty body is now treated as having no body. Before, it failed with a `500` error.
 - A JSON body that decodes to a scalar (for example `"text"` or `42`) is ignored. Before, it failed with a `500` error.
 - A request with malformed JSON now gets a `400 Bad Request` response (JSON for API routes, the bundled `400` error page for web routes). Before, it crashed with an empty `500` response, because the error handler failed while re-reading the body.
-- An unsupported method or method override (an `X-HTTP-Method-Override` header or `_method` field such as `BOGUS`) now gets a `400 Bad Request` too. Before, constructing the request threw an `InvalidArgumentException` and crashed with an empty `500`. `getMethod()` now returns the real request method for such requests, and throws `BadRequestHttpException` instead of `InvalidArgumentException` when it meets an invalid value.
+- An unsupported method or method override (an `X-HTTP-Method-Override` header or `_method` field such as `BOGUS`, or a non-string such as `_method[]=PUT`) now gets a `400 Bad Request` too. Before, it crashed with an empty `500`. `getMethod()` now returns the real request method for such requests, and throws `BadRequestHttpException` instead of `InvalidArgumentException` when it meets an invalid value.
 - If you need the underlying error for either case, call `$request->getMalformedRequestError()`.
 - `application/x-www-form-urlencoded` bodies now keep query-string parameters on every method, including regular form `POST`s, matching how JSON bodies were already handled. For example, posting `name=d` to `/save?page=2` now gives `all() === ['name' => 'd', 'page' => '2']`. Before, `page` was dropped. If a body field and a query parameter share a name, the body value wins.
 - Numeric field names keep their keys. Posting `10=a&20=b` now gives `[10 => 'a', 20 => 'b']`. Before, the form-body fix above re-indexed and duplicated them as `['a', 'b', 'a', 'b']`. `merge()` keeps numeric keys too.
@@ -338,7 +346,7 @@ It now returns `Phaseolies\Http\Response\RedirectResponse` with a standard HTML 
 
 ### JSON output respects `jsonSerialize()`
 
-JSON responses now call an object's own `jsonSerialize()`, including for models inside a collection (`return User::all()`). Before, models were converted with `toArray()`, which skipped a custom `jsonSerialize()` and could expose fields it was meant to hide. Models that don't override `jsonSerialize()` produce exactly the same JSON as before.
+JSON responses now call an object's own `jsonSerialize()`, including for models inside a collection (`return User::all()`) and for loaded relations (`$user->posts`, `$post->author`). Before, models were converted with `toArray()`, which skipped a custom `jsonSerialize()` and could expose fields it was meant to hide. A model's own `toArray()` still shapes its JSON. Calling `toArray()` directly still serializes relations with their `toArray()`. Models that don't override `jsonSerialize()` produce exactly the same JSON as before.
 
 ### Error views
 
