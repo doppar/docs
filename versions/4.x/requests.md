@@ -797,13 +797,16 @@ The `ip` method may be used to retrieve the IP address of the client that made t
 $ipAddress = $request->ip();
 ```
 
-To retrieve an array of IP addresses — including all client IPs forwarded by proxies — you can use the `ips()` method on the `Phaseolies\Http\Request` instance. It is equivalent to `getClientIps()`: trusted proxy addresses are removed, and the original client IP is the **first** element of the array.
+To retrieve an array of IP addresses — including all client IPs forwarded by proxies — you can use the `ips()` method on the `Phaseolies\Http\Request` instance. It is equivalent to `getClientIps()`: trusted proxy addresses are removed, and the list is ordered from most to least trusted. The first element is the closest address that isn't a trusted proxy (the value `ip()` returns), and the last is the originating client as reported by the forwarding headers.
 
 ```php
-$ipAddresses = $request->ips();
+// Behind a trusted proxy, with X-Forwarded-For: 203.0.113.1, 198.51.100.2
+$ipAddresses = $request->ips(); // ["198.51.100.2", "203.0.113.1"]
 ```
 
 Forwarding headers such as `X-Forwarded-For` and `Forwarded` are only read when the request comes from a [trusted proxy](/versions/4.x/trust-proxies). For any other request, both methods return the connecting address (`REMOTE_ADDR`), so clients cannot spoof their IP by sending these headers themselves.
+
+If a trusted proxy sends a `Forwarded` and an `X-Forwarded-*` header that disagree, the request is rejected with a `400 Bad Request` (`ConflictingHeadersException`). Configure your proxy to send only one of them, or trust only the one it sets.
 
 ## Content Negotiation
 

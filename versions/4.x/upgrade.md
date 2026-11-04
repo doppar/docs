@@ -278,13 +278,19 @@ A `HEAD` request to a path that only has a `GET` route used to return `404`. It 
 
 If your application runs behind a trusted proxy, `ip()` now returns the real client address instead of the proxy's. Check any code that stores, rate-limits on, or allow-lists IPs.
 
-`ips()` also changed order: the original client IP is now the **first** element, not the last.
+`ips()` now returns the same list as `getClientIps()`, with trusted proxies removed. It is ordered from most to least trusted: the first element is the closest address that isn't a trusted proxy (what `ip()` returns), and the last is the originating client as reported by the forwarding headers.
 
 ```php
 // Behind a trusted proxy, with X-Forwarded-For: 203.0.113.1
 $request->ip();  // before: "10.0.0.5" (proxy)   now: "203.0.113.1"
 $request->ips(); // now: ["203.0.113.1"]
+
+// With X-Forwarded-For: 203.0.113.1, 198.51.100.2 (198.51.100.2 is not trusted)
+$request->ip();  // "198.51.100.2" — the closest untrusted hop
+$request->ips(); // ["198.51.100.2", "203.0.113.1"]
 ```
+
+If a trusted proxy sends a `Forwarded` header and an `X-Forwarded-*` header that disagree, the first IP lookup throws `Phaseolies\Http\Exceptions\ConflictingHeadersException`, a `400 Bad Request`. Later lookups on the same request return the connecting address, so error pages and logs still work. Before, this case threw a generic `\Exception`, and later lookups returned `0.0.0.0`.
 
 ### `response()` serializes models and `JsonSerializable` objects as JSON
 
@@ -307,8 +313,11 @@ It now returns `Phaseolies\Http\Response\RedirectResponse` with a standard HTML 
 
 - A JSON request with an empty body is now treated as having no body. Before, it failed with a `500` error.
 - A JSON body that decodes to a scalar (for example `"text"` or `42`) is ignored. Before, it failed with a `500` error.
-- A request with malformed JSON now gets a `400 Bad Request` response (JSON for API routes, the error page for web routes). Before, it crashed with an empty `500` response, because the error handler failed while re-reading the body. If you need the underlying exception, call `$request->getBodyParseError()`.
+- A request with malformed JSON now gets a `400 Bad Request` response (JSON for API routes, the bundled `400` error page for web routes). Before, it crashed with an empty `500` response, because the error handler failed while re-reading the body.
+- An unsupported method or method override (an `X-HTTP-Method-Override` header or `_method` field such as `BOGUS`) now gets a `400 Bad Request` too. Before, constructing the request threw an `InvalidArgumentException` and crashed with an empty `500`. `getMethod()` now returns the real request method for such requests, and throws `BadRequestHttpException` instead of `InvalidArgumentException` when it meets an invalid value.
+- If you need the underlying error for either case, call `$request->getMalformedRequestError()`.
 - `application/x-www-form-urlencoded` bodies now keep query-string parameters on every method, including regular form `POST`s, matching how JSON bodies were already handled. For example, posting `name=d` to `/save?page=2` now gives `all() === ['name' => 'd', 'page' => '2']`. Before, `page` was dropped. If a body field and a query parameter share a name, the body value wins.
+- Numeric field names keep their keys. Posting `10=a&20=b` now gives `[10 => 'a', 20 => 'b']`. Before, the form-body fix above re-indexed and duplicated them as `['a', 'b', 'a', 'b']`. `merge()` keeps numeric keys too.
 
 ### Response API
 
@@ -325,6 +334,11 @@ It now returns `Phaseolies\Http\Response\RedirectResponse` with a standard HTML 
 | `StreamedResponse::DEFAULT_ENCODING_OPTIONS` | `JsonResponse::DEFAULT_ENCODING_OPTIONS` or `StreamedJsonResponse::DEFAULT_ENCODING_OPTIONS` |
 | `Response::headers_send()` | Nothing. It was an internal helper |
 | `Request::initializeHeaders()`, `prepareRequestUri()`, `prepareBaseUrl()`, `preparePathInfo()` | Nothing. They were protected and never called |
+| `Request::isValidRequest()` | Nothing. It was no longer called, and its rule that a proxied request must carry *every* trusted header would reject legitimate traffic. Use `isFromTrustedProxy()` to check whether a request came through a trusted proxy |
+
+### JSON output respects `jsonSerialize()`
+
+JSON responses now call an object's own `jsonSerialize()`, including for models inside a collection (`return User::all()`). Before, models were converted with `toArray()`, which skipped a custom `jsonSerialize()` and could expose fields it was meant to hide. Models that don't override `jsonSerialize()` produce exactly the same JSON as before.
 
 ### Error views
 
