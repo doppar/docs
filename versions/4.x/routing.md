@@ -29,6 +29,34 @@ Doppar supports the following HTTP methods for defining routes:
 | **HEAD**    | Same as GET but returns only headers. Useful for checking existence or metadata. |
 | **OPTIONS** | Describes available communication options. Often used for CORS preflight checks. |                |
 
+### HEAD Requests
+
+You don't need to register HEAD routes. A `HEAD` request is answered by the `GET` route for the same path, with the same middleware, so a protected page still redirects or rejects as it would for `GET`. The response contains only the headers. No body is sent, and a streamed response's callback is not run.
+
+If you register an explicit `HEAD` route, it takes precedence over the `GET` route for that path, along with its own middleware:
+
+```php
+use Phaseolies\Support\Router\Attributes\Route;
+
+class ReportController extends Controller
+{
+    #[Route(uri: '/report')]
+    public function show()
+    {
+        // ...
+    }
+
+    // Optional: a cheaper handler for HEAD requests to the same path
+    #[Route(uri: '/report', methods: ['HEAD'])]
+    public function headers()
+    {
+        // ...
+    }
+}
+```
+
+`HEAD` never falls back to `POST`, `PUT`, `PATCH` or `DELETE` routes.
+
 ## Route Caching
 Doppar supports route caching for improved performance in production environments. Route caching is controlled by the `APP_ROUTE_CACHE` environment variable: Set to true to enable route caching (recommended for production). Set to false to disable (default for development) Route cache files are stored in: `storage/framework/cache/`.
 ### Cache Routes

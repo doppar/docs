@@ -100,6 +100,17 @@ Response:
 }
 ```
 
+The same rules apply whether you return the value from a route or pass it to `response()`:
+
+| Value | Sent as |
+| --- | --- |
+| Array, `stdClass`, `ArrayObject` | JSON |
+| Entity model, collection, query builder | JSON (a query builder is executed first) |
+| Object implementing `JsonSerializable` | JSON, even if it also implements `Stringable` |
+| Object implementing only `Stringable` | Its string value, as a normal response |
+| Any other object | JSON (via `toArray()` when the object has one) |
+| An existing `Response` instance | Returned as-is |
+
 #### Returning Collections
 
 Doppar's collections can be returned directly from routes. They're automatically converted to JSON:
@@ -327,6 +338,9 @@ response()->redirect('/new-location', 301);
 
 // 302 Found (Temporary redirect)
 response()->redirect('/temporary-location', 302);
+
+// response()->redirect() returns a RedirectResponse, so you can chain flash data
+response()->redirect('/dashboard')->with('success', 'Saved!');
 
 // 304 Not Modified (for caching)
 response()->setNotModified();
@@ -846,6 +860,8 @@ public function streamReportDownload()
 ## Streamed Responses
 
 Streaming data to the client as it is generated can greatly reduce memory usage and enhance performance, particularly for extremely large responses.
+
+The stream callback is not run for `HEAD` requests or `204`/`304` responses, since those must not have a body. A streamed response has no buffered body, so calling `setBody()` with a string on it throws a `LogicException`. The same applies to file responses.
 
 #### Basic Streaming
 

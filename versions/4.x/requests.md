@@ -561,6 +561,13 @@ Equivalent to the above, using the `input()` method
 $request->input('name', 'default');
 ```
 
+Called without a key, `input()` returns the complete input array, the same as `all()`:
+```php
+$request->input();
+```
+
+`input()` and `has()` always read the current request data, so values you change with `merge()` or directly on the `$request->request` bag are visible right away.
+
 `get()` is a lower-level lookup. It checks route parameters first, then the query string, then the request body, and returns the first match. Prefer `input()` when you only want the request input.
 ```php
 $request->get('name', 'default');
@@ -731,6 +738,8 @@ $request->host();
 $request->scheme();
 ```
 
+`scheme()` returns the same value as `getScheme()`. Behind a [trusted proxy](/versions/4.x/trust-proxies), it honors the `X-Forwarded-Proto` header, so a request that reaches the proxy over HTTPS reports `https` even if the proxy forwards it to your application over plain HTTP.
+
 ## Retrieving the Request Method
 
 The `method()` method returns the HTTP verb in lowercase, while `getMethod` returns it in uppercase. You may use the `isGet`, `isPost`, `isPut`, `isPatch`, `isDelete` and `isHead` methods to verify that the HTTP verb matches:
@@ -782,19 +791,19 @@ $token = $request->bearerToken();
 
 ## Request IP Address
 
-The `ip` method may be used to retrieve the IP address of the client that made the request to your application
+The `ip` method may be used to retrieve the IP address of the client that made the request to your application. It is an alias of `getClientIp()`.
 
 ```php
 $ipAddress = $request->ip();
 ```
 
-To retrieve an array of IP addresses — including all client IPs forwarded by proxies — you can use the `ips()` method on the `Phaseolies\Http\Request` instance. This method returns all available IPs in order, with the original client IP listed at the end of the array.
+To retrieve an array of IP addresses — including all client IPs forwarded by proxies — you can use the `ips()` method on the `Phaseolies\Http\Request` instance. It is equivalent to `getClientIps()`: trusted proxy addresses are removed, and the original client IP is the **first** element of the array.
 
 ```php
 $ipAddresses = $request->ips();
 ```
 
-This is especially useful when your application is behind a load balancer or proxy and you want to trace the full route of the request
+Forwarding headers such as `X-Forwarded-For` and `Forwarded` are only read when the request comes from a [trusted proxy](/versions/4.x/trust-proxies). For any other request, both methods return the connecting address (`REMOTE_ADDR`), so clients cannot spoof their IP by sending these headers themselves.
 
 ## Content Negotiation
 
