@@ -7,6 +7,8 @@ meta:
 ---
 
 ## CSRF Protectection
+### Introduction
+
 Cross-site request forgery (CSRF) attacks are a type of security threat where unauthorized actions are executed on behalf of an authenticated user without their knowledge. Fortunately, Doppar provides robust built-in protection to safeguard your application against such attacks.
 
 You can access the current session's CSRF token either through the request's session data or by using the `csrf_token()` helper function. This seamless integration ensures that your application remains secure while requiring minimal effort on your part. With Doppar, you can focus on building your application with confidence, knowing that CSRF protection is handled efficiently in the background.
@@ -25,7 +27,9 @@ Without CSRF protection, a malicious website could create an HTML form that poin
 To prevent this vulnerability, we need to inspect every incoming `POST`, `PUT`, `PATCH`, or `DELETE` request for a secret session value that the malicious application is unable to access.
 
 ## Preventing CSRF Requests
-Doppar simplifies CSRF protection by automatically generating a unique CSRF token for every active user session. This token acts as a secure identifier to ensure that requests made to the application are genuinely coming from the authenticated user. The token is stored in the user's session and is regenerated whenever the session is refreshed, making it virtually impossible for malicious actors to replicate or misuse it.
+Doppar simplifies CSRF protection by generating a unique CSRF token for each user session. This token acts as a secure identifier to ensure that requests made to the application are genuinely coming from the authenticated user.
+
+The token is stored in the user's session and is created the first time it is requested, through `csrf_token()` or `$request->session()->token()`. A page that never renders a form or reads the token does not create a session just for it. Regenerating the session ID with `regenerate()` keeps the token, `invalidate()` clears it so a new one is created on next use, and `regenerateToken()` replaces it on demand.
 
 ```php
 use Phaseolies\Http\Request;
@@ -50,6 +54,8 @@ Anytime you define a "POST" HTML form in your application, you should include a 
 ```
 The `\Phaseolies\Middleware\CsrfTokenMiddleware`, middleware, which is included in the web middleware group by default, will automatically verify that the token in the request input matches the token stored in the session.
 
+The middleware only compares against a token that already exists in the session. A `POST`, `PUT`, `PATCH`, or `DELETE` request that arrives without a session, such as one with no session cookie, fails with a `TokenMismatchException`. It does not start a new session. See [Session](/versions/4.x/session#csrf-token) for how the token is stored.
+
 ## X-CSRF-TOKEN
 In addition to checking for the CSRF token as a POST parameter, the `\Phaseolies\Middleware\CsrfTokenMiddleware` middleware, which is included in the web middleware group by default, will also check for the X-CSRF-TOKEN request header. You could, for example, store the token in an HTML meta tag:
 ```php
@@ -63,6 +69,25 @@ $.ajaxSetup({
     }
 });
 ```
+
+## The XSRF-TOKEN Cookie
+Besides checking the `_token` input and the `X-CSRF-TOKEN` header, Doppar sends the token in an `XSRF-TOKEN` cookie, which libraries such as axios read and send back as a header automatically.
+
+The cookie is only sent once a token exists. A page that renders a form, or calls `csrf_token()`, creates it. Doppar does not create the token just to hand it out, because that would make every anonymous visit, crawler hits included, worth a stored session.
+
+A front end that never loads such a page therefore has no cookie on its first request and gets a `419` on its first `POST`. There are two ways to deal with it:
+
+- Expose the token yourself, with a meta tag in your layout or a route that returns `csrf_token()`, and send it in the `X-CSRF-TOKEN` header
+- Set `always_send_xsrf_cookie` to `true` in `runtime/config/session.php`, so every stateful response creates the token and carries the cookie
+
+```php
+'always_send_xsrf_cookie' => true,
+```
+
+> **Note:** With `always_send_xsrf_cookie` enabled, every visitor to a route in the `web` group gets a stored session, so cleanup and storage grow with your traffic. Enable it only if your front end needs it. [Stateless](/versions/4.x/session#stateless-routes) routes never get the cookie, whatever the setting.
+
+## Stateless Routes
+Requests that are [stateless](/versions/4.x/session#stateless-routes) have no stored session to tie a token to, so Doppar does not issue the `XSRF-TOKEN` cookie for them and they cannot pass CSRF verification. Keep token authenticated endpoints, such as a JSON API, out of the `web` middleware group, or list them in `setRelaxablePaths` as shown below.
 
 ## Ignoring CSRF Protection
 To exclude certain routes from CSRF token verification (useful for APIs, webhooks, or external integrations), update the `setRelaxablePaths` array in the `src/runtime/app.php` file.

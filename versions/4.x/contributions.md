@@ -31,10 +31,11 @@ If you spot minor issues like incorrect DocBlocks, PHPStan violations, or IDE wa
 ## Doppar Repositories
 All Doppar projects are managed via GitHub. Feel free to explore, fork, and contribute:
 
-- [Doppar Skeleton](https://github.com/doppar/doppar)
+- [Skeleton](https://github.com/doppar/doppar)
 - [Framework](https://github.com/doppar/framework)
 - [Docs](https://github.com/doppar/docs)
 - [AI](https://github.com/doppar/ai)
+- [Ripple](https://github.com/doppar/ripple)
 - [Embeds](https://github.com/doppar/embeds)
 - [Queue](https://github.com/doppar/queue)
 - [Airbend](https://github.com/doppar/airbend)
