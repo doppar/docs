@@ -3,7 +3,7 @@ title: Session
 description: Doppar session page
 meta:
   - name: keywords
-    content: session, session driver, file driver, cookie driver, stateless, session lifetime, session regenerate, garbage collection, custom session driver
+    content: session, session driver, file driver, cookie driver, database driver, sessions table, stateless, session lifetime, session regenerate, garbage collection, custom session driver
 ---
 
 ## HTTP Session
@@ -23,7 +23,7 @@ $name = $request->session()->get('name');
 ### Why Doppar Sessions
 
 - *Lazy* → nothing is created until the session is used, and an empty session is never saved
-- *Driver based* → the same API works with the `file`, `cookie`, and `array` drivers, or your own
+- *Driver based* → the same API works with the `file`, `cookie`, `database`, and `array` drivers, or your own
 - *Non-blocking* → concurrent requests from the same browser never wait for each other
 - *Self-cleaning* → expired sessions are removed automatically, without a background job
 - *Stateless when you need it* → API routes can opt out of sessions entirely
@@ -34,10 +34,12 @@ The session configuration file is located at `runtime/config/session.php`. Most 
 
 | Option | Environment key | Default | Description |
 |--------|-----------------|---------|-------------|
-| `driver` | `SESSION_DRIVER` | `file` | Where session data is stored: `file`, `cookie`, or `array` |
+| `driver` | `SESSION_DRIVER` | `file` | Where session data is stored: `file`, `cookie`, `database`, or `array` |
 | `lifetime` | `SESSION_LIFETIME` | `120` | Minutes a session stays valid without activity |
 | `expire_on_close` | `SESSION_EXPIRE_ON_CLOSE` | `false` | End the session when the browser is closed |
 | `files` | | `storage/framework/sessions` | Directory used by the `file` driver |
+| `connection` | | `null` | Database connection used by the `database` driver. `null` uses the default connection |
+| `table` | | `sessions` | Table used by the `database` driver |
 | `cookie` | `SESSION_COOKIE` | `{app name}_session` | Name of the session cookie. Characters other than letters, digits, `-`, and `_` are replaced with `_` |
 | `path` | `SESSION_PATH` | `/` | URL path the cookie is valid for |
 | `domain` | `SESSION_DOMAIN` | `null` | Domain, and subdomains, the cookie is valid for |
@@ -53,7 +55,7 @@ SESSION_DRIVER = "file"
 SESSION_LIFETIME = 120
 ```
 
-> **Note:** `stateless`, `lottery`, and `always_send_xsrf_cookie` are optional. A configuration file created before these options existed keeps working with the defaults shown above.
+> **Note:** `stateless`, `lottery`, `always_send_xsrf_cookie`, `connection`, and `table` are optional. A configuration file created before these options existed keeps working with the defaults shown above.
 
 Browsers reject `SameSite=None` cookies that are not `Secure`. When `same_site` is `none`, Doppar always marks the session cookie as secure.
 
@@ -63,6 +65,7 @@ Browsers reject `SameSite=None` cookies that are not `Secure`. When `same_site` 
 |--------|-----------|----------|--------|
 | `file` | Files on the server | Most applications | One server, or a shared filesystem |
 | `cookie` | The browser, in an encrypted cookie | Small payloads and servers with no writable storage | About 4 KB in total. Cannot be revoked from the server |
+| `database` | A database table | Several servers behind a load balancer, and listing or ending a user's sessions | One small query per request |
 | `array` | Process memory | Automated tests | Lost when the process ends |
 
 ### File Driver
@@ -83,7 +86,64 @@ Keep these constraints in mind before choosing it:
 - **Serialization.** Values must come back from JSON unchanged. Store strings (valid UTF-8), numbers, booleans, `null` and arrays. Objects would silently turn into arrays and binary data cannot be encoded, so both throw a `SessionException` that names the key.
 - **Revocation.** There is no server-side record, so `destroy()` and `session:clear` cannot invalidate a cookie that has already been issued. A copied cookie stays valid until it expires or you rotate `APP_KEY`.
 
-> **Note:** Prefer the `file` driver for anything that holds authentication state or large values, such as validation errors and old input.
+> **Note:** Prefer the `file` or `database` driver for anything that holds authentication state or large values, such as validation errors and old input.
+
+### Database Driver
+
+The `database` driver stores each session as a row in a database table. Every server that shares the database shares the sessions, so it suits applications that run on several servers. It also records which user each session belongs to, which lets a user see where they are signed in and sign out of other devices. See [Logging Out Other Devices](/versions/4.x/authentication#logging-out-other-devices).
+
+It works with MySQL and MariaDB, PostgreSQL, and SQLite.
+
+Create the table, then switch the driver:
+
+```bash
+php pool session:table
+php pool migrate
+```
+
+```toml
+SESSION_DRIVER = "database"
+```
+
+`session:table` writes a migration for the table named by the `table` option:
+
+```php
+Schema::create('sessions', function (Blueprint $table) {
+    $table->string('id', 128)->primary();
+    $table->unsignedBigInteger('user_id')->nullable()->index();
+    $table->string('ip_address', 45)->nullable();
+    $table->text('user_agent')->nullable();
+    $table->longText('payload');
+    $table->unsignedInteger('last_activity')->index();
+});
+```
+
+| Column | Holds |
+|--------|-------|
+| `id` | The session ID |
+| `user_id` | The user signed in through the default auth actor, or `null` for a guest |
+| `ip_address` | The client's IP address, as seen through your [trusted proxies](/versions/4.x/trust-proxies) |
+| `user_agent` | The client's user agent, limited to 1024 printable characters |
+| `payload` | The session data, serialized and base64 encoded |
+| `last_activity` | When the session was last used, as a Unix timestamp |
+
+> **Note:** If your users have UUID or ULID keys, change the `user_id` column to `$table->string('user_id', 36)->nullable()->index();` before you migrate.
+
+The table and connection default to `sessions` and your default database connection. To change them, add these options to `runtime/config/session.php`; `connection` must name one of the connections in `runtime/config/database.php`:
+
+```php
+'connection' => env('SESSION_CONNECTION', 'sessions'),
+'table' => env('SESSION_TABLE', 'sessions'),
+```
+
+The driver is built to stay cheap on every request:
+
+- Loading a session is one lookup by primary key, and saving it is a single upsert. Statements are prepared once per connection and reused.
+- A request that does not change the session does not write it. Its expiry is refreshed at most about once a minute.
+- The database is only contacted once the session is used, so requests that never touch it never connect.
+- Expired sessions are removed in bounded batches using the `last_activity` index.
+
+If the table is missing, the first request that uses the session throws a `SessionException` that says to run `php pool session:table`.
 
 ### Array Driver
 
@@ -183,7 +243,9 @@ $request->session()->flush();
 $request->session()->invalidate();
 ```
 
-A session that is left with no data is removed when the request finishes, and its cookie is expired, so clearing a session never leaves an empty one behind.
+A session that is left with no data is removed when the request finishes, and its cookie is expired, so clearing a session never leaves an empty one behind. If another request saved something into the session in the meantime, that is kept: the session is only removed when nothing is left once both requests' changes are taken together.
+
+`destroy()`, `flush()`, and `invalidate()` end the session, and they are applied even if the request then fails with an exception, so a logout is never lost.
 
 ## Regenerating the Session ID
 
@@ -239,7 +301,7 @@ Endpoints that authenticate with tokens, such as a JSON API, do not need a sessi
 - Nothing is stored and no session cookie is sent
 - A session cookie sent by the client is ignored
 
-To make a group of paths stateless, list them in `runtime/config/session.php`. Patterns are matched against the request path and may use `*` as a wildcard.
+To make a group of paths stateless, list them in `runtime/config/session.php`. Patterns are matched against the request path and may use `*` as a wildcard. Matching ignores case, and the leading slash is optional, so `api/*` and `/api/*` are the same pattern. Paths that skip CSRF verification and `Request::is()` use the same rules.
 
 ```php
 'stateless' => ['api/*', 'webhooks/*'],
@@ -302,11 +364,17 @@ php pool session:clear
 
 Removes every stored session, which signs out all users. It has no effect on the `cookie` driver, because those sessions live in the browser.
 
+```bash
+php pool session:table
+```
+
+Creates the migration for the `database` driver's table. See [Database Driver](#database-driver).
+
 ## Concurrent Requests
 
 A session is not locked while a request runs, so several requests from the same browser run in parallel, which is what makes pages that issue many AJAX calls fast.
 
-When a request saves the session, the file driver briefly locks it, reads the session as other requests have left it, and applies only what this request changed: keys it added, changed or removed, including inside arrays such as flash data. The lock covers a small group of sessions, so visitors who are unrelated to each other never wait for one another. Two requests that touch different keys, such as one adding to the cart while another flashes a message, both keep their changes.
+When a request saves the session, the `file` and `database` drivers briefly lock it, reads the session as other requests have left it, and applies only what this request changed: keys it added, changed or removed, including inside arrays such as flash data. The `file` driver's lock covers a small group of sessions. The `database` driver locks the one session only, with `GET_LOCK()` on MySQL and MariaDB and an advisory lock on PostgreSQL; on SQLite, which allows one writer at a time, it uses a short write transaction. Either way, visitors who are unrelated to each other never wait for one another. Two requests that touch different keys, such as one adding to the cart while another flashes a message, both keep their changes.
 
 Lists are merged by what each request added and removed, not by position. Two requests that each append to the same list both keep their item, and the same is true when both create the list for the first time.
 
@@ -345,6 +413,8 @@ You may add a driver by implementing `Phaseolies\Session\Contracts\SessionStoreI
 | `isClientSide(): bool` | Return `true` only when the data is stored in the cookie itself |
 
 A driver that can lock a session may also implement `Phaseolies\Session\Contracts\LockableSessionStore` and its `synchronized(string $id, callable $callback): mixed` method. Doppar then merges concurrent changes inside it, as the file driver does.
+
+A driver that knows which user each session belongs to may also implement `Phaseolies\Session\Contracts\UserSessionStore`. Its `userSessions(int|string $userId): array` and `destroyUserSessions(int|string $userId, ?string $exceptId = null): int` methods let `auth()->sessions()` and `auth()->logoutOtherDevices()` list and end a user's sessions, as the database driver does.
 
 ```php
 <?php
@@ -390,5 +460,7 @@ Sessions no longer use PHP's native session functions as of Doppar v4.9.0. If yo
 - **Existing sessions are not carried over.** Users are signed out once, the first time they visit after the upgrade. Old `sess_*` files are removed by `php pool session:gc`.
 - **Do not read `$_SESSION` or call `session_start()`.** Use `$request->session()`, the `session()` helper, or the `Session` facade, which work with every driver.
 - **`csrf_token()` creates the token on demand.** Code should call it rather than reading `_token` from the session directly.
-- **Session changes are not saved when a request ends with an uncaught exception.** The session is saved just before the response is sent. A request that ends in an unhandled error, a `500`, never gets that far, so flash data and other changes made before the failure are dropped. With PHP's native sessions they were saved when the script ended, so code that flashes a message and then throws must catch the exception or save the data another way. Requests that end with an HTTP exception, such as `abort(404)`, and validation failures that redirect back with their errors, are still saved.
+- **Session changes are not saved when a request ends with an uncaught exception.** The session is saved just before the response is sent. A request that ends in an unhandled error, a `500`, never gets that far, so flash data and other changes made before the failure are dropped. With PHP's native sessions they were saved when the script ended, so code that flashes a message and then throws must catch the exception or save the data another way. A logout is the exception: `destroy()`, `flush()`, and `invalidate()` are still applied, so a user is never left signed in by a request that failed after logging them out. Requests that end with an HTTP exception, such as `abort(404)`, and validation failures that redirect back with their errors, are saved as usual.
+- **Changes made while a streamed response is sent are not saved.** The session is saved before the response is sent, because that is when its cookie is added. A `StreamedResponse` callback runs after that, so a value it writes to the session is lost. Write to the session before returning the response.
+- **Error pages can use the session.** The page of an HTTP exception, such as a custom `403` view that renders a form with `csrf_token()`, is built before the session is saved, so what it writes is kept and its form can be submitted.
 - **The `XSRF-TOKEN` cookie is sent lazily.** It is only sent once a token exists, for example after a page renders a form or calls `csrf_token()`. A front end that reads the cookie instead of a page, such as an axios or fetch based client that never loads a form, will get a `419` on its first `POST`. Expose the token with `csrf_token()` (a meta tag or a route that returns it), or set `'always_send_xsrf_cookie' => true` in `runtime/config/session.php`. See [The XSRF-TOKEN Cookie](/versions/4.x/csrf-protection#the-xsrf-token-cookie).

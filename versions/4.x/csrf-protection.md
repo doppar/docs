@@ -90,7 +90,7 @@ A front end that never loads such a page therefore has no cookie on its first re
 Requests that are [stateless](/versions/4.x/session#stateless-routes) have no stored session to tie a token to, so Doppar does not issue the `XSRF-TOKEN` cookie for them and they cannot pass CSRF verification. Keep token authenticated endpoints, such as a JSON API, out of the `web` middleware group, or list them in `setRelaxablePaths` as shown below.
 
 ## Ignoring CSRF Protection
-To exclude certain routes from CSRF token verification (useful for APIs, webhooks, or external integrations), update the `setRelaxablePaths` array in the `src/runtime/app.php` file.
+To exclude certain routes from CSRF token verification (useful for APIs, webhooks, or external integrations), update the `setRelaxablePaths` array in the `src/runtime/app.php` file. Patterns ignore case, the leading slash is optional, and `*` matches anything, exactly as they do for the [stateless](/versions/4.x/session#stateless-routes) paths of the session.
 
 Locate the section where the application is being built and modify it like so:
 

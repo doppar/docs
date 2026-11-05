@@ -19,6 +19,7 @@ meta:
   - [Environment File Converted to TOML](#environment-file-converted-to-toml)
   - [Mail Transport Switched to Symfony Mailer](#mail-transport-switched-to-symfony-mailer)
   - [Checklist](#checklist)
+  - [Upgrading Within 4.9: Request and Response Changes](#upgrading-within-4x-request-and-response-changes)
 
 ## Upgrade Guide
 
@@ -262,3 +263,93 @@ Work through these in order — each step assumes the previous one is already do
 > Do this on a dedicated branch. The steps are mechanical but touch nearly every file in the project — keeping it separate from feature work makes the diff reviewable.
 
 For the full list of what's new in 4.x beyond these breaking changes, see the [Release Notes](/versions/4.x/releases).
+
+## Upgrading Within 4.9: Request and Response Changes
+
+Doppar 4.9 fixes a number of inconsistencies in the HTTP request and response layer. Most applications need no changes. Review the items below if your code relies on any of them.
+
+### HEAD requests are routed to GET routes
+
+A `HEAD` request to a path that only has a `GET` route used to return `404`. It is now handled by the `GET` route, with that route's middleware, and returns headers only. Uptime monitors, link checkers and proxies that probe pages with `HEAD` will now get the real status (for example `200`, or a `302` to the login page for protected routes). An explicit `Route::head()` route still takes precedence. See [HEAD Requests](/versions/4.x/routing#head-requests).
+
+### Method overrides only apply to POST requests
+
+The `_method` field and the `X-HTTP-Method-Override` header are now only honoured on real `POST` requests. Before, they applied to any method, so a plain link such as `GET /posts/1?_method=DELETE` reached the `DELETE` route. On API routes, which have no CSRF check, a link or `<img>` tag could trigger it. HTML forms already send these overrides with `method="POST"`, so they keep working. If a client sends an override on a non-`POST` request, switch it to `POST` or send the real method directly.
+
+A `_method` override is also only read from the request body, not the query string. `POST /posts/1?_method=DELETE` is now handled as `POST`, and a bad value there such as `?_method=garbage` no longer causes a `400`. Send `_method` as a form field, or use the `X-HTTP-Method-Override` header. A query-string `_method` is no longer part of `all()`/`input()`, but `$request->query->get('_method')` still returns it.
+
+### API errors are always JSON
+
+An HTTP exception on an API route (`/api/*`) or an AJAX request now always gets a JSON error body, matching `abort()`. Before, the bundled HTML error page was sent instead whenever a view existed for that status.
+
+### Client IP and scheme now honor trusted proxies
+
+`ip()`, `ips()` and `scheme()` now use the same proxy-aware logic as `getClientIp()`, `getClientIps()` and `getScheme()`. Previously they always returned `REMOTE_ADDR` and the raw `HTTPS` server value, even when [trusted proxies](/versions/4.x/trust-proxies) were configured.
+
+If your application runs behind a trusted proxy, `ip()` now returns the real client address instead of the proxy's. Check any code that stores, rate-limits on, or allow-lists IPs.
+
+`ips()` now returns the same list as `getClientIps()`, with trusted proxies removed. It is ordered from most to least trusted: the first element is the closest address that isn't a trusted proxy (what `ip()` returns), and the last is the originating client as reported by the forwarding headers.
+
+```php
+// Behind a trusted proxy, with X-Forwarded-For: 203.0.113.1
+$request->ip();  // before: "10.0.0.5" (proxy)   now: "203.0.113.1"
+$request->ips(); // now: ["203.0.113.1"]
+
+// With X-Forwarded-For: 203.0.113.1, 198.51.100.2 (198.51.100.2 is not trusted)
+$request->ip();  // "198.51.100.2" — the closest untrusted hop
+$request->ips(); // ["198.51.100.2", "203.0.113.1"]
+```
+
+If a trusted proxy sends a `Forwarded` header and an `X-Forwarded-*` header that disagree, the first IP lookup throws `Phaseolies\Http\Exceptions\ConflictingHeadersException`, a `400 Bad Request`. Later lookups on the same request return the connecting address, so error pages and logs still work. Before, this case threw a generic `\Exception`, and later lookups returned `0.0.0.0`.
+
+### `response()` serializes models and `JsonSerializable` objects as JSON
+
+`response($value)` now applies the same rules as returning `$value` from a route. Entity models and other `JsonSerializable` objects produce a JSON response with `Content-Type: application/json`. Before, they were cast to a string and sent as `text/html`.
+
+Returning an object that implements only `Stringable` from a route now sends its string value. Before, it was JSON-encoded. See [Returning Arrays and Objects](/versions/4.x/responses#returning-arrays-and-objects) for the full rules.
+
+### `response()->redirect()` returns a `RedirectResponse`
+
+It now returns `Phaseolies\Http\Response\RedirectResponse` with a standard HTML redirect body, the same as `redirect()->to()`. Before, it returned a plain `Response` with an empty body. Code that asserted on an empty body needs updating.
+
+### Request input
+
+- `input()` called without a key now returns all input. Before, it returned `null`.
+- The public `$request->input` property, an internal cache, was removed. Use `input()` or `all()` instead.
+- `all()` is now typed `array` (it was `?array`). It never returned `null` in practice.
+- `failed()` no longer accepts an `$excludeKeys` argument. It always returned every validation error, and still does.
+
+### Request body parsing
+
+- A JSON request with an empty body is now treated as having no body. Before, it failed with a `500` error.
+- A JSON body that decodes to a scalar (for example `"text"` or `42`) is ignored. Before, it failed with a `500` error.
+- A request with malformed JSON now gets a `400 Bad Request` response (JSON for API routes, the bundled `400` error page for web routes). Before, it crashed with an empty `500` response, because the error handler failed while re-reading the body.
+- An unsupported method or method override (an `X-HTTP-Method-Override` header or `_method` field such as `BOGUS`, or a non-string such as `_method[]=PUT`) now gets a `400 Bad Request` too. Before, it crashed with an empty `500`. `getMethod()` now returns the real request method for such requests, and throws `BadRequestHttpException` instead of `InvalidArgumentException` when it meets an invalid value.
+- If you need the underlying error for either case, call `$request->getMalformedRequestError()`.
+- `application/x-www-form-urlencoded` bodies now keep query-string parameters on every method, including regular form `POST`s, matching how JSON bodies were already handled. For example, posting `name=d` to `/save?page=2` now gives `all() === ['name' => 'd', 'page' => '2']`. Before, `page` was dropped. If a body field and a query parameter share a name, the body value wins.
+- Numeric field names keep their keys. Posting `10=a&20=b` now gives `[10 => 'a', 20 => 'b']`. Before, the form-body fix above re-indexed and duplicated them as `['a', 'b', 'a', 'b']`. `merge()` keeps numeric keys too.
+
+### Response API
+
+- `setException()` now requires a `Throwable` or `null`.
+- `withHeaders()` now accepts a `HeaderBag` as well as an array, and returns `static`.
+- `text()` now updates the status text along with the status code, so `text('...', 404)` sends `404 Not Found` instead of `404 OK`.
+- `StreamedResponse` and `BinaryFileResponse` now guard `setBody()` instead of the unused `setContent()`/`getContent()` methods, which were removed. Passing a string to `setBody()` on either throws a `LogicException`.
+
+### Removed classes, methods and constants
+
+| Removed | Use instead |
+| --- | --- |
+| `Phaseolies\Http\Response\BaseJsonResponse` | `Phaseolies\Http\Response\JsonResponse` |
+| `StreamedResponse::DEFAULT_ENCODING_OPTIONS` | `JsonResponse::DEFAULT_ENCODING_OPTIONS` or `StreamedJsonResponse::DEFAULT_ENCODING_OPTIONS` |
+| `Response::headers_send()` | Nothing. It was an internal helper |
+| `Request::initializeHeaders()`, `prepareRequestUri()`, `prepareBaseUrl()`, `preparePathInfo()` | Nothing. They were protected and never called |
+| `Request::isValidRequest()` | Nothing. It was no longer called, and its rule that a proxied request must carry *every* trusted header would reject legitimate traffic. Use `isFromTrustedProxy()` to check whether a request came through a trusted proxy |
+
+### JSON output respects `jsonSerialize()`
+
+JSON responses now call an object's own `jsonSerialize()`, including for models inside a collection (`return User::all()`) and for loaded relations (`$user->posts`, `$post->author`). Before, models were converted with `toArray()`, which skipped a custom `jsonSerialize()` and could expose fields it was meant to hide. A model's own `toArray()` still shapes its JSON. Calling `toArray()` directly still serializes relations with their `toArray()`. Models that don't override `jsonSerialize()` produce exactly the same JSON as before.
+
+### Error views
+
+Bundled error pages (`404`, `500`, and so on) are now resolved relative to the framework package rather than a hard-coded `vendor/doppar/framework` path. Your own views in `templates/views/errors/{status}.odo.php` still take precedence. In setups where the framework isn't installed under `vendor/doppar/framework` (for example a path repository), `abort()` now renders the bundled pages instead of a bare exception. To find the view used for a status, call `Response::resolveErrorView($status)`.
