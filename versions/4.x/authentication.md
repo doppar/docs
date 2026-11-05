@@ -202,7 +202,7 @@ class SecurityController extends Controller
 `logoutOtherDevices()` returns `false` when no user is signed in or the password is wrong, and changes nothing in that case. Otherwise it:
 
 - **Re-hashes the password.** The password itself does not change, but every other session was signed in with the old hash, so it is no longer accepted.
-- **Replaces the remember-me token.** Other devices cannot sign back in from their remember-me cookie. If the current device was remembered, it gets a new cookie and stays remembered.
+- **Replaces the remember-me token.** Other devices cannot sign back in from their remember-me cookie. If the current device holds a valid remember-me cookie, it gets a new one and stays remembered. A cookie that is invalid or out of date is removed instead, so it never earns a new token.
 - **Keeps the current device signed in.**
 - **Deletes the other sessions immediately** when you use the [database session driver](/versions/4.x/session#database-driver), which records the user of each session.
 
@@ -221,15 +221,24 @@ public $middlewareGroups = [
 
 The middleware compares the password the session was signed in with to the user's current password. A session that no longer matches is signed out, and the request carries on as a guest, so the `auth` middleware of a protected route sends it to the login page.
 
-This also signs a user out of their other devices whenever their password changes, for example after a password reset. The device that changed the password stays signed in, as long as it changed the password of the signed-in user (`auth()->user()`). If you change it on another instance of the model, keep the current device signed in with:
+This also signs a user out of their other devices whenever their password changes, for example after a password reset. The device that changed the password stays signed in when it changed the password on the signed-in user (`auth()->user()`). If you change it another way, such as with a query or on another instance of the model, call `refreshSessionFingerprint()` after the change to keep the current device signed in. It reads the user's password from the database:
 
 ```php
+User::where('id', auth()->id())
+    ->update([
+        'password' => Hash::make($request->password)
+    ]);
+
 auth()->refreshSessionFingerprint();
 ```
 
+The middleware does not read the password from the database by itself. A password that changed there while a request was running may have been changed by another device that is signing this one out, and the middleware must not keep this device signed in.
+
 > **Note:** The middleware is optional with the `database` driver, which deletes the other sessions immediately. Registering it anyway also covers password changes made outside `logoutOtherDevices()`.
 
-Sessions created before the middleware was registered are accepted once and then checked from their next request on, so registering it does not sign anyone out.
+Sessions that were signed in before the middleware was registered do not record which password they were signed in with, so the middleware signs them out on their next request. A device with a valid remember-me cookie is signed straight back in, so only users who did not choose "Remember Me" have to sign in again. A remember-me cookie that `logoutOtherDevices()` has replaced does not sign the device back in.
+
+A remember-me cookie that is out of date, for example because the user chose "Remember Me" on another device since, signs out only the device that sends it. The user's other devices are not affected.
 
 ### Listing a User's Devices
 With the `database` driver, `sessions()` returns the devices the signed-in user is currently signed in on, most recently active first:
@@ -281,6 +290,8 @@ public function getRememberTokenName(): string
     return 'remember_me_token';
 }
 ```
+
+`getAuthPassword()` and `getRememberToken()` read these attributes, so overriding the name methods is enough. If your model overrides `getAuthPassword()` to read the password from another attribute, override `getAuthPasswordName()` to name that attribute as well. Otherwise `logoutOtherDevices()` throws a `LogicException` before writing anything, so it never writes the new hash to the wrong column.
 
 ## Get Authenticated User Data
 To get the current authenticated user data, Doppar has `Auth::user()` method and `auth()` helper. Simply call

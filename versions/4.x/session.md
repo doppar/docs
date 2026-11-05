@@ -136,6 +136,22 @@ The table and connection default to `sessions` and your default database connect
 'table' => env('SESSION_TABLE', 'sessions'),
 ```
 
+Set them before you run `session:table`. When `connection` is set, the migration creates the table on that connection:
+
+```php
+Schema::connection('sessions')->create('sessions', function (Blueprint $table) {
+    // ...
+});
+```
+
+Run it on that connection, as the command reminds you:
+
+```bash
+php pool migrate --connection=sessions
+```
+
+The table name must be a plain name of letters, digits, and underscores, such as `user_sessions`. A schema-qualified name such as `app.sessions` is rejected. On PostgreSQL, use a schema other than `public` by setting the `search_path` of the session connection instead.
+
 The driver is built to stay cheap on every request:
 
 - Loading a session is one lookup by primary key, and saving it is a single upsert. Statements are prepared once per connection and reused.
@@ -414,7 +430,9 @@ You may add a driver by implementing `Phaseolies\Session\Contracts\SessionStoreI
 
 A driver that can lock a session may also implement `Phaseolies\Session\Contracts\LockableSessionStore` and its `synchronized(string $id, callable $callback): mixed` method. Doppar then merges concurrent changes inside it, as the file driver does.
 
-A driver that knows which user each session belongs to may also implement `Phaseolies\Session\Contracts\UserSessionStore`. Its `userSessions(int|string $userId): array` and `destroyUserSessions(int|string $userId, ?string $exceptId = null): int` methods let `auth()->sessions()` and `auth()->logoutOtherDevices()` list and end a user's sessions, as the database driver does.
+A driver that knows which user each session belongs to may also implement `Phaseolies\Session\Contracts\UserSessionStore`. Its `userSessions(int|string $userId): array` and `destroyUserSessions(int|string $userId, array $keep = []): int` methods let `auth()->sessions()` and `auth()->logoutOtherDevices()` list and end a user's sessions, as the database driver does.
+
+`$keep` holds the IDs of the current device's session: the one its cookie will carry, and the one it is still stored under when its ID was regenerated during the request. A session whose ID was rotated automatically is stored for a short time as a pointer to its new ID. Read it with `Phaseolies\Session\RotationPointer::target($data, false)`, and keep or end the session it leads to along with the one you were given.
 
 ```php
 <?php
