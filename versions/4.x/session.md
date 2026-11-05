@@ -22,11 +22,11 @@ $name = $request->session()->get('name');
 
 ### Why Doppar Sessions
 
-- *Lazy* → nothing is created until the session is used, and an empty session is never saved
-- *Driver based* → the same API works with the `file`, `cookie`, `database`, and `array` drivers, or your own
-- *Non-blocking* → concurrent requests from the same browser never wait for each other
-- *Self-cleaning* → expired sessions are removed automatically, without a background job
-- *Stateless when you need it* → API routes can opt out of sessions entirely
+- Lazy → nothing is created until the session is used, and an empty session is never saved
+- Driver based → the same API works with the `file`, `cookie`, `database`, and `array` drivers, or your own
+- Non-blocking → concurrent requests from the same browser never wait for each other
+- Self-cleaning → expired sessions are removed automatically, without a background job
+- Stateless when you need it → API routes can opt out of sessions entirely
 
 ## Configuration
 
@@ -65,7 +65,7 @@ Browsers reject `SameSite=None` cookies that are not `Secure`. When `same_site` 
 |--------|-----------|----------|--------|
 | `file` | Files on the server | Most applications | One server, or a shared filesystem |
 | `cookie` | The browser, in an encrypted cookie | Small payloads and servers with no writable storage | About 4 KB in total. Cannot be revoked from the server |
-| `database` | A database table | Several servers behind a load balancer, and listing or ending a user's sessions | One small query per request |
+| `database` | A database table | Several servers behind a load balancer, and listing or ending a user's sessions | Two primary-key lookups per request that uses the session |
 | `array` | Process memory | Automated tests | Lost when the process ends |
 
 ### File Driver
@@ -114,7 +114,7 @@ Schema::create('sessions', function (Blueprint $table) {
     $table->string('ip_address', 45)->nullable();
     $table->text('user_agent')->nullable();
     $table->longText('payload');
-    $table->unsignedInteger('last_activity')->index();
+    $table->unsignedBigInteger('last_activity')->index();
 });
 ```
 
@@ -155,7 +155,7 @@ The table name must be a plain name of letters, digits, and underscores, such as
 The driver is built to stay cheap on every request:
 
 - Loading a session is one lookup by primary key, and saving it is a single upsert. Statements are prepared once per connection and reused.
-- A request that does not change the session does not write it. Its expiry is refreshed at most about once a minute.
+- A request that does not change the session does not write it. It looks the session up once more at the end, to check that another request did not end or rotate it in the meantime. Its expiry, IP address, and user agent are refreshed at most about once a minute.
 - The database is only contacted once the session is used, so requests that never touch it never connect.
 - Expired sessions are removed in bounded batches using the `last_activity` index.
 

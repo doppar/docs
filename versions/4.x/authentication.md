@@ -236,7 +236,9 @@ The middleware does not read the password from the database by itself. A passwor
 
 > **Note:** The middleware is optional with the `database` driver, which deletes the other sessions immediately. Registering it anyway also covers password changes made outside `logoutOtherDevices()`.
 
-Sessions that were signed in before the middleware was registered do not record which password they were signed in with, so the middleware signs them out on their next request. A device with a valid remember-me cookie is signed straight back in, so only users who did not choose "Remember Me" have to sign in again. A remember-me cookie that `logoutOtherDevices()` has replaced does not sign the device back in.
+Sessions that were signed in before the middleware was registered do not record which password they were signed in with, so registering it signs them out on their next request. Only the sign-in ends: the rest of the session's data, such as a shopping cart, is kept. A device with a valid remember-me cookie is signed straight back in, so only users who did not choose "Remember Me" have to sign in again. A remember-me cookie that `logoutOtherDevices()` has replaced does not sign the device back in.
+
+When the same user is signed in to several actors on one device, for example `web` and `admin`, `logoutOtherDevices()` on any of them keeps all of them signed in on this device. Other requests of this device that are running at the same time stay signed in too.
 
 A remember-me cookie that is out of date, for example because the user chose "Remember Me" on another device since, signs out only the device that sends it. The user's other devices are not affected.
 
