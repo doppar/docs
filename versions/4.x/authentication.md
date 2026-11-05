@@ -3,7 +3,7 @@ title: Authentications
 description: Doppar authentications page
 meta:
   - name: keywords
-    content: authentications
+    content: authentications, logout other devices, browser sessions, auth.session middleware, remember me, two-factor authentication
 ---
 
 ## Authentication
@@ -175,6 +175,113 @@ class LoginController extends Controller
 }
 ```
 
+## Logging Out Other Devices
+A user who suspects their account is in use somewhere else, or who just changed their password, can sign out of every other browser and device while staying signed in on the current one. Ask for their current password to confirm, then call `logoutOtherDevices()`:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Phaseolies\Http\Request;
+use Phaseolies\Support\Facades\Auth;
+
+class SecurityController extends Controller
+{
+    public function logoutOtherDevices(Request $request)
+    {
+        if (!Auth::logoutOtherDevices($request->password)) {
+            return back()->withErrors(['password' => 'The password is incorrect.']);
+        }
+
+        return back()->with('status', 'You have been signed out of your other devices.');
+    }
+}
+```
+
+`logoutOtherDevices()` returns `false` when no user is signed in or the password is wrong, and changes nothing in that case. Otherwise it:
+
+- **Re-hashes the password.** The password itself does not change, but every other session was signed in with the old hash, so it is no longer accepted.
+- **Replaces the remember-me token.** Other devices cannot sign back in from their remember-me cookie. If the current device was remembered, it gets a new cookie and stays remembered.
+- **Keeps the current device signed in.**
+- **Deletes the other sessions immediately** when you use the [database session driver](/versions/4.x/session#database-driver), which records the user of each session.
+
+### Checking Sessions on Every Request
+With the `file` and `cookie` drivers, the other devices' sessions still exist after `logoutOtherDevices()`. They are signed out the next time they make a request, by the `AuthenticateSession` middleware. Register it in the `web` middleware group of `src/Http/Gateway.php`, so it runs before `auth`:
+
+```php
+public $middlewareGroups = [
+    'web' => [
+        \Phaseolies\Middleware\CsrfTokenMiddleware::class,
+        \Phaseolies\Middleware\AuthenticateSession::class,
+    ],
+    'api' => [],
+];
+```
+
+The middleware compares the password the session was signed in with to the user's current password. A session that no longer matches is signed out, and the request carries on as a guest, so the `auth` middleware of a protected route sends it to the login page.
+
+This also signs a user out of their other devices whenever their password changes, for example after a password reset. The device that changed the password stays signed in, as long as it changed the password of the signed-in user (`auth()->user()`). If you change it on another instance of the model, keep the current device signed in with:
+
+```php
+auth()->refreshSessionFingerprint();
+```
+
+> **Note:** The middleware is optional with the `database` driver, which deletes the other sessions immediately. Registering it anyway also covers password changes made outside `logoutOtherDevices()`.
+
+Sessions created before the middleware was registered are accepted once and then checked from their next request on, so registering it does not sign anyone out.
+
+### Listing a User's Devices
+With the `database` driver, `sessions()` returns the devices the signed-in user is currently signed in on, most recently active first:
+
+```php
+$sessions = auth()->sessions();
+
+// [
+//     ['ip_address' => '203.0.113.9', 'user_agent' => 'Mozilla/5.0 ...', 'last_activity' => 1730700000, 'is_current' => true],
+//     ['ip_address' => '198.51.100.4', 'user_agent' => 'Mozilla/5.0 ...', 'last_activity' => 1730690000, 'is_current' => false],
+// ]
+```
+
+Session IDs are never returned, because a session ID is enough to act as the user. With other drivers, `sessions()` returns an empty array.
+
+```html
+#foreach (auth()->sessions() as $session)
+    <li>
+        [[ $session['user_agent'] ?? 'Unknown device' ]] · [[ $session['ip_address'] ]]
+        #if ($session['is_current']) (this device) #endif
+    </li>
+#endforeach
+```
+
+### Other Actors
+The database driver records the user of the **default** actor only. For any other actor, `logoutOtherDevices()` still re-hashes the password and replaces the remember-me token, and the `AuthenticateSession` middleware signs the other devices out, but no session is deleted immediately and `sessions()` is empty. Apply the middleware to such an actor's routes with its name:
+
+```php
+#[Middleware(['auth.session:admin'])]
+```
+
+after registering the alias in `src/Http/Gateway.php`:
+
+```php
+'auth.session' => \Phaseolies\Middleware\AuthenticateSession::class,
+```
+
+### Custom Password and Remember Token Columns
+`logoutOtherDevices()` writes the password and remember token columns directly, so it works even when they are not in the model's `$creatable` list, and model hooks do not run. If your users table names them differently, override these methods on your model:
+
+```php
+public function getAuthPasswordName(): string
+{
+    return 'password_hash';
+}
+
+public function getRememberTokenName(): string
+{
+    return 'remember_me_token';
+}
+```
+
 ## Get Authenticated User Data
 To get the current authenticated user data, Doppar has `Auth::user()` method and `auth()` helper. Simply call
 
@@ -322,6 +429,7 @@ Each actor writes its state to separate, namespaced session keys and cookies so 
 | Remember-me cookie | `remember_doppar_web_<hash>` | `remember_doppar_admin_<hash>` |
 | 2FA pending user | `2fa_web_user_id` | `2fa_admin_user_id` |
 | 2FA remember flag | `2fa_web_remember` | `2fa_admin_remember` |
+| Password fingerprint | `password_hash_web` | `password_hash_admin` |
 
 ### Logging Out of a Specific Actor
 Log out of the admin actor only — web actor session is untouched
