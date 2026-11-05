@@ -109,7 +109,7 @@ The same rules apply whether you return the value from a route or pass it to `re
 | Object implementing `JsonSerializable` | JSON, even if it also implements `Stringable` |
 | Object implementing only `Stringable` | Its string value, as a normal response |
 | Any other object | JSON (via `toArray()` when the object has one) |
-| An existing `Response` instance | Returned as-is |
+| An existing `Response` instance | The same instance. `response($response, 503, ['Retry-After' => '10'])` applies the status and headers you pass. If you pass no status (or `200`), the response keeps its own |
 
 #### Returning Collections
 

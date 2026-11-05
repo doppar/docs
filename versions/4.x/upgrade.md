@@ -276,6 +276,8 @@ A `HEAD` request to a path that only has a `GET` route used to return `404`. It 
 
 The `_method` field and the `X-HTTP-Method-Override` header are now only honoured on real `POST` requests. Before, they applied to any method, so a plain link such as `GET /posts/1?_method=DELETE` reached the `DELETE` route. On API routes, which have no CSRF check, a link or `<img>` tag could trigger it. HTML forms already send these overrides with `method="POST"`, so they keep working. If a client sends an override on a non-`POST` request, switch it to `POST` or send the real method directly.
 
+A `_method` override is also only read from the request body, not the query string. `POST /posts/1?_method=DELETE` is now handled as `POST`, and a bad value there such as `?_method=garbage` no longer causes a `400`. Send `_method` as a form field, or use the `X-HTTP-Method-Override` header. A query-string `_method` is no longer part of `all()`/`input()`, but `$request->query->get('_method')` still returns it.
+
 ### API errors are always JSON
 
 An HTTP exception on an API route (`/api/*`) or an AJAX request now always gets a JSON error body, matching `abort()`. Before, the bundled HTML error page was sent instead whenever a view existed for that status.
