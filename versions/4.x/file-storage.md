@@ -7,7 +7,6 @@ meta:
 ---
 
 ## File Uploads
-### Introduction
 Doppar's filesystem configuration file is located at `runtime/config/filesystem.php`. Within this file, you may configure all of your filesystem "disks". Each disk represents a particular storage driver and storage location. Example configurations for each supported driver are included in the configuration file so you can modify the configuration to reflect your storage preferences and credentials.
 
 You may configure as many disks as you like and may even have multiple disks that use the same driver. But if you change any of your configuration, and that is not wokring, please clean the application configuration by running the command `config:clear`.

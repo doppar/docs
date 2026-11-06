@@ -8,8 +8,6 @@ meta:
 
 ## Configuration
 
-### Introduction
-
 All configuration files for the Doppar framework are located in the `config` directory. These files define various options and settings that control how different parts of your application behave. Each configuration file is self-documented, so you are encouraged to explore and familiarize yourself with the available options.
 
 Doppar stores the compiled configuration cache in the following path `storage/framework/cache/*`. Doppar usage this config data where needed from this complied cache file.

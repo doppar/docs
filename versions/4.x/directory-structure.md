@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Directory Structure
-### Introduction
 Doppar aims to provide a clean, expressive, and scalable codebase that accelerates web application development while remaining easy to understand and extend. Whether you're building RESTful APIs, full-stack web applications, or microservices, Doppar offers the foundation and flexibility you need.
 
 The framework is built around familiar conventions and emphasizes simplicity without compromising on power. It features an MVC (Model-View-Controller) architecture, a powerful routing system, middleware support, a launcher-based bootstrapping mechanism, and organized directory structures. Additionally, it integrates seamlessly with Composer for dependency management and supports environment-based configuration via env.toml files.

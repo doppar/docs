@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Authentication
-### Introduction
 Authentication is a fundamental part of building secure web applications. It provides a reliable way to identify users, manage authenticated sessions, and control access to protected areas of your application. Doppar provides a complete authentication system that simplifies these common requirements while giving developers the flexibility to customize authentication flows to fit their application.
 
 Doppar includes built-in authentication scaffolding that can generate the essential routes, controllers, views, and middleware needed to get started with user authentication. It also provides a convenient Auth facade and auth() helper for handling common authentication operations such as verifying credentials, logging users in and out, retrieving the currently authenticated user, and managing persistent sessions with "Remember Me".
@@ -221,7 +220,9 @@ public $middlewareGroups = [
 
 The middleware compares the password the session was signed in with to the user's current password. A session that no longer matches is signed out, and the request carries on as a guest, so the `auth` middleware of a protected route sends it to the login page.
 
-This also signs a user out of their other devices whenever their password changes, for example after a password reset. The device that changed the password stays signed in when it changed the password on the signed-in user (`auth()->user()`). If you change it another way, such as with a query or on another instance of the model, call `refreshSessionFingerprint()` after the change to keep the current device signed in. It reads the user's password from the database:
+This also signs a user out of their other devices whenever their password changes, for example after a password reset. The device that changed the password stays signed in when it saves the new password through the model, with `save()` or `update()`, on any instance of the user. Its other requests that are running at the same time stay signed in too, and so does the device when a surrounding database transaction rolls the change back.
+
+If you change the password with a query instead, which bypasses the model, call `refreshSessionFingerprint()` after the change to keep the current device signed in. It reads the user's password from the database. Another request of this device that checks the session between the query and that call can still be signed out, so prefer the model:
 
 ```php
 User::where('id', auth()->id())
@@ -236,7 +237,11 @@ The middleware does not read the password from the database by itself. A passwor
 
 > **Note:** The middleware is optional with the `database` driver, which deletes the other sessions immediately. Registering it anyway also covers password changes made outside `logoutOtherDevices()`.
 
-Sessions that were signed in before the middleware was registered do not record which password they were signed in with, so the middleware signs them out on their next request. A device with a valid remember-me cookie is signed straight back in, so only users who did not choose "Remember Me" have to sign in again. A remember-me cookie that `logoutOtherDevices()` has replaced does not sign the device back in.
+Sessions that were signed in before the middleware was registered do not record which password they were signed in with, so registering it signs them out on their next request. Only the sign-in ends: the rest of the session's data, such as a shopping cart, is kept. A device with a valid remember-me cookie is signed straight back in, so only users who did not choose "Remember Me" have to sign in again. A remember-me cookie that `logoutOtherDevices()` has replaced does not sign the device back in.
+
+When the same user is signed in to several actors on one device, for example `web` and `admin`, `logoutOtherDevices()` on any of them keeps all of them signed in on this device, including an actor that is signed in only by its remember-me cookie. Other requests of this device that are running at the same time stay signed in too.
+
+> **Note:** Keeping running requests signed in needs a session driver that stores sessions on the server: `file` or `database`. With the `cookie` driver the session lives in the browser, so a request already on its way with the old cookie cannot see the new fingerprint and is signed out.
 
 A remember-me cookie that is out of date, for example because the user chose "Remember Me" on another device since, signs out only the device that sends it. The user's other devices are not affected.
 

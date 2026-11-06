@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Routing
-### Introduction
 Doppar’s routing system, available through the `Phaseolies\Support\Facades\Route` namespace and using `Phaseolies\Utilities\Attributes\Route` attributes, provides a clean, expressive way to define your application’s URL structure and map it to the appropriate controller actions or closures.
 
 Doppar’s routing engine offers features such as route prefix grouping, named routes, throttling, middleware assignment, and RESTful resource routing. Whether you’re building a lightweight API or a complex web application, Doppar’s routing system ensures your code remains consistent, maintainable, and scalable.

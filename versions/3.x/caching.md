@@ -8,8 +8,6 @@ meta:
 
 ## Caching
 
-### Introduction
-
 Every production application reaches a point where the same data gets
 fetched repeatedly: the same database query, the same API response, the
 same computed payload. Caching breaks that cycle. Instead of running the

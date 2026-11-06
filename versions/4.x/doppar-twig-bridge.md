@@ -8,8 +8,6 @@ meta:
 
 ## Twig Bridge
 
-### Introduction
-
 The Doppar Twig Bridge is an integration layer that allows applications built on the Doppar Framework to render views using Twig, a powerful and flexible templating engine. The bridge is intentionally minimalistic and non-intrusive so you can adopt Twig progressively without disrupting your existing Odo-based templates.
 
 This document provides an in-depth explanation of how the bridge works, how to install it, and how to use it effectively in real-world Doppar applications.

@@ -8,8 +8,6 @@ meta:
 
 ## Soft Deletes
 
-### Introduction
-
 Sometimes a record should disappear from your application without actually being removed from the database. A user deletes a post but may want it back, an admin needs to review removed accounts, or a compliance rule requires that nothing is ever physically erased. Soft deletes solve this: instead of running a `DELETE`, Doppar stamps a timestamp column on the row, and from then on every query on that model quietly skips it.
 
 Soft deletes are opt-in per model through the `#[SoftDeletes]` attribute. Once a model carries the attribute, `delete()` marks the row as deleted, every query excludes trashed rows by default, and you get a small API for including them again, restoring them, or removing them for good.

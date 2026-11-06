@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Views
-### Introduction
 In Doppar, it's not practical to return entire HTML document strings directly from your routes and controllers. Fortunately, views offer a clean and structured way to manage your application's UI by keeping HTML in separate files.
 
 Views help separate your application's logic from its presentation layer, improving maintainability and readability. In Doppar, views are typically stored in the `templates/views` directory. The templating system in Doppar allows you to create dynamic and reusable UI components efficiently. A basic view file might look like this:

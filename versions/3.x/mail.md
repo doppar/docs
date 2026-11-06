@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Mail
-### Introduction
 Doppar provides a robust and flexible mailing system using `PHPMailer` that enables your application to send emails using various drivers. The `config/mail.php` configuration file manages all mail-related settings, including the default mailer, SMTP credentials, and global “from” addresses.
 
 This file allows you to define how your application handles outgoing email by setting up one or more mailers, each with its own configuration. By default, Doppar uses the smtp mailer, but you can customize or extend this based on your requirements.

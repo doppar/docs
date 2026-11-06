@@ -19,7 +19,6 @@ meta:
   - [Handling Multiple Database Connection](#handling-multiple-database-connection)
 
 ## Entity Builder
-### Introduction
 Doppar introduces Entity Builder, a powerful, flexible, and model-free query builder designed for developers who want full control over their database interactions — without the need for predefined data models.
 
 With Entity Builder, you can construct, execute, and manage complex SQL queries using a clean, expressive, and chainable interface. Whether you're fetching data, inserting records, updating fields, or performing intricate joins and filters, Entity Builder brings the full power of SQL into an intuitive, object-oriented syntax that feels natural and effortless.

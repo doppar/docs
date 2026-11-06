@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Collections
-### Introduction
 Doppar provides a convenient and fluent Collection class built on top of the powerful `ramsey/collection` package. Collections are an elegant and flexible way to work with arrays of data, especially when you want to perform transformations, filtering, grouping, and other operations in a chainable and expressive syntax.
 
 In Doppar, the Collection class enhances `Ramsey\Collection\Collection` with additional utility methods and integrations tailored for Doppar's ecosystem, including Entity model support and developer-friendly features like memory usage tracking and deep flattening. To make it easy to work with collections, Doppar provides the global `collect()` helper function:

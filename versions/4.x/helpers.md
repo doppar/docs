@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Helpers
-### Introduction
 Doppar offers a rich set of global helper functions designed to streamline common tasks throughout your application. These helpers encapsulate repetitive logic and provide a more expressive, readable syntax for tasks like working with arrays, strings, URLs, paths, and more.
 
 While many of these functions are used internally by the framework itself, they are fully accessible within your application and can significantly simplify your code when used appropriately.

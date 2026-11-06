@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Task Schedule
-### Introduction
 In Doppar, scheduled tasks allow you to automate repetitive operations such as sending emails, processing invoices, or cleaning up stale data — all defined directly inside your application. Instead of relying on scattered shell scripts or manually crafted crontabs, you register every schedule in a single `App\Schedule\Schedule` class. This keeps your automation logic version-controlled, readable, and easy to maintain.
 
 Doppar's scheduler supports two modes of execution: a standard minute-based mode compatible with any system cron, and a built-in daemon mode capable of sub-minute, per-second precision. Both modes share the same expressive API.

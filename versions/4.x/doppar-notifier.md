@@ -8,7 +8,6 @@ meta:
 
 ## Notifier
 
-### Introduction
 A notification system allows you to send messages to users across multiple channels like email, SMS, Slack, Discord, and in-app notifications. Instead of sending notifications immediately and blocking your application, Doppar's notification system runs in the background using the powerful queue system, ensuring smooth user experiences and reliable delivery even under heavy load.
 
 Doppar notification system offers robust features including multi-channel delivery with support for `database`, `mail`, `Slack`, `Discord`, `webhook`, and custom channel, secure model serialization that safely handles Eloquent models in notification payloads, and automatic retry logic with configurable attempts. Every channel is delivered by its own queued job, so a channel that fails is retried on its own and never sends the others again.

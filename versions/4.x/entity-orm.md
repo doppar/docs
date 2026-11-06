@@ -22,7 +22,6 @@ meta:
   - [Handling Multiple Database Connection](#handling-multiple-database-connection)
 
 ## Entity ORM
-### Introduction
 Doppar introduces Entity, a modern, intuitive, and powerful Object-Relational Mapper (ORM) designed to make database interactions seamless and efficient. With Entity ORM, every database table is represented by a dedicated Data Model, providing a clean, object-oriented interface to query, insert, update, and delete records without writing raw SQL.
 
 Beyond simple CRUD operations, Doppar Entity ORM empowers developers to build complex queries, manage relationships effortlessly, and perform advanced data operations with clarity and precision. Features like eager loading, nested relationships, and relationship-based filtering let you work with related data intuitively, reducing boilerplate code and boosting productivity.

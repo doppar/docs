@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Relationships
-### Introduction
 Doppar Entity provides a powerful relationship system for defining and working with connections between related database records. Instead of manually managing foreign keys and separate queries, relationships allow your models to describe how their data is connected and provide an expressive interface for retrieving and querying related records.
 
 Relationships are defined as methods on your Entity models and can represent common database associations such as one-to-one, one-to-many, and many-to-many relationships. Once defined, these relationships can be accessed through dynamic relationship properties, while the relationship methods themselves can be used as query builders to apply additional conditions, sorting, and other query constraints.

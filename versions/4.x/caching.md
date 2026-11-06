@@ -8,8 +8,6 @@ meta:
 
 ## Caching
 
-### Introduction
-
 Caching is an essential part of building fast, responsive, and scalable applications. When the same data needs to be retrieved or computed repeatedly, performing that work on every request can introduce unnecessary database queries, API calls, computation, and overall application overhead. A cache provides a temporary, efficient storage layer that allows frequently accessed data to be reused instead of being generated again each time.
 
 Doppar provides a unified caching system that abstracts the underlying storage mechanism, allowing your application to work with cached data consistently regardless of the configured backend. Whether you are caching a database result, an API response, a computed value, or application state, the same API can be used without coupling your application logic to a specific cache driver.

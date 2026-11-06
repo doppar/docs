@@ -8,7 +8,6 @@ meta:
 
 ## Insight
 
-### Introduction
 Doppar Insight is a request profiler for debugging, performance analysis, and traffic inspection. It gives you a clean in-browser toolbar for the current request, and it also keeps a recent request history so you can compare status codes, response times, errors, and route activity across multiple requests.
 
 Insight is useful when you want to inspect SQL queries, cache usage, authentication state, request and response payloads, session data, logs, or performance timing without leaving the page you are working on. It is designed for day-to-day development, but it is especially helpful when you need to trace slow endpoints or understand why a route is returning `4xx` or `5xx` responses.

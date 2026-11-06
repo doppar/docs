@@ -8,8 +8,6 @@ meta:
 
 ## Embeds
 
-### Introduction
-
 Semantic search finds records by what they *mean*, not by which words they contain. A plain `WHERE description LIKE '%backpack%'` only matches the literal word — it will never find a product described as "rugged daypack for hiking," even though a shopper searching for "waterproof backpack" would consider that an excellent match.
 
 Embeds adds this to Doppar models as a single attribute. Mark a column with `#[Embeds]`, and Doppar keeps a numeric representation of its meaning — a *vector* — in sync automatically.

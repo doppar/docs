@@ -8,8 +8,6 @@ meta:
 
 ## API Presenter
 
-### Introduction
-
 The API Presenter provides a structured and consistent way to transform application data into clean, predictable API responses. Rather than exposing your Entity models or raw arrays directly from controllers, Presenters give you a dedicated layer for defining how your data should be represented to API consumers.
 
 A Presenter acts as a presentation layer between your application’s data and its JSON response. It allows you to control which attributes are exposed, transform and format values, conditionally include additional data, and organize related resources without placing presentation logic inside your controllers. This keeps your controllers focused on application flow while making API responses easier to maintain and evolve.
