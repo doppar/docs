@@ -220,7 +220,7 @@ public $middlewareGroups = [
 
 The middleware compares the password the session was signed in with to the user's current password. A session that no longer matches is signed out, and the request carries on as a guest, so the `auth` middleware of a protected route sends it to the login page.
 
-This also signs a user out of their other devices whenever their password changes, for example after a password reset. The device that changed the password stays signed in when it saves the new password through the model, with `save()` or `update()`, on any instance of the user. Its other requests that are running at the same time stay signed in too.
+This also signs a user out of their other devices whenever their password changes, for example after a password reset. The device that changed the password stays signed in when it saves the new password through the model, with `save()` or `update()`, on any instance of the user. Its other requests that are running at the same time stay signed in too, and so does the device when a surrounding database transaction rolls the change back.
 
 If you change the password with a query instead, which bypasses the model, call `refreshSessionFingerprint()` after the change to keep the current device signed in. It reads the user's password from the database. Another request of this device that checks the session between the query and that call can still be signed out, so prefer the model:
 
