@@ -7,8 +7,6 @@ meta:
 ---
 
 ## Attribute Casting
-### Introduction
-
 Attribute casting allows you to automatically transform model attribute values when reading from or writing to the database — without cluttering your application code with manual type conversions.
 
 Databases store everything as strings, integers, or raw bytes. Without casting, your PHP code is littered with `(bool)`, `(int)`, `json_decode()`, and `Carbon::parse()` calls scattered across controllers and services. Doppar's casting system centralises all of this transformation logic on the model itself — declared once, applied everywhere.

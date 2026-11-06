@@ -8,8 +8,6 @@ meta:
 
 ## HTTP Responses
 
-### Introduction
-
 Every web application communicates with clients through HTTP responses. Whether you're building a REST API, a traditional web application, or a hybrid system, crafting proper responses is fundamental to creating reliable software.
 
 The Doppar framework provides a powerful and expressive response system that handles everything from simple text output to complex streamed data transfers. The response layer abstracts HTTP protocol complexities while giving you fine-grained control when you need it.

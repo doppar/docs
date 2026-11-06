@@ -8,8 +8,6 @@ meta:
 
 ## Cookies
 
-### Introduction
-
 Doppar provides a simple and expressive API for managing HTTP cookies throughout your application. Whether you need to store temporary data, retrieve values from incoming requests, configure cookie behavior, or remove cookies when they are no longer needed, Doppar keeps cookie management straightforward and consistent.
 
 You can work with cookies through the **`Phaseolies\Support\Facades\Cookie`** facade or the global **`cookie()`** helper. Both provide access to the same cookie management capabilities, allowing you to choose the syntax that best fits your application and coding style.

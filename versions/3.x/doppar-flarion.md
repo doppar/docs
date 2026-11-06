@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Flarion - API Authentication
-### Introduction
 Flarion provides a lightweight API authentication system for the Doppar framework.
 
 Flarion allows each user of Doppar application to generate and manage multiple API tokens. These tokens are stateless and designed for use in mobile apps, third-party clients, or any frontend that communicates via a simple token-based API.

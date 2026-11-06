@@ -8,8 +8,6 @@ meta:
 
 ## Requests
 
-### Introduction
-
 Doppar’s `Phaseolies\Http\Request` class is the central interface for working with data coming into your application. Rather than treating an HTTP request as a collection of raw values, it provides an expressive, object-oriented API for retrieving, transforming, validating, and shaping that data as it moves through your application.
 
 From simple input access to more advanced request processing, the Request class lets you work with query parameters, headers, cookies, uploaded files, sessions, routes, and validation results through a consistent API. Its fluent transformation methods make it possible to normalize or reshape input directly at the request layer, while features such as conditional processing, structured extraction, blank-value normalization, and DTO binding help turn incoming payloads into application-ready data.

@@ -7,8 +7,6 @@ meta:
 ---
 
 ## System Architecture
-### Introduction
-
 Doppar follows the Model-View-Controller (MVC) architectural pattern, a widely accepted standard in web application development. This design separates the application logic into three distinct components: `Model`, `View`, and `Controller`.
 
 The Model is responsible for managing the data, business rules, and interactions with the database. The View handles the presentation layer, rendering content for users based on the data it receives. The Controller acts as a mediator, processing user input, calling the appropriate model logic, and returning the corresponding view. This separation of concerns improves code organization and makes the application easier to maintain and scale.

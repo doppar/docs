@@ -8,8 +8,6 @@ meta:
 
 ## Service Providers
 
-### Introduction
-
 In Doppar, a service provider is the place where a feature joins the
 framework.
 

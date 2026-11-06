@@ -8,7 +8,6 @@ meta:
 
 ## Airbend
 
-### Introduction
 Doppar Airbend is a high-performance, real-time broadcasting component of the Doppar PHP Framework, engineered to deliver seamless WebSocket-based event broadcasting, robust channel authorization, and comprehensive performance monitoring. Designed for modern, scalable web applications, Airbend allows developers to build interactive and collaborative features—such as live notifications, chat systems, dashboards, and multiplayer experiences—directly within the Doppar ecosystem.
 
 Airbend is highly configurable, offering schema-driven validation and caching mechanisms for robust configuration management. It also includes a comprehensive metrics and monitoring suite, allowing teams to track connection states, message flows, memory usage, and performance statistics in real time. With built-in CLI commands, PHP attributes for declarative event broadcasting, and a developer-friendly facade interface, Doppar Airbend empowers developers to implement real-time features with minimal overhead while maintaining full control over the broadcasting pipeline.

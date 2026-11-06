@@ -8,8 +8,6 @@ meta:
 
 ## Launchers
 
-### Introduction
-
 In Doppar, a launcher is the place where a feature joins the framework.
 
 That feature might be small, like one container binding, or large, like a package that brings routes, migrations, translations, console commands, and publishable assets. Instead of scattering setup across random files, Doppar keeps that integration work inside launcher classes.

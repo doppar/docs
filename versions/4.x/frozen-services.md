@@ -8,8 +8,6 @@ meta:
 
 ## Frozen Services
 
-### Introduction
-
 Frozen Services is a container-level feature in Doppar that enforces a clear lifecycle boundary for your application's singleton services. A service marked with the `#[Immutable]` attribute is fully configurable during the application boot phase — your launchers can set it up from config files, environment variables, databases, or any external source — and then **permanently frozen** once the container completes its build.
 
 After freezing, any attempt to mutate a property on that service throws an `ImmutableViolationException` immediately, regardless of where in the application the mutation is attempted — controllers, middleware, event listeners, closures, or anywhere else.
@@ -23,9 +21,9 @@ A Frozen Service is a singleton service whose state becomes permanently read-onl
 During the boot phase, the service can be fully configured from configuration files, environment variables, databases, or any external source. Once the container completes building the service, Doppar freezes the instance and guarantees that its public state cannot change for the rest of the request lifecycle.
 
 This creates a strict and enforceable boundary:
-- *Boot phase* → configuration is allowed
-- *Runtime phase* → mutation is impossible
-- *Guarantee* → every consumer receives a consistent, trustworthy instance
+- Boot phase → configuration is allowed
+- Runtime phase → mutation is impossible
+- Guarantee → every consumer receives a consistent, trustworthy instance
 
 They eliminate an entire class of bugs caused by accidental shared-state mutation.
 

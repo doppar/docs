@@ -8,7 +8,6 @@ meta:
 
 ## Flarion
 
-### Introduction
 Flarion provides a lightweight, stateless API authentication system for Doppar applications. It allows users to generate and manage multiple Personal Access Tokens (PATs) that can be used to authenticate requests from mobile applications, third-party clients, CLI tools, and other services that communicate with your API.
 
 Each token is securely associated with a user and can be assigned specific abilities, allowing you to control exactly which operations the token is permitted to perform. Tokens can also have configurable expiration times, making it possible to implement fine-grained and time-limited access without relying on traditional cookies or session-based authentication.

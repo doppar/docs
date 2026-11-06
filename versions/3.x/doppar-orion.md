@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Processes
-### Introduction
 The Doppar Framework provides a powerful and expressive abstraction over the [Symfony Process Component](https://symfony.com/doc/current/components/process.html) via the Process facade. This feature enables developers to run and manage system-level commands and scripts with ease—whether synchronously, asynchronously, or in concurrent pools.
 
 ### Key Features

@@ -12,7 +12,6 @@ content: Model
 - [Computed Properties](#computed-properties)
 
 ## Model
-### Introduction
 Models are at the heart of Doppar’s data management system, providing a convenient and expressive way to interact with your application’s database. A model represents a database table and gives you a structured interface for retrieving, creating, updating, and managing records without having to work directly with raw database queries for every operation.
 
 Doppar models are built on the Phaseolies\Database\Entity\Model class and provide a range of configurable properties that allow you to control how your data is stored, accessed, and exposed. You can define the table and primary key used by a model, specify which attributes can be mass-assigned, hide sensitive attributes from serialized output, manage timestamps, and select the database connection used by the model.

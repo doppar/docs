@@ -8,8 +8,6 @@ meta:
 
 ## Guard - Authorization
 
-### Introduction
-
 Guard is a robust and extensible authorization system designed for the Doppar framework. It provides a clean, expressive API for defining and evaluating user abilities across your application. With features like one-time temporary permissions, ability inheritance, grouped permissions, wildcard patterns, ability aliases, conditional runtime gates, and global lifecycle hooks, Guard gives you complete control over access logic without cluttering your codebase.
 
 Guard is built to empower your Doppar applications with secure, scalable, and maintainable authorization logic. Whether you're building small tools or large systems, Guard adapts to your needs with clarity and power.

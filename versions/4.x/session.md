@@ -8,8 +8,6 @@ meta:
 
 ## HTTP Session
 
-### Introduction
-
 HTTP is a stateless protocol, so each request is unaware of the ones before it. Sessions solve this by storing information about a visitor, such as an authenticated user, their preferences, or a message to show after a redirect, and making it available on every subsequent request from the same browser.
 
 Doppar sessions are **lazy**. A session is only read when your code uses it, and it is only stored when it holds data. A request that never touches the session creates no storage and sends no cookie, which keeps API endpoints, health checks, and crawler traffic from leaving anything behind.

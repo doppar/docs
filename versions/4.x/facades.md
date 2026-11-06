@@ -8,8 +8,6 @@ meta:
 
 ## Facades
 
-### Introduction
-
 Doppar facades are static proxies to services bound in the application's
 service container. They give you a clean, expressive way to access
 framework features without manually injecting or instantiating classes.

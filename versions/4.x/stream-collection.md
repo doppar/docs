@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Stream Collections
-### Introduction
 Doppar’s `StreamCollection` provides a lazy, memory-efficient way to handle large or infinite datasets. Built on top of PHP’s powerful generator system, StreamCollection enables data to be processed incrementally, only as needed, instead of materializing the entire dataset in memory. This design makes it exceptionally well suited for working with large files, database cursors, API streams, or any situation where efficiency and scalability are critical.
 
 Unlike a traditional collection, which stores all of its items in memory, a StreamCollection represents a continuous flow of data that can be transformed, filtered, and mapped lazily through an expressive, chainable API. Each operation — such as `map()`, `filter()`, or `chunk()` — returns a new stream without evaluating the underlying data until you explicitly iterate or collect it. This approach makes it possible to build complex data-processing pipelines that remain elegant, composable, and performant even when working with gigabytes of information.

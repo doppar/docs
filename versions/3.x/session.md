@@ -7,7 +7,6 @@ meta:
 ---
 
 ## HTTP Session
-### Introduction
 Since HTTP is inherently stateless, Doppar provides session support to maintain user-specific data across multiple requests. Sessions allow your application to temporarily store information—such as user preferences, login status, or flash messages—that can persist between page loads.
 
 In Doppar, session data is stored using a backend driver. Out of the box, Doppar supports file-based and cookie-based session drivers, giving you flexibility based on your application's scale and environment.

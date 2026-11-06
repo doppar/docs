@@ -8,8 +8,6 @@ meta:
 
 ## Request Lifecycle
 
-### Introduction
-
 Understanding the request lifecycle makes the framework easier to reason
 about. When you know where the request enters, how it becomes a
 response, and what runs after the response is sent, debugging and

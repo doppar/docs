@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Error Handling
-### Introduction
 Error handling is a crucial aspect of web application development. It not only allows you to catch and handle potential errors gracefully but also ensures that users receive meaningful feedback when something goes wrong. In the Doppar framework, managing HTTP errors is seamless and allows you to customize responses to provide a better user experience.
 
 Whether it’s handling unexpected server errors, invalid page requests, or custom HTTP responses, Doppar provides a flexible and intuitive system for managing these issues. By using tools like the `abort()` function, custom error pages, and HTTP status codes, you can ensure that your application responds in a way that makes sense for your users.

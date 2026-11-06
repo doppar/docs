@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Localization
-### Introduction
 Localization is a key feature in Doppar that allows your application to support multiple languages. It enables you to display content in the user's preferred language by using translation files stored in the `templates/lang` directory. Doppar provides several tools to work with localization, including facades and helper functions.
 
 ## Setting the Locale
