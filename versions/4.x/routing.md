@@ -11,7 +11,6 @@ meta:
   - [Route Helper Method](#route-helper-method)
 
 ## Routing
-### Introduction
 Doppar’s routing system provides a clean and expressive way to define your application’s URL structure and map incoming requests to the appropriate controller actions or closures. Routes can be defined using the **`Route`** facade or through the **`#[Route]`** attribute.
 
 The routing engine includes powerful features such as route grouping and prefixes, named routes, request throttling, middleware assignment, and RESTful resource routing. Whether you’re building a lightweight API or a full-scale web application, Doppar’s routing system helps keep your application’s routes organized, consistent, maintainable, and easy to scale.

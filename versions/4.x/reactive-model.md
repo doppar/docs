@@ -8,8 +8,6 @@ meta:
 
 ## Reactive Model
 
-### Introduction
-
 Reactive Model provides a convenient way to react to changes on individual model properties using the `#[Watches]` attribute. When a watched property is modified and `save()` or `update()` succeeds, Doppar automatically detects the change and invokes the registered watcher with the old value, the new value, and the complete model instance.
 
 This is property-level observation. Unlike Doppar's `#[Hook]` system, which responds to model lifecycle events such as `before_updated` or `after_updated`, `#[Watches]` focuses on which specific property changed and how its value changed.

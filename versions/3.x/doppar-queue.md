@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Queue
-### Introduction
 A queue is a background job processing system that allows tasks to run asynchronously instead of blocking your main application flow. It improves performance, distributes workload efficiently, and ensures time-consuming tasks are handled reliably in the background. Queues are essential for scaling modern applications and maintaining smooth user experiences.
 
 Doppar queue system offers robust features including multiple queue support for organizing jobs by priority or category, automatic retry logic with configurable attempts and delays, and comprehensive failed job tracking for easier debugging. It supports delayed execution for scheduling jobs in the future, graceful shutdown handling to safely stop workers, and built-in memory management that automatically restarts workers when limits are exceeded.

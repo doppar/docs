@@ -8,8 +8,6 @@ meta:
 
 ## HTTP Requests
 
-### Introduction
-
 Doppar’s `Phaseolies\Http\Request` class provides a powerful, object-oriented interface for working with the current HTTP request. It goes far beyond simple input retrieval—offering an expressive API designed for modern, data-driven applications.
 
 With the Request class, you can seamlessly:

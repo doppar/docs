@@ -8,8 +8,6 @@ content: Temporal, Time-Travel, ORM, History, Audit, Snapshot
 
 ## Temporal ORM
 
-### Introduction
-
 Doppar’s Temporal Time-Travel ORM brings automatic history tracking and time-travel capabilities directly to your models. By marking a model with the `#[Temporal]` attribute, Doppar automatically records a complete snapshot of the model whenever a record is created, updated, or deleted. These snapshots are stored in a dedicated history table, allowing you to inspect how a record changed over time without requiring additional audit logic in your controllers or services.
 
 Temporal ORM is designed to make historical data easy to work with while keeping the normal model workflow unchanged. Once enabled, Doppar handles the lifecycle hooks and history capture automatically, recording the state of each record together with metadata such as the action performed, the exact timestamp of the change, the columns that were modified, and optionally the authenticated user responsible for the change.

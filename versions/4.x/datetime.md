@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Datetime
-### Introduction
 Doppar provides a robust and flexible system for working with dates and times, thanks to its integration with the Carbon library. However, understanding how timezones are managed—especially when using functions like `now()` or `Carbon::now()`—can be important when building applications that rely on accurate time data.
 
 By default, Doppar uses UTC as the base timezone for datetime functions such as `now()` and `Carbon::now()`. 

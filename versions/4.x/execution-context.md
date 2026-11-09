@@ -8,8 +8,6 @@ meta:
 
 ## Execution Context
 
-### Introduction
-
 Every piece of work a Doppar application performs happens inside an **execution**: an HTTP request, a console command, or a job handled by a worker. Most of the state your code keeps is meant to live for exactly one of them. The tenant resolved from a header, the user being impersonated, a unit-of-work object, a per-request cache. When that state is held in a plain singleton, it outlives the execution that created it. In a persistent process such as a queue worker or a long-lived server, the next request or job then starts with the previous one's tenant, and nothing tells you it happened.
 
 An **execution context** gives each execution an identity and a lifetime. It is a small immutable object holding a unique id, a type (`request`, `console` or `worker`) and metadata, and the container uses it as a boundary: services bound to the `execution` scope are created inside a context and destroyed with it.
@@ -29,11 +27,11 @@ Log::error('Payment failed'); // the log entry carries the id, type and tenant
 
 ### Why Use Execution Contexts
 
-- *Leak-proof* → an execution-scoped service can never be seen by the next request, command or job
-- *Traceable* → one id ties together every log entry an execution wrote
-- *Uniform* → requests, console commands and workers follow the same lifecycle and the same API
-- *Immutable* → a context never changes after it is created, so it is safe to pass to listeners and closures
-- *No global state to manage* → the container owns the stack of active contexts, and it is cleaned up for you
+- Leak-proof → an execution-scoped service can never be seen by the next request, command or job
+- Traceable → one id ties together every log entry an execution wrote
+- Uniform → requests, console commands and workers follow the same lifecycle and the same API
+- Immutable → a context never changes after it is created, so it is safe to pass to listeners and closures
+- No global state to manage → the container owns the stack of active contexts, and it is cleaned up for you
 
 ## How an Execution Is Described
 

@@ -6,7 +6,6 @@ meta:
   content: Watches, Observable, Model, Reactive, Doppar, Property Observer
 ---
 
-- [Introduction](#introduction)
 - [How Watches Work](#how-watches-work)
 - [Generating a Watcher](#generating-a-watcher)
 - [Defining a Watch](#defining-a-watch)
@@ -25,8 +24,6 @@ meta:
 - [API Reference](#api-reference)
 
 ## Observable Model
-
-### Introduction
 
 Observable Model Properties let you declare reactive watchers directly on model properties using the `#[Watches]` PHP attribute. When a watched property is modified and `save()` or `update()` succeeds, Doppar automatically detects the change and invokes your watcher — passing the old value, the new value, and the full model instance.
 

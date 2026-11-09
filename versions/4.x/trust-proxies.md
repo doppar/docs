@@ -7,8 +7,6 @@ meta:
 ---
 
 ## Trusted Proxies
-### Introduction
-
 When deploying your Doppar application behind a reverse proxy or load balancer—especially one that handles TLS/SSL termination—you might find that the application fails to generate secure (`https://`) URLs, defaulting instead to plain `http://`. This typically occurs because requests are being forwarded over port 80, causing the framework to assume the original request was insecure.
 
 To resolve this, Doppar allows you to explicitly trust your proxy servers. This ensures accurate detection of the original request scheme, host, and client IP.

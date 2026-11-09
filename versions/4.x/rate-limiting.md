@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Rate Limiter
-### Introduction
 Rate limiting is a technique used to control the number of requests a client can make to an endpoint within a specified timeframe. It helps prevent abuse, reduce server load, and enhance security by limiting how frequently a user can access a given route.
 
 By applying rate limits to routes or groups of routes, Doppar ensures fair usage and protects your system from potential misuse. In the Doppar PHP framework, you can apply rate limiting to specific routes using middleware.

@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Pool Console
-### Introduction
 Pool Console is Doppar’s built-in command-line interface (CLI), providing a convenient and powerful way to interact with your application directly from the terminal. Through the pool script at the root of your project, you can perform common development tasks, automate repetitive operations, create custom commands, and execute application processes without relying on a web interface.
 
 Pool Console is designed to make command-line operations feel like a natural part of the Doppar development workflow. It provides a collection of built-in commands for everyday tasks while also giving you the flexibility to define your own commands for application-specific operations. Custom commands can accept arguments and options, interact with services through dependency injection, prompt users for input, display formatted output, show progress bars and tables, measure execution time, and even be invoked programmatically from within your application.

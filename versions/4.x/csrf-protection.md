@@ -7,8 +7,6 @@ meta:
 ---
 
 ## CSRF Protectection
-### Introduction
-
 Cross-site request forgery (CSRF) attacks are a type of security threat where unauthorized actions are executed on behalf of an authenticated user without their knowledge. Fortunately, Doppar provides robust built-in protection to safeguard your application against such attacks.
 
 You can access the current session's CSRF token either through the request's session data or by using the `csrf_token()` helper function. This seamless integration ensures that your application remains secure while requiring minimal effort on your part. With Doppar, you can focus on building your application with confidence, knowing that CSRF protection is handled efficiently in the background.

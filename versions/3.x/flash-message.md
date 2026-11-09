@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Flash Message
-### Introduction
 Flash messages are short-lived session messages used to give users feedback after certain actions — like form submissions, authentication, or redirects. These messages persist only for the next HTTP request and are automatically removed after they are read.
 
 Doppar provides an elegant and expressive syntax to retrieve flash messages during redirects, making it easy to give users a seamless experience.

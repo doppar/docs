@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Hooks
-### Introduction
 Model hooks let you run code at specific moments in the life of a model: just before it is inserted, right after it is updated, when it is deleted, when it is restored, and so on. You attach small pieces of logic to those moments, and Doppar runs them for you every time the model is saved through its own methods.
 
 Hooks are the right place for rules that belong close to the model but should not be repeated in every controller or service. Typical examples are building a slug from a title, setting a default status, clearing a cache after a delete, or writing an audit record.

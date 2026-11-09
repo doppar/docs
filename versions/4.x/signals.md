@@ -8,8 +8,6 @@ meta:
 
 ## Signals
 
-### Introduction
-
 Applications often need to react to something that just happened: send a receipt after an invoice is paid, refresh a search index after an order is stored, notify a warehouse after stock changes. If that reaction fires **inside** a database transaction, it can announce work that is later rolled back, and the customer gets a receipt for a payment that never happened.
 
 A **signal** is a small object describing something that happened. Doppar's signal bus delivers it to your listeners **synchronously**, and when the signal is emitted inside a transaction it can hold it back until the transaction has **settled**, meaning the outermost transaction really committed. If the transaction rolls back, the signal is simply discarded.
@@ -29,11 +27,11 @@ DB::transaction(function () use ($invoice) {
 
 ### Why Use Signals
 
-- *Commit-safe* → listeners only run for work that was actually committed
-- *Rollback-safe* → a rolled back transaction leaves no signal behind
-- *Nesting-aware* → inner transactions hand their signals to the parent, and an inner rollback only drops its own
-- *Per connection* → every database connection settles on its own
-- *Predictable* → synchronous, priority ordered, no queue, no background process
+- Commit-safe → listeners only run for work that was actually committed
+- Rollback-safe → a rolled back transaction leaves no signal behind
+- Nesting-aware → inner transactions hand their signals to the parent, and an inner rollback only drops its own
+- Per connection → every database connection settles on its own
+- Predictable → synchronous, priority ordered, no queue, no background process
 
 ## Defining a Signal
 

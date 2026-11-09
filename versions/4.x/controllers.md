@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Controllers
-### Introduction
 Rather than defining all request-handling logic as closures in route files, you can use controller classes to organize related functionality. Controllers centralize request handling, making your code more structured and maintainable. For example, a UserController can manage user-related actions like displaying, creating, updating, and deleting users. By default, controllers are stored in the `src/Http/Controllers` directory.
 
 ## Controller Auto-Discovery

@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Lens
-### Introduction
 The `Phaseolies\Support\Lens` utility is a powerful and expressive helper for working with PHP arrays. Inspired by functional programming principles and dot notation access patterns, it provides a clean, chainable, and readable way to access, modify, flatten, and filter arrays — including deeply nested structures.
 
 Whether you're working with configuration data, nested API responses, or transforming data collections, `Lens` simplifies your logic and keeps your code expressive.

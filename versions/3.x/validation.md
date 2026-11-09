@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Validation
-### Introduction
 Doppar offers multiple flexible ways to validate incoming data in your application. The most common approach is using the `sanitize()` method available on all HTTP request instances, making it easy to apply validation directly where data enters your system.
 
 Beyond this, Doppar provides a robust set of built-in validation rules that you can apply to ensure your data meets expected formats and constraints. This includes powerful features like checking for unique values within database tables.

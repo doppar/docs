@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Authentication
-### Introduction
 Authentication is a fundamental part of most web applications. It ensures that users can securely log in, access protected resources, and maintain session integrity. Doppar simplifies this process by providing built-in tools and scaffolding to help you implement user authentication quickly and securely.
 
 With a single command, you can generate the routes, controllers, and views necessary for user `login`, `registration`, and `logout`. Doppar's authentication system is built on top of robust components like session handling and secure password hashing, ensuring your users' data remains protected.

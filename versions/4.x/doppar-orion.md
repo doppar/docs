@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Processes
-### Introduction
 Doppar Processes provides a powerful and expressive abstraction for running and managing system-level commands and scripts from within your PHP application. Built on top of the Symfony Process Component, it gives you a fluent interface for executing commands, handling their output, managing timeouts, and controlling processes without having to work directly with the underlying process APIs.
 
 Processes supports both synchronous and asynchronous execution, allowing you to choose whether your application should wait for a command to finish or continue working while a long-running process executes. Output can be captured, streamed in real time, or disabled entirely when it is not needed, giving you control over both process behavior and resource usage.

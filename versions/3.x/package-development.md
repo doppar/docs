@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Doppar Framework – Package Development Guide
-### Introduction
 Welcome to the official Doppar Framework Package Development Guide! This document walks you through the full lifecycle of creating, structuring, and maintaining packages within the Doppar PHP ecosystem.
 
 In Doppar, packages are designed to promote modularity, reusability, and maintainability within applications. By encapsulating functionality into discrete, self-contained components, developers can isolate concerns and build features that are easy to test, share, and maintain.

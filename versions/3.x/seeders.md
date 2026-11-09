@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Database Seeder
-### Introduction
 Database seeding is a crucial aspect of web application development, especially when populating your database with sample data for testing or development. Doppar supports database seeding, allowing you to easily generate data using custom seed classes.
 
 Seed classes are stored in the `database/seeders` directory, and you can use them to define the data that should be inserted into your database tables.

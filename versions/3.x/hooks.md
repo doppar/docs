@@ -6,7 +6,6 @@ meta:
   content: Model Hooks, Lifecycle, before_created, after_created, before_updated, after_updated, before_deleted, after_deleted, booting, booted
 ---
 
-- [Introduction](#introduction)
 - [Supported Events](#supported-events)
 - [Hook Registration Formats](#hook-registration-formats)
 - [Array Property Hooks](#array-property-hooks)
@@ -34,8 +33,6 @@ meta:
 - [Important Constraints](#important-constraints)
 
 ## Hooks
-### Introduction
-
 Model Hooks in Doppar provide a clean, expressive way to respond to lifecycle events on your models. They allow you to execute custom logic automatically when specific events occur — such as when a model is being created, updated, deleted, or booted for the first time.
 
 Hooks are the right place for cross-cutting concerns that belong close to the model but should not live inside your controllers or service classes. Common use cases include:

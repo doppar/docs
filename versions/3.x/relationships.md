@@ -17,7 +17,6 @@ meta:
   - [Relationship Count](#relationship-count)
 
 ## Relationships
-### Introduction
 The Doppar Entity relationship system provides a powerful way to represent and manage connections between database tables in an object-oriented manner.
 
 In real-world applications, tables are often interconnected. For instance, a library system might have Book records linked to multiple Author records, or a Customer may have multiple Orders. Doppar Entity ORM makes it simple to define and work with these relationships, whether one-to-one, one-to-many, or many-to-many.

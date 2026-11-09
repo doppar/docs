@@ -8,8 +8,6 @@ meta:
 
 ## Database Migration
 
-### Introduction
-
 Managing database schema changes manually is error-prone and difficult to coordinate 
 across teams and environments. The migration system solves this by providing a 
 structured, version-controlled way to evolve your database schema over time — keeping 

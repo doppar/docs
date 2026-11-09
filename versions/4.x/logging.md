@@ -8,8 +8,6 @@ meta:
 
 ## Logging
 
-### Introduction
-
 Logging is one of the first tools you reach for when you need to
 understand what happened inside a request, background command, or
 integration flow. Doppar's logging layer is built on top of

@@ -7,8 +7,6 @@ meta:
 ---
 
 ## Deployment
-### Introduction
-
 Deploying a Doppar application is straightforward and optimized for both development and production environments. This guide outlines the essential steps to get your Doppar app running on a live server.
 
 ## Server Requirements

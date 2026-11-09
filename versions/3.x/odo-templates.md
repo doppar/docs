@@ -8,8 +8,6 @@ meta:
 
 ## Odo Templates
 
-### Introduction
-
 Doppar includes **Odo**, a modern, lightweight, and fully customizable templating engine designed exclusively for the Doppar Framework. Odo makes it easy to build dynamic HTML views using expressive directives and clean syntax — without scattering raw PHP throughout your markup.
 
 Instead of writing PHP directly in your views, Odo gives you readable, expressive template directives like `#if`, `#foreach`, and `#include`, along with powerful echo tags like `[[ ]]`, `[[! !]]`, and `[[[ ]]]`.

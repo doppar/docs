@@ -8,8 +8,6 @@ meta:
 
 ## Defer
 
-### Introduction
-
 Code that acquires a temporary resource such as a cache lock, a file handle, a temporary file, a tracing span, or an open transaction must give that resource back no matter how the work ends. Doing it by hand usually means wrapping everything in `try`/`finally`, or remembering which lifecycle hook runs late enough to be safe.
 
 Doppar's `defer()` method lets you register the cleanup **right next to the line that acquires the resource**. The callback is held until the current execution finishes, then runs whether the execution succeeded or threw an exception.
@@ -31,10 +29,10 @@ defer(static function () use ($lock): void {
 
 ### Why Use defer()
 
-- *Acquire and release stay together* → you cannot forget the cleanup half
-- *Guaranteed* → cleanup runs after success and after an exception
-- *Ordered* → resources are released in reverse order of acquisition
-- *Isolated* → a callback belongs to one execution and never leaks into the next request, job, or command in a long-lived worker
+- Acquire and release stay together → you cannot forget the cleanup half
+- Guaranteed → cleanup runs after success and after an exception
+- Ordered → resources are released in reverse order of acquisition
+- Isolated → a callback belongs to one execution and never leaks into the next request, job, or command in a long-lived worker
 
 ## Registering a Callback
 

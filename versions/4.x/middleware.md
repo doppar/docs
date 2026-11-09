@@ -7,7 +7,6 @@ meta:
 ---
 
 ## Middleware
-### Introduction
 Middleware offers a powerful way to inspect, filter, and act on HTTP requests before they reach your application's core logic. For instance, Doppar includes built-in middleware that ensures a user is authenticated. If the user isn't authenticated, the middleware can redirect them to a login page; otherwise, it allows the request to proceed.
 
 Beyond authentication, middleware can handle a wide range of tasks. For example, a logging middleware might record every incoming request, while another could handle input sanitization or API rate limiting. Doppar comes bundled with several useful middleware for tasks like authentication and CSRF protection. Custom middleware can be created and are typically stored in the `src/Http/Middleware` directory of your application.
