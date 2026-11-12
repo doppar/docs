@@ -125,7 +125,7 @@ Schema::create('sessions', function (Blueprint $table) {
 | `payload` | The session data, serialized and base64 encoded |
 | `last_activity` | When the session was last used, as a Unix timestamp |
 
-> **Note:** If your users have UUID or ULID keys, change the `user_id` column to `$table->string('user_id', 36)->nullable()->index();` before you migrate.
+> **Note:** If your users have UUID or ULID keys, generate the migration with `php pool session:table --uuid`. It creates `user_id` as `$table->string('user_id', 36)->nullable()->index();` instead.
 
 The table and connection default to `sessions` and your default database connection. To change them, add these options to `runtime/config/session.php`; `connection` must name one of the connections in `runtime/config/database.php`:
 
@@ -382,7 +382,7 @@ Removes every stored session, which signs out all users. It has no effect on the
 php pool session:table
 ```
 
-Creates the migration for the `database` driver's table. See [Database Driver](#database-driver).
+Creates the migration for the `database` driver's table. See [Database Driver](#database-driver). Pass `--uuid` when your users have UUID or ULID keys, to create `user_id` as a string column.
 
 ## Concurrent Requests
 
