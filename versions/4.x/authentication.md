@@ -235,6 +235,8 @@ auth()->refreshSessionFingerprint();
 
 The middleware does not read the password from the database by itself. A password that changed there while a request was running may have been changed by another device that is signing this one out, and the middleware must not keep this device signed in.
 
+The middleware identifies the password a session was signed in with by a fingerprint keyed with your `APP_KEY`. Changing `APP_KEY` therefore signs every session out on routes that use the middleware, just as it already makes encrypted cookies, including remember-me cookies, unreadable.
+
 > **Note:** The middleware is optional with the `database` driver, which deletes the other sessions immediately. Registering it anyway also covers password changes made outside `logoutOtherDevices()`.
 
 Sessions that were signed in before the middleware was registered do not record which password they were signed in with, so registering it signs them out on their next request. Only the sign-in ends: the rest of the session's data, such as a shopping cart, is kept. A device with a valid remember-me cookie is signed straight back in, so only users who did not choose "Remember Me" have to sign in again. A remember-me cookie that `logoutOtherDevices()` has replaced does not sign the device back in.
