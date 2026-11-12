@@ -7,38 +7,71 @@ meta:
 ---
 
 ## Datetime
-Doppar provides a robust and flexible system for working with dates and times, thanks to its integration with the Carbon library. However, understanding how timezones are managed—especially when using functions like `now()` or `Carbon::now()`—can be important when building applications that rely on accurate time data.
 
-By default, Doppar uses UTC as the base timezone for datetime functions such as `now()` and `Carbon::now()`. 
+Doppar provides a robust and flexible system for working with dates and times through its Carbon integration. Timezone behavior is explicit: the application timezone is configured through `config/app.php`, while individual Carbon instances may use their own timezone.
 
-<div class="doppar-alert doppar-alert-danger">
-This might be confusing at first glance if you return timezone as reponse because any calls to these methods will return the current time in UTC.
-</div>
+Doppar uses `UTC` by default. If your application returns a timezone or formatted timestamp, remember that the configured application timezone is applied when the application boots.
 
-But don't worry—Doppar is designed to internally handle timezone conversions using the timezone set in your `config/app.php` configuration file
+Set the application timezone in `config/app.php`:
 
 ```php
 'timezone' => env('APP_TIMEZONE', 'UTC'),
 ```
-Whenever you use dates for display, formatting, or storing them in databases, Doppar ensures they are correctly converted to or from the application's configured timezone.
+
+Doppar applies this timezone to PHP's default timezone and to the framework timezone service. Database date and time values should still be stored and queried consistently with your database driver's timezone configuration.
 
 ## Working with Carbon
-Carbon is a popular PHP library for date and time manipulation, and it's seamlessly integrated into the Doppar. Whether you're retrieving the current time or manipulating dates, Carbon provides a consistent and elegant API.
 
-When working within Doppar, you have multiple ways to create a Carbon instance representing the current time. Here are three equivalent approaches: Let's see the example. To know more about [Carbon](https://carbon.nesbot.com/), see its oficial docs.
+Carbon is a popular PHP library for date and time manipulation, and it is integrated into Doppar. To learn more about Carbon, see the [official Carbon documentation](https://carbon.nesbot.com/).
+
+The `now()` helper accepts an optional timezone. With no argument, it uses the application/PHP default timezone:
+
+```php
+now();
+```
+
+Pass a timezone when a value must be created in a specific timezone:
+
+```php
+now('Asia/Dhaka');
+now(new DateTimeZone('UTC'));
+```
+
+You can also use Carbon directly. Uses PHP's configured default timezone.
 ```php
 use Carbon\Carbon;
 
 Carbon::now();
 ```
 
-Using the `now()` helper function:
+Explicitly creates a UTC instance.
 ```php
-now();
+Carbon::now('UTC');
 ```
 
-Using the container:
+Use the framework timezone service when you want the configured application timezone explicitly:
+
+Uses `config/app.php`'s timezone.
 ```php
-app('timezone')->now();
+app('timezone')->now(); 
 ```
-All of these methods will return the same result — a Carbon instance with the current date and time.
+
+`Carbon::now()` and `now()` without an argument normally represent the same instant and timezone because Doppar configures PHP's default timezone during application startup. An explicit timezone argument overrides that default.
+
+## Date-time precision
+
+Doppar preserves microseconds when a `DateTimeInterface` value is formatted for date-time query operations or pivot updates. Values without microseconds retain the familiar `Y-m-d H:i:s` format; values with microseconds are written as `Y-m-d H:i:s.u`.
+
+```php
+$date = DateTimeImmutable::createFromFormat(
+    'Y-m-d H:i:s.u',
+    '2024-03-20 15:45:00.123456'
+);
+```
+
+Date-time query operations preserve the `.123456` precision.
+```php
+$builder->whereDateTimeBetween('created_at', $date, $date);
+```
+
+Custom `datetime:<format>` casts use the supplied format when serializing a `DateTimeInterface` for storage. On read, Doppar parses the stored value into a Carbon instance.
