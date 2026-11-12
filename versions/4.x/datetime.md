@@ -74,4 +74,10 @@ Date-time query operations preserve the `.123456` precision.
 $builder->whereDateTimeBetween('created_at', $date, $date);
 ```
 
-Custom `datetime:<format>` casts use the supplied format when serializing a `DateTimeInterface` for storage. On read, Doppar parses the stored value into a Carbon instance.
+The default `datetime` cast keeps the existing `Y-m-d H:i:s` output for second-precision values and appends `.u` when the value contains non-zero microseconds. Custom `datetime:<format>` casts use the supplied format exactly when serializing a `DateTimeInterface` for storage. On read, Doppar parses the stored value into a Carbon instance.
+
+When passing date-only strings to `whereDateTimeBetween()`, Doppar expands the first value to `00:00:00` and the second value to `23:59:59`:
+
+```php
+$builder->whereDateTimeBetween('created_at', '2024-03-20', '2024-03-21');
+```
