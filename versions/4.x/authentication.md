@@ -497,8 +497,7 @@ class AdminLoginController extends Controller
 }
 ```
 
-## Two Factor Authentication`
-### Introduction
+## Two Factor Authentication
 Doppar Framework provides a robust, secure, and developer-friendly implementation of Two-Factor Authentication (2FA) to enhance user account protection. Built on top of industry standards such as `TOTP (Time-Based One-Time Password Algorithm)`, this module allows seamless integration of 2FA into any user-based application using the framework.
 
 - Secure TOTP secret generation using Base32 encoding.
