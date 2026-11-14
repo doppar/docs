@@ -353,3 +353,27 @@ JSON responses now call an object's own `jsonSerialize()`, including for models 
 ### Error views
 
 Bundled error pages (`404`, `500`, and so on) are now resolved relative to the framework package rather than a hard-coded `vendor/doppar/framework` path. Your own views in `templates/views/errors/{status}.odo.php` still take precedence. In setups where the framework isn't installed under `vendor/doppar/framework` (for example a path repository), `abort()` now renders the bundled pages instead of a bare exception. To find the view used for a status, call `Response::resolveErrorView($status)`.
+
+## Upgrading Within 4.9: Entity Builder Write Validation
+
+Doppar 4.9 validates every column name that the Entity Builder writes into an `INSERT` or `UPDATE` statement. Before, the keys of the array you passed to `insert()`, `update()` and similar methods went into the SQL unchanged, so code such as `User::query()->where('id', $id)->update($request->all())` let a crafted request key inject SQL. Most applications need no changes. Review the items below if your code relies on any of them.
+
+### Write column names must be plain identifiers
+
+Column names passed to `insert()`, `insertMany()`, `update()`, `upsert()` (columns, unique keys and update columns), `increment()`/`decrement()` (the column and the extra columns), and pivot data for `link()`/`relate()` must match `[A-Za-z_][A-Za-z0-9_]*`. Anything else throws an `InvalidArgumentException`. That includes table-qualified names such as `posts.title`, which SQLite and PostgreSQL already refused in `SET`. Write plain column names.
+
+### Empty writes throw
+
+`insert([])` and `update([])` now throw an `InvalidArgumentException`. On a model query, `update([])` used to update only `updated_at`. If you relied on that to touch rows, pass the column explicitly: `->update(['updated_at' => now()])`.
+
+### Bulk rows must have the same columns
+
+`insertMany()` and `upsert()` now reject a row that has a column the first row doesn't, as well as a row missing one. `upsert()` used to write `NULL` for a missing column. The error names the column. `insertMany()` also rejects a chunk size of zero or less.
+
+### Upsert update columns must be in the data
+
+Every column in `upsert()`'s third argument must appear in the records you pass. Before, a column missing from the records was reset to `NULL` or its default on every matching row, or the query failed, depending on the database. On models with timestamps, `updated_at` is still allowed because Doppar adds it.
+
+### Pivot data cannot change the relationship keys
+
+Pivot data passed to `link()` or `relate()` may no longer contain the relationship's foreign key or related key (for example `post_id` and `tag_id`). Before, `$post->tags()->link([3], ['post_id' => 99])` linked tag 3 to post 99 instead of `$post`. `relate()` checks all pivot data before it unlinks anything, so a rejected call leaves the existing links in place.

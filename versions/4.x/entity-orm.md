@@ -1851,6 +1851,8 @@ Result:
 - Matches on both email and phone.
 - If both match, updates name; otherwise inserts.
 
+Every record must have the same columns, and every column in the third argument must appear in the records. Otherwise `upsert()` throws an `InvalidArgumentException`.
+
 ## Bulk Insert Using saveMany()
 When you need to insert multiple records at once, Doppar provides the saveMany() method, which simplifies batch inserts. Instead of saving each record individually, you can pass an array of data, and Doppar will insert them all in a single operation.
 
