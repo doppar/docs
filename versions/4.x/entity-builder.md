@@ -817,6 +817,8 @@ db()->bucket('logs')->insertMany($logData, 500);
 
 Every row must have the same columns as the first row. A row with a missing or extra column throws an `InvalidArgumentException` that names the column. The chunk size must be greater than zero.
 
+`insertMany()` is all or nothing. Every row is checked before the first chunk is written, and when the rows span several chunks they are inserted in one transaction, so a failing chunk rolls back the earlier ones. Inside your own `DB::transaction()`, the insert joins that transaction instead.
+
 ### Updates
 To update a record, modify the attributes you want to change, and then call `update()`. Doppar will handle generating the appropriate UPDATE statement.
 ```php
