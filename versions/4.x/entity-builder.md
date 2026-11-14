@@ -12,7 +12,6 @@ meta:
   - [Querying Date Columns](#querying-date-columns)
   - [Transform Entity Collection](#transform-entity-collection)
   - [Pagination](#pagination)
-  - [Cursor Pagination](#cursor-pagination)
   - [Database Transactions](#database-transactions)
   - [Entity Join](#entity-join)
   - [DB Query](#db-query)
@@ -816,6 +815,8 @@ If you have a very large dataset (e.g., 100000 records), you can use chunking to
 db()->bucket('logs')->insertMany($logData, 500);
 ```
 
+Every row must have the same columns as the first row. A row with a missing or extra column throws an `InvalidArgumentException` that names the column. The chunk size must be greater than zero.
+
 ### Updates
 To update a record, modify the attributes you want to change, and then call `update()`. Doppar will handle generating the appropriate UPDATE statement.
 ```php
@@ -826,6 +827,8 @@ db()->bucket('users')
         'updated_at' => now()
     ]);
 ```
+
+> Column names in `insert()`, `insertMany()`, `update()`, `upsert()` and `increment()`/`decrement()` must be plain identifiers (letters, digits and underscores, not starting with a digit). Any other name, including a table-qualified one such as `users.name`, throws an `InvalidArgumentException`, and so does an empty array. Validation stops SQL injection through column names, but it doesn't decide which columns a user may change. Don't pass `$request->all()` straight to `update()`. Pick the fields you allow.
 
 ## Upsert
 Upsert (a combination of Insert and Update) is a database operation that inserts new records if they don't exist or updates existing records if they do. It's especially useful when you want to ensure data consistency without writing separate logic for checking existence first.
@@ -880,6 +883,8 @@ $affectedRows = db()->bucket('users')->upsert(
 Result:
 - Matches on both email and phone.
 - If both match, updates name; otherwise inserts.
+
+Every record must have the same columns, and every column in the third argument must appear in the records. Otherwise `upsert()` throws an `InvalidArgumentException`.
 
 ### Deleting Models
 To delete a record, you may call the delete method like this way.
@@ -1099,66 +1104,6 @@ db()->bucket('users')
     ->get();
 ```
 This query will skip the first 4 records and retrieve the next 10 records. This is useful for simple pagination or when you want to retrieve a specific slice of your dataset.
-
-## Cursor Pagination
-Cursor-based pagination is an efficient alternative to traditional offset pagination, especially for large datasets. Instead of using `OFFSET` and `LIMIT`, it uses a cursor — an encoded pointer to the last seen record — to fetch the next page. This avoids the performance degradation that comes with large offsets and ensures stable, consistent results even when data is being inserted or deleted between requests.
-
-Doppar provides cursor pagination through the `cursorPaginate()` method, available on both Entity models and the raw query builder.
-
-### Basic Usage
-```php
-User::cursorPaginate();
-```
-
-This will give you a response like this:
-```json
-{
-    "data": [
-        {
-            "id": 1,
-            "name": "John Doe",
-            "email": "john@example.com",
-            "created_at": "2024-01-01 10:00:00"
-        },
-        {
-            "id": 2,
-            "name": "Jane Smith",
-            "email": "jane@example.com",
-            "created_at": "2024-01-02 10:00:00"
-        }
-    ],
-    "per_page": 15,
-    "next_cursor": "eyJ2IjoyfQ==",
-    "next_page_url": "http://example.com/users?cursor=eyJ2IjoyfQ==&per_page=15&direction=asc",
-    "has_more": true,
-    "direction": "asc"
-}
-```
-
-### Paginating with Custom Options
-You can pass custom options to the `cursorPaginate()` method, such as the number of records per page and the direction of pagination. Paginate 20 records per page in descending order
-```php
-User::cursorPaginate(20, 'id', 'desc');
-```
-
-### Fetching the Next Page
-Pass the `next_cursor` value from the previous response to get the next page. In a controller, this typically looks like:
-```php
-public function index(Request $request)
-{
-    return User::query()
-        ->where('status', 'active')
-        ->cursorPaginate(
-            perPage: 15,
-            cursorColumn: 'id',
-            direction: 'asc',
-            cursor: $request->cursor
-        );
-}
-```
-The `next_page_url` in the response automatically carries the cursor, `per_page`, and direction parameters, so the client can simply follow the URL for the next page
-
-> Note: The cursor column should be indexed and have reasonably unique values (such as id or created_at) to ensure correct and efficient pagination. Cursor pagination does not support jumping to arbitrary pages — it is strictly sequential forward pagination.
 
 <a name="database-transactions"></a>
 

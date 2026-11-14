@@ -671,6 +671,10 @@ $post->tags()->relate([
 ]);
 ```
 
+`link()` takes pivot data as its second argument: `$post->tags()->link([3], ['featured' => true])`.
+
+Pivot column names must be plain identifiers, and pivot data cannot include the relationship's own keys (here `post_id` and `tag_id`). Either mistake throws an `InvalidArgumentException`. `relate()` checks all pivot data before it unlinks anything, so a rejected call leaves the existing links unchanged.
+
 ## Nested Relationship
 In the Doppar framework, you can effortlessly retrieve deeply nested relationships using the powerful embed method. This allows you to preload related models at multiple levels, preventing the "N + 1" query issue and ensuring optimized performance across complex data structures.
 
