@@ -368,7 +368,7 @@ Column names passed to `insert()`, `insertMany()`, `update()`, `upsert()` (colum
 
 ### Bulk rows must have the same columns
 
-`insertMany()` and `upsert()` now reject a row that has a column the first row doesn't, as well as a row missing one. `upsert()` used to write `NULL` for a missing column. The error names the column. `insertMany()` also rejects a chunk size of zero or less.
+`insertMany()` and `upsert()` now reject a row that has a column the first row doesn't, as well as a row missing one. `upsert()` used to write `NULL` for a missing column. The error names the column. `insertMany()` also rejects a chunk size of zero or less. It checks every row before writing anything and inserts multiple chunks in one transaction, so a bad row or a database error in a later chunk no longer leaves the earlier chunks written.
 
 ### Upsert update columns must be in the data
 
