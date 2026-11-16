@@ -10,6 +10,13 @@ meta:
 
 Every tagged release of [`doppar/framework`](https://github.com/doppar/framework) in the 4.x line, newest first. Use the package selector above to switch between the framework and first-party packages. For the big picture of what changed between major versions, see the [Release Notes](/versions/4.x/releases).
 
+## v4.9.2
+
+_Released November 16, 2026_ · [View on GitHub](https://github.com/doppar/framework/releases/tag/v4.9.2)
+
+* fix(entity): validate write column names and pivot keys in the entity builders by [@techmahedy](https://github.com/techmahedy) in [#407](https://github.com/doppar/framework/pull/407)
+* fix(entity): make insertMany() validate all rows up front and run its chunks in one transaction by [@techmahedy](https://github.com/techmahedy) in [#408](https://github.com/doppar/framework/pull/408)
+
 ## v4.9.1
 
 _Released November 13, 2026_ · [View on GitHub](https://github.com/doppar/framework/releases/tag/v4.9.1)
