@@ -20,6 +20,7 @@ meta:
   - [Mail Transport Switched to Symfony Mailer](#mail-transport-switched-to-symfony-mailer)
   - [Checklist](#checklist)
   - [Upgrading Within 4.9: Request and Response Changes](#upgrading-within-4x-request-and-response-changes)
+  - [Upgrading Within 4.9: Query Builder Input Validation](#upgrading-within-4-9-query-builder-input-validation)
 
 ## Upgrade Guide
 
@@ -377,3 +378,48 @@ Every column in `upsert()`'s third argument must appear in the records you pass.
 ### Pivot data cannot change the relationship keys
 
 Pivot data passed to `link()` or `relate()` may no longer contain the relationship's foreign key or related key (for example `post_id` and `tag_id`). Before, `$post->tags()->link([3], ['post_id' => 99])` linked tag 3 to post 99 instead of `$post`. `relate()` checks all pivot data before it unlinks anything, so a rejected call leaves the existing links in place.
+
+## Upgrading Within 4.9: Query Builder Input Validation
+
+Doppar 4.9 also validates operators, JSON paths, table names and column names that the query builders put into SQL. These values often come from a request. Before, `User::query()->where('price', $request->op, $value)` let a crafted operator such as `= 0 OR 1=1 --` inject SQL, and `whereJson('meta', '$.'.$request->key, $value)` did the same through the JSON path on MySQL and PostgreSQL. Invalid values now throw an `InvalidArgumentException`. Most applications need no changes. Review the items below if your code relies on any of them.
+
+### Aggregates only accept column names
+
+`sum()`, `avg()`, `min()`, `max()`, `variance()`, `stdDev()` and `groupConcat()` now require a column name, optionally table-qualified (`price` or `products.price`). An expression such as `sum('price * quantity')` used to work and now throws. Move the expression to `selectRaw()`:
+
+```php
+// Before
+Product::query()->sum('price * quantity');
+
+// After
+Product::query()
+    ->selectRaw('SUM(price * quantity) as total')
+    ->first()
+    ->total;
+```
+
+The `groupConcat()` separator may no longer contain single quotes, backslashes or NUL bytes.
+
+### WHERE operators must be known operators
+
+The operator passed to `where()`, `orWhere()`, `whereDate()`, `whereMonth()`, `whereYear()`, `whereDay()` and `whereTime()` must be a standard SQL comparison operator, such as `=`, `!=`, `<>`, `<`, `>=`, `LIKE`, `NOT LIKE`, `ILIKE`, `REGEXP`, `IS NOT` or `IS DISTINCT FROM`. Operators are matched case-insensitively and normalized, so `not like` becomes `NOT LIKE`. Anything else throws. If you pass an operator that comes from a request, it can no longer inject SQL. Still check it against the operators you want to allow, because users could otherwise pick any valid one.
+
+### JSON queries validate the column and path
+
+`whereJson()` and `jsonContains()` require the column to be a valid column name. On MySQL the JSON path is now bound as a parameter. On PostgreSQL each key in the path is bound, and the path must be made of dot-separated keys, such as `$.profile.status`. Paths with array indexes (`$.tags[0]`) are rejected on PostgreSQL. They did not work there before either.
+
+This also fixes nested PostgreSQL paths compared to a string. `whereJson('meta', '$.profile.status', 'active')` used to produce invalid SQL on PostgreSQL and now works.
+
+### Join arguments are validated
+
+`join()` now checks every argument. The table must be a table name, optionally schema-qualified or aliased (`posts`, `posts as p`, `posts p`). Both columns must be column names. The operator must be one of `=`, `<`, `>`, `<=`, `>=`, `<>` or `!=`, and the join type one of `inner`, `left`, `right`, `cross`, `full`, `left outer`, `right outer` or `full outer`. To join on an expression, write the whole query with `DB::query()` instead.
+
+### Query helpers validate columns and aliases
+
+- `wherePattern()` only accepts `LIKE`, `NOT LIKE`, `ILIKE`, `NOT ILIKE`, `REGEXP`, `NOT REGEXP`, `RLIKE`, `NOT RLIKE`, `GLOB`, `NOT GLOB`, `SIMILAR TO` and `NOT SIMILAR TO` as the pattern type.
+- `iLike()`, `toDictionary()`, `toDiff()`, `toRatio()`, `firstLastInWindow()`, `movingDifference()` and `movingAverage()` require column names, so you can no longer pass an expression in place of a column.
+- The alias argument of `toDiff()`, `toRatio()`, `transformBy()`, `firstLastInWindow()`, `movingDifference()` and `movingAverage()` must be a plain name made of letters, digits and underscores, not starting with a digit.
+
+### `select()` is unchanged
+
+`select()` still accepts raw expressions such as `'COUNT(*) as count'`, so never pass user input to it. The same applies to `selectRaw()`, `whereRaw()`, `orderByRaw()`, `groupByRaw()` and `DB::sql()`.

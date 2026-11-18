@@ -781,7 +781,7 @@ Let’s assume a user record has the following field `attributes` as JSON like t
 }
 ```
 ### whereJson()
-The `whereJson()` method allows you to query a specific value at a JSON path to check if a JSON path contains a specific value, including nested or array-based structures.
+The `whereJson()` method allows you to query a specific value at a JSON path to check if a JSON path contains a specific value, including nested structures.
 
 Here's how you might use it:
 ```php
@@ -791,6 +791,8 @@ User::whereJson('attributes', '$.theme', 'dark')
 ```
 
 This method is ideal for exact value matching inside a JSON structure, including support for booleans.
+
+The column must be a column name, and the path is bound as a query parameter, so it is safe to build from user input. On PostgreSQL the path must be made of dot-separated keys, such as `$.notifications.email`. Array indexes such as `$.tags[0]` are not supported there and throw an `InvalidArgumentException`.
 
 When you need full control over the SQL expression — such as when working with JSON functions —` whereRaw()` lets you write raw SQL where clauses directly into your query.
 
@@ -1275,6 +1277,8 @@ This filters users whose email matches the pattern `name@demo.com`, where name c
 
 > `REGEXP` is not supported by PostgreSQL (pgsql) and SQLite by default.
 While MySQL and MariaDB natively support `REGEXP`.
+
+The pattern type must be one of `LIKE`, `NOT LIKE`, `ILIKE`, `NOT ILIKE`, `REGEXP`, `NOT REGEXP`, `RLIKE`, `NOT RLIKE`, `GLOB`, `NOT GLOB`, `SIMILAR TO` or `NOT SIMILAR TO`. Any other value throws an `InvalidArgumentException`.
 
 Perform a case-insensitive match using LIKE
 ```php
@@ -1981,6 +1985,8 @@ To calculate the variance of values (a squared measure of data spread):
 Product::query()->variance('price');
 ```
 
+> Aggregate methods (`sum()`, `avg()`, `min()`, `max()`, `stdDev()`, `variance()` and `groupConcat()`) accept a column name, optionally table-qualified such as `products.price`, and throw an `InvalidArgumentException` for anything else. To aggregate an expression, use `selectRaw()`: `Product::query()->selectRaw('SUM(price * quantity) as total')->first()->total`.
+
 ### Multiple Aggregations in One Query
 To retrieve count, average, min, and max in a single grouped query:
 ```php
@@ -2420,6 +2426,8 @@ User::query()
 ```
 
 Here, a `LEFT JOIN` is used to include all users, even if they do not have associated posts.
+
+The table may be schema-qualified or aliased (`posts as p`). Both columns must be column names, the operator one of `=`, `<`, `>`, `<=`, `>=`, `<>` or `!=`, and the join type one of `inner`, `left`, `right`, `cross`, `full`, `left outer`, `right outer` or `full outer`. Anything else throws an `InvalidArgumentException`.
 
 ### Applying Conditions in Joins
 You can apply additional conditions to filter the joined data. The example below joins the posts table and fetches only the users who have published posts:
