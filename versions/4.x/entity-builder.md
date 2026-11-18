@@ -933,6 +933,8 @@ To calculate the variance of values (a squared measure of data spread):
 db()->bucket('post')->variance('price');
 ```
 
+> Aggregate methods (`sum()`, `avg()`, `min()`, `max()`, `stdDev()`, `variance()` and `groupConcat()`) accept a column name, optionally table-qualified such as `products.price`, and throw an `InvalidArgumentException` for anything else. To aggregate an expression, use `selectRaw()`: `db()->bucket('product')->selectRaw('SUM(price * quantity) as total')->first()->total`.
+
 ### Multiple Aggregations in One Query
 To retrieve count, average, min, and max in a single grouped query:
 ```php
@@ -1247,6 +1249,8 @@ db()->bucket('users')
 ```
 
 Here, a `LEFT JOIN` is used to include all users, even if they do not have associated posts.
+
+The table may be schema-qualified or aliased (`posts as p`). Both columns must be column names, the operator one of `=`, `<`, `>`, `<=`, `>=`, `<>` or `!=`, and the join type one of `inner`, `left`, `right`, `cross`, `full`, `left outer`, `right outer` or `full outer`. Anything else throws an `InvalidArgumentException`.
 
 ### Performing Multiple Joins
 You can join multiple tables in a single query. The example below joins the users, posts, and comments tables:
