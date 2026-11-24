@@ -10,6 +10,13 @@ meta:
 
 Every tagged release of [`doppar/ripple`](https://github.com/doppar/ripple) in the 4.x line, newest first. Use the package selector above to switch between the framework and first-party packages. For the big picture of what changed between major versions, see the [Release Notes](/versions/4.x/releases).
 
+## v4.0.1
+
+_Released November 20, 2026_ · [View on GitHub](https://github.com/doppar/ripple/releases/tag/v4.0.1)
+
+* Fail closed when no state signing key is configured by [@abdulmajidcse](https://github.com/abdulmajidcse) in [#13](https://github.com/doppar/ripple/pull/13)
+* ci: test on PHP 8.6 by [@techmahedy](https://github.com/techmahedy) in [#14](https://github.com/doppar/ripple/pull/14)
+
 ## v4.0.0
 
 _Released October 31, 2026_ · [View on GitHub](https://github.com/doppar/ripple/releases/tag/v4.0.0)

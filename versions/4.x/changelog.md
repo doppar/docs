@@ -10,6 +10,16 @@ meta:
 
 Every tagged release of [`doppar/framework`](https://github.com/doppar/framework) in the 4.x line, newest first. Use the package selector above to switch between the framework and first-party packages. For the big picture of what changed between major versions, see the [Release Notes](/versions/4.x/releases).
 
+## v4.9.3
+
+_Released November 24, 2026_ · [View on GitHub](https://github.com/doppar/framework/releases/tag/v4.9.3)
+
+* fix(entity): validate operators, JSON paths and identifiers interpolated into queries by [@abdulmajidcse](https://github.com/abdulmajidcse) in [#409](https://github.com/doppar/framework/pull/409)
+* perf(entity): build lazily fetched models directly instead of through the container by [@techmahedy](https://github.com/techmahedy) in [#410](https://github.com/doppar/framework/pull/410)
+* fix(console): hide unused speculative preconnection notices in server start command by [@techmahedy](https://github.com/techmahedy) in [#412](https://github.com/doppar/framework/pull/412)
+* fix(entity): stop exists() from applying LIMIT 1 to the caller's query by [@techmahedy](https://github.com/techmahedy) in [#413](https://github.com/doppar/framework/pull/413)
+* ci: test on PHP 8.6 and require nesbot/carbon ^3.14 by [@techmahedy](https://github.com/techmahedy) in [#411](https://github.com/doppar/framework/pull/411)
+
 ## v4.9.2
 
 _Released November 16, 2026_ · [View on GitHub](https://github.com/doppar/framework/releases/tag/v4.9.2)
