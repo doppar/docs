@@ -33,22 +33,22 @@ use Phaseolies\Database\Entity\Casts\Attributes\ToCollection;
 class Order extends Model
 {
     #[ToBoolean]
-    protected string $is_paid;
+    protected $is_paid;
 
     #[ToDateTime]
-    protected string $shipped_at;
+    protected $shipped_at;
 
     #[ToArray]
-    protected string $meta;
+    protected $meta;
 
     #[ToString]
-    protected string $reference;
+    protected $reference;
 
     #[ToInteger]
-    protected string $item_count;
+    protected $item_count;
 
     #[ToCollection]
-    protected string $line_items;
+    protected $line_items;
 }
 ```
 
@@ -76,48 +76,52 @@ class Order extends Model
 {
     // Using the Type enum case
     #[Transform(Type::Boolean)]
-    protected string $is_paid;
+    protected $is_paid;
 
     // Parameterised decimal with 2 places
     #[Transform('decimal:2')]
-    protected string $total;
+    protected $total;
 
     // Parameterised datetime with custom write format
     #[Transform('datetime:d/m/Y')]
-    protected string $invoiced_at;
+    protected $invoiced_at;
 
     // Backed enum class
     #[Transform(OrderStatus::class)]
-    protected string $status;
+    protected $status;
 
     // Another enum
     #[Transform(Priority::class)]
-    protected string $priority;
+    protected $priority;
 }
 ```
 
 All `To*` shorthand attributes are subclasses of `Transform` and are resolved by the same reflection scanner. They are fully interchangeable — use whichever form reads most clearly at the call-site.
 
-### Why protected?
+### Declaring Cast Properties
 
-Cast properties **must be declared `protected` or `private`**, never `public`. Here is why:
+A cast property marks a column for casting; it never holds the value. Doppar keeps every column value in the model's attributes and applies the cast whenever the property is read or written. Two rules follow from this.
 
-When a property is `public`, PHP resolves `$model->property` as a direct property access and skips `__get()` entirely. The property would be uninitialized (since Doppar never sets typed properties directly — it stores everything in the internal `$attributes` array), and PHP would throw a `TypeError: Cannot access uninitialized property`.
+**Declare cast properties `protected` or `private`.** PHP only routes property access through `__get()` and `__set()` when the property cannot be accessed directly. A `public` property is read directly, so it returns an empty value instead of the column.
 
-With `protected` or `private`, external access to `$model->property` is routed through the `__get()` magic method, which reads from `$attributes` and applies the cast. This is exactly the behaviour you want.
+**Declare cast properties without a type.** When a model is created, Doppar unsets its cast properties. From then on, every read and write of `$model->meta` or `$this->meta` goes through the cast. A typed property such as `protected string $meta;` cannot be unset this way, because PHP checks every value `__get()` returns against the declared type, and a cast returns arrays, collections and dates as well as strings.
 
 ```php
-// Correct — protected, external access goes through __get
+// Correct
 #[ToDateTime]
-protected string $published_at;
+protected $published_at;
 
-// Also fine — private works the same way
+// Correct: private works the same way
 #[ToString]
-private string $reference;
+private $reference;
 
-// Wrong — public bypasses __get, causes TypeError on access
+// Incorrect: public bypasses the cast
 #[ToDateTime]
-public string $published_at;
+public $published_at;
+
+// Incorrect: a typed property cannot be read inside the model
+#[ToArray]
+protected string $meta;
 ```
 
 ## Available Cast Types
@@ -164,17 +168,17 @@ use Phaseolies\Database\Entity\Casts\Type;
 class Post extends Model
 {
     #[ToInteger]
-    protected string $views;
+    protected $views;
 
     #[ToInteger]
-    protected string $comment_count;
+    protected $comment_count;
 
     #[ToInteger]
-    protected string $score;
+    protected $score;
 
     // Equivalent using Transform
     #[Transform(Type::Integer)]
-    protected string $rank;
+    protected $rank;
 }
 ```
 
@@ -214,17 +218,17 @@ use Phaseolies\Database\Entity\Casts\Type;
 class Product extends Model
 {
     #[ToFloat]
-    protected string $weight;
+    protected $weight;
 
     #[ToFloat]
-    protected string $rating;
+    protected $rating;
 
     #[ToFloat]
-    protected string $latitude;
+    protected $latitude;
 
     // Equivalent using Transform
     #[Transform(Type::Float)]
-    protected string $longitude;
+    protected $longitude;
 }
 ```
 
@@ -244,17 +248,17 @@ use Phaseolies\Database\Entity\Casts\Type;
 class Post extends Model
 {
     #[ToBoolean]
-    protected string $is_published;
+    protected $is_published;
 
     #[ToBoolean]
-    protected string $allow_comments;
+    protected $allow_comments;
 
     #[ToBoolean]
-    protected string $is_featured;
+    protected $is_featured;
 
     // Equivalent using Transform
     #[Transform(Type::Boolean)]
-    protected string $requires_approval;
+    protected $requires_approval;
 }
 ```
 
@@ -302,17 +306,17 @@ use Phaseolies\Database\Entity\Casts\Type;
 class User extends Model
 {
     #[ToString]
-    protected string $phone;
+    protected $phone;
 
     #[ToString]
-    protected string $postal_code;
+    protected $postal_code;
 
     #[ToString]
-    protected string $national_id;
+    protected $national_id;
 
     // Equivalent using Transform
     #[Transform(Type::String)]
-    protected string $reference_number;
+    protected $reference_number;
 }
 ```
 
@@ -332,15 +336,15 @@ class Post extends Model
 {
     // Use ToArray when the column represents a structured map
     #[ToArray]
-    protected string $options;
+    protected $options;
 
     // Use ToJson when the column represents a list/tags
     #[ToJson]
-    protected string $tags;
+    protected $tags;
 
     // Equivalent using Transform
     #[Transform(Type::Array)]
-    protected string $settings;
+    protected $settings;
 }
 ```
 
@@ -396,11 +400,11 @@ use Phaseolies\Database\Entity\Casts\Type;
 class Post extends Model
 {
     #[ToObject]
-    protected string $config;
+    protected $config;
 
     // Equivalent using Transform
     #[Transform(Type::Object)]
-    protected string $settings;
+    protected $settings;
 }
 ```
 
@@ -418,14 +422,14 @@ use Phaseolies\Database\Entity\Casts\Type;
 class Product extends Model
 {
     #[ToCollection]
-    protected string $images;
+    protected $images;
 
     #[ToCollection]
-    protected string $tags;
+    protected $tags;
 
     // Equivalent using Transform
     #[Transform(Type::Collection)]
-    protected string $reviews;
+    protected $reviews;
 }
 ```
 
@@ -448,14 +452,14 @@ use Phaseolies\Database\Entity\Casts\Type;
 class Post extends Model
 {
     #[ToDateTime]
-    protected string $published_at;
+    protected $published_at;
 
     #[ToDateTime]
-    protected string $updated_at;
+    protected $updated_at;
 
     // Equivalent using Transform
     #[Transform(Type::DateTime)]
-    protected string $scheduled_at;
+    protected $scheduled_at;
 }
 ```
 
@@ -508,14 +512,14 @@ use Phaseolies\Database\Entity\Casts\Type;
 class User extends Model
 {
     #[ToDate]
-    protected string $birthday;
+    protected $birthday;
 
     #[ToDate]
-    protected string $subscription_expires_on;
+    protected $subscription_expires_on;
 
     // Equivalent using Transform
     #[Transform(Type::Date)]
-    protected string $joined_on;
+    protected $joined_on;
 }
 ```
 
@@ -564,14 +568,14 @@ use Phaseolies\Database\Entity\Casts\Type;
 class Session extends Model
 {
     #[ToTimestamp]
-    protected string $last_activity_at;
+    protected $last_activity_at;
 
     #[ToTimestamp]
-    protected string $expires_at;
+    protected $expires_at;
 
     // Equivalent using Transform
     #[Transform(Type::Timestamp)]
-    protected string $created_ts;
+    protected $created_ts;
 }
 ```
 
@@ -588,15 +592,15 @@ class Invoice extends Model
 {
     // DB stores '15/01/2025' — write must use same format
     #[Transform('datetime:d/m/Y')]
-    protected string $issued_on;
+    protected $issued_on;
 
     // DB stores '2025-01-15' — standard ISO format
     #[Transform('datetime:Y-m-d')]
-    protected string $due_on;
+    protected $due_on;
 
     // DB stores '15 Jan 2025'
     #[Transform('datetime:d M Y')]
-    protected string $reminded_at;
+    protected $reminded_at;
 }
 ```
 
@@ -612,16 +616,16 @@ use Phaseolies\Database\Entity\Casts\Attributes\Transform;
 class Product extends Model
 {
     #[Transform('decimal:2')]
-    protected string $price;
+    protected $price;
 
     #[Transform('decimal:2')]
-    protected string $compare_price;
+    protected $compare_price;
 
     #[Transform('decimal:4')]
-    protected string $tax_rate;
+    protected $tax_rate;
 
     #[Transform('decimal:4')]
-    protected string $discount_rate;
+    protected $discount_rate;
 }
 ```
 
@@ -654,7 +658,7 @@ use App\Enums\OrderStatus;
 class Order extends Model
 {
     #[Transform(OrderStatus::class)]
-    protected string $status;
+    protected $status;
 }
 ```
 
@@ -714,7 +718,7 @@ use App\Enums\Priority;
 class Task extends Model
 {
     #[Transform(Priority::class)]
-    protected string $priority;
+    protected $priority;
 }
 ```
 
@@ -742,7 +746,7 @@ use App\Enums\UserRole;
 class User extends Model
 {
     #[Transform(UserRole::class)]
-    protected string $role;
+    protected $role;
 }
 ```
 
@@ -850,13 +854,13 @@ use App\Casts\MoneyCast;
 class Product extends Model
 {
     #[Transform(MoneyCast::class)]
-    protected string $price;
+    protected $price;
 
     #[Transform(MoneyCast::class)]
-    protected string $compare_price;
+    protected $compare_price;
 
     #[Transform(MoneyCast::class)]
-    protected string $discount;
+    protected $discount;
 }
 ```
 
@@ -1010,13 +1014,13 @@ class User extends Model
     protected $unexposable = ['password', 'remember_token', 'national_id'];
 
     #[ToBoolean]
-    protected string $is_active;
+    protected $is_active;
 
     #[ToArray]
-    protected string $settings;
+    protected $settings;
 
     #[ToString]
-    protected string $national_id;  // excluded from output
+    protected $national_id;  // excluded from output
 }
 
 User::find(1)->toArray();
